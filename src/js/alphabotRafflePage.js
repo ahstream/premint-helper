@@ -33,7 +33,7 @@ import {
   ONE_MINUTE,
 } from '@ahstream/hx-utils';
 import { createStatusbar } from '@ahstream/hx-statusbar';
-import '@ahstream/hx-statusbar/dist/main.css';
+//import '@ahstream/hx-statusbar/dist/main.css';
 
 const debug = createLogger();
 

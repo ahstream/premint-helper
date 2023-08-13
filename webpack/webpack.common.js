@@ -1,6 +1,5 @@
 const path = require('path');
 
-const DotenvPlugin = require('dotenv-webpack');
 const ESLintPlugin = require('eslint-webpack-plugin');
 const CopyPlugin = require('copy-webpack-plugin');
 const MiniCssExtractPlugin = require('mini-css-extract-plugin');
@@ -40,7 +39,6 @@ module.exports = {
     ],
   },
   plugins: [
-    new DotenvPlugin(),
     new ESLintPlugin(),
     new MiniCssExtractPlugin({ filename: 'styles/[name].css' }),
     new CopyPlugin({ patterns: [{ from: 'src/static' }] }),

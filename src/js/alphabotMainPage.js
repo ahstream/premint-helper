@@ -8,7 +8,7 @@ import { createStatusbarButtons, addRevealAlphabotRafflesRequest, getMyTabIdFrom
 
 import { createLogger, sleep, getStorageItems, createHashArgs, noDuplicates, dispatch } from '@ahstream/hx-utils';
 import { createStatusbar } from '@ahstream/hx-statusbar';
-import '@ahstream/hx-statusbar/dist/main.css';
+// import '@ahstream/hx-statusbar/dist/main.css';
 
 const debug = createLogger();
 
