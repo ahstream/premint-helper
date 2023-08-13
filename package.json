@@ -9,7 +9,7 @@
   },
   "scripts": {
     "dev": "webpack --watch --config webpack/webpack.dev.js",
-    "build": "webpack --config webpack/webpack.prod.js",
+    "build": "npm run patch:manifest && webpack --config webpack/webpack.prod.js",
     "patch:manifest": "node tools/patchManifest.js",
     "clean": "rm -rf node_modules",
     "clean:install": "npm run clean && npm install",
