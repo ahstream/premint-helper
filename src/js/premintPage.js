@@ -11,8 +11,9 @@ import {
   getMyTabIdFromExtension,
 } from './premintHelper';
 import { createHistory } from './history';
-import { getStorageItems, setStorageData } from '../../hx-dev/hx-utils/src/chromeUtils';
 import {
+  getStorageItems,
+  setStorageData,
   sleep,
   createHashArgs,
   waitForSelector,
