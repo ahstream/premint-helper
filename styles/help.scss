@@ -1,0 +1,19 @@
+@import 'basePage.scss';
+
+ul.storage li {
+  margin-bottom: 10px;
+}
+
+.list-space-below {
+  margin-bottom: 12px;
+}
+
+ul.list-space-below-1 li,
+ol.list-space-below-1 li {
+  margin-bottom: 8px;
+}
+
+ul.list-space-below-2 li,
+ol.list-space-below-2 li {
+  margin-bottom: 10px;
+}

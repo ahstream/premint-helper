@@ -1,0 +1,85 @@
+:root {
+  /* theme */
+
+  --base-theme-background-color: #0d47a1;
+  --base-theme-background-color2: rgb(252, 185, 3);
+  --base-theme-color: white;
+  --base-theme-color2: black;
+
+  /* raffle */
+
+  --raffle-followers-color: black;
+  --raffle-followers-background-color: cyan;
+
+  --raffle-expired-followers-color: white;
+  --raffle-expired-followers-background-color: #850404;
+
+  --raffle-odds-color: black;
+  --raffle-odds-background-color: cyan;
+
+  --raffle-expired-odds-color: white;
+  --raffle-expired-odds-background-color: #850404;
+
+  --raffle-wins-color: #3a3333;
+  --raffle-wins-background-color: yellow;
+
+  /* statusbar */
+
+  --statusbar-color: var(--base-theme-color);
+  --statusbar-background-color: var(--base-theme-background-color);
+
+  --statusbar-ok-color: white;
+  --statusbar-ok-background-color: rgb(4, 136, 4);
+
+  --statusbar-error-color: white;
+  --statusbar-error-background-color: red;
+
+  --statusbar-btn-color: #24292e;
+  --statusbar-btn-background-color: #fafbfc;
+  --statusbar-btn-border-color: rgba(27, 31, 35, 0.15);
+
+  --statusbar-btn-hover-color: #fafbfc;
+  --statusbar-btn-hover-background-color: #24292e;
+
+  --statusbar-btn-disabled-color: #959da5;
+  --statusbar-btn-disabled-background-color: #c3c8ce;
+  --statusbar-btn-disabled-border-color: rgba(27, 31, 35, 0.15);
+
+  /* raffle-info */
+
+  --raffle-info-join-with-won-wallet: pink;
+  --raffle-info-captcha: hotpink;
+  --raffle-info-discord-captcha: hotpink;
+  --raffle-info-twitter-locked: hotpink;
+  --raffle-info-unknown-error-will-retry: rgb(143, 114, 34);
+  --raffle-info-not-register-properly: rgb(245, 64, 8);
+  --raffle-info-raffle-unknown-error: rgb(245, 64, 8);
+  --raffle-info-wallet-connect-dialog: rgb(245, 64, 8);
+  --raffle-info-doing-it-too-often: rgb(245, 64, 8);
+  --raffle-info-switch-twitter-user-error: rgb(245, 64, 8);
+  --raffle-info-no-raffle-trigger: rgb(245, 64, 8);
+  --raffle-info-generic-error: rgb(245, 64, 8);
+  --raffle-info-already-won: yellow;
+  --raffle-info-registered: #47dd47;
+  --raffle-info-already-registered: #47dd47;
+  --raffle-info-ignored-raffle: gray;
+
+  /* popup */
+
+  --popup-btn-color: white;
+  --popup-btn-background-color: #322a2a;
+
+  /* alphabot */
+
+  --alphabot-btn-color: var(--base-theme-color);
+  --alphabot-btn-background-color: var(--base-theme-background-color);
+
+  --alphabot-btn-hover-background-color: rgb(250, 219, 160);
+
+  /* premint */
+
+  --premint-btn-color: var(--base-theme-color);
+  --premint-btn-background-color: var(--base-theme-background-color);
+  --premint-btn-border-color: darkgray;
+  --premint-btn-hover-background-color: rgb(250, 219, 160);
+}

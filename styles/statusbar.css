@@ -1,0 +1,99 @@
+@import 'baseVars.scss';
+
+.hx-statusbar {
+  color: var(--statusbar-color);
+  background-color: var(--statusbar-background-color);
+  width: 100%;
+  height: auto;
+  padding: 2px 10px;
+  position: absolute;
+  position: fixed;
+  left: 0;
+  top: 0;
+  z-index: 9999;
+  overflow: auto;
+  opacity: 1;
+  transition: opacity 0.5s;
+  border-bottom: 1px solid white;
+  font-weight: 500;
+  font-size: 16px;
+}
+
+.hx-statusbar.hidden {
+  opacity: 0;
+}
+
+#hx-statusbar-left {
+  float: left;
+  border: 0;
+  margin-right: 20px;
+  padding: 5px 0;
+}
+
+#hx-statusbar-right {
+  float: right;
+  border: 0;
+}
+
+#hx-statusbar.info {
+  color: var(--statusbar-color);
+  background-color: var(--statusbar-background-color);
+}
+
+#hx-statusbar.ok {
+  color: var(--statusbar-ok-color);
+  background-color: var(--statusbar-ok-background-color);
+}
+
+#hx-statusbar.warning {
+  color: var(--statusbar-color);
+  background-color: var(--statusbar-background-color);
+}
+
+#hx-statusbar.error {
+  color: var(--statusbar-error-color);
+  background-color: var(--statusbar-error-background-color);
+}
+
+.hx-statusbar button {
+  appearance: none;
+  color: var(--statusbar-btn-color);
+  background-color: var(--statusbar-btn-background-color);
+  border: 1px solid var(--statusbar-btn-border-color);
+  border-radius: 6px;
+  border-radius: 0px;
+  box-shadow: rgba(27, 31, 35, 0.04) 0 1px 0, rgba(255, 255, 255, 0.25) 0 1px 0 inset;
+  box-sizing: border-box;
+  cursor: pointer;
+  display: inline-block;
+  font-family: -apple-system, system-ui, 'Segoe UI', Helvetica, Arial, sans-serif, 'Apple Color Emoji', 'Segoe UI Emoji';
+  font-size: 16px;
+  font-weight: 500;
+  line-height: 16px;
+  list-style: none;
+  padding: 3px 12px;
+  position: relative;
+  transition: background-color 0.01s cubic-bezier(0.3, 0, 0.5, 1);
+  user-select: none;
+  -webkit-user-select: none;
+  touch-action: manipulation;
+  vertical-align: middle;
+  white-space: nowrap;
+  word-wrap: break-word;
+  margin: 5px 10px 5px 0;
+}
+
+.hx-statusbar button:hover {
+  color: var(--statusbar-btn-hover-color);
+  background-color: var(--statusbar-btn-hover-background-color);
+  text-decoration: none;
+  transition-duration: 0.01s;
+  cursor: pointer;
+}
+
+.hx-statusbar button:disabled {
+  cursor: default;
+  color: var(--statusbar-btn-disabled-color);
+  background-color: var(--statusbar-btn-disabled-background-color);
+  border-color: var(--statusbar-btn-disabled-border-color);
+}

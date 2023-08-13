@@ -1,0 +1,77 @@
+@import 'baseVars.scss';
+
+body.exitAction {
+  opacity: 0.8 !important;
+}
+
+body.abort {
+  background-color: var(--raffle-info-generic-error) !important;
+}
+
+body.joinWithWonWallet {
+  background-color: var(--raffle-info-join-with-won-wallet) !important;
+}
+
+body.raffleCaptcha {
+  background-color: var(--raffle-info-captcha) !important;
+}
+
+body.discordCaptcha {
+  background-color: var(--raffle-info-discord-captcha) !important;
+}
+
+body.twitterLocked {
+  background-color: var(--raffle-info-twitter-locked) !important;
+}
+
+body.twitterLocked.abort {
+  background-color: var(--raffle-info-twitter-locked) !important;
+}
+
+body.notRegisterProperly {
+  background-color: var(--raffle-info-not-register-properly) !important;
+}
+
+body.raffleUnknownErrorWillRetry {
+  background-color: var(--raffle-info-unknown-error-will-retry) !important;
+}
+
+body.raffleUnknownError {
+  background-color: var(--raffle-info-raffle-unknown-error) !important;
+}
+
+body.unspecifiedRaffleError {
+  background-color: var(--raffle-info-raffle-unknown-error) !important;
+}
+
+body.walletConnectDialog {
+  background-color: var(--raffle-info-wallet-connect-dialog) !important;
+}
+
+body.doingItTooOften {
+  background-color: var(--raffle-info-doing-it-too-often) !important;
+}
+
+body.switchTwitterUserError {
+  background-color: var(--raffle-info-switch-twitter-user-error) !important;
+}
+
+body.noRaffleTrigger {
+  background-color: var(--raffle-info-no-raffle-trigger) !important;
+}
+
+body.alreadyWon {
+  background-color: var(--raffle-info-already-won) !important;
+}
+
+body.registered {
+  background-color: var(--raffle-info-registered) !important;
+}
+
+body.alreadyRegistered {
+  background-color: var(--raffle-info-already-registered) !important;
+}
+
+body.ignoredRaffle {
+  background-color: var(--raffle-info-ignored-raffle) !important;
+}

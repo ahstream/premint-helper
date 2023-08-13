@@ -1,0 +1,100 @@
+@import 'baseVars.scss';
+@import 'raffleInfo.scss';
+@import 'statusbar.css';
+
+.alphabotButton {
+  color: var(--alphabot-btn-color);
+  background-color: var(--alphabot-btn-background-color);
+  border: 1px solid transparent;
+  font-weight: 700;
+  display: inline-flex;
+  -webkit-box-align: center;
+  align-items: center;
+  -webkit-box-pack: center;
+  justify-content: center;
+  position: relative;
+  box-sizing: border-box;
+  -webkit-tap-highlight-color: transparent;
+  outline: 0px;
+  cursor: pointer;
+  user-select: none;
+  vertical-align: middle;
+  appearance: none;
+  text-decoration: none;
+  font-family: Poppins, Roboto, -apple-system, 'Helvetica Neue', Arial, sans-serif;
+  font-size: 1rem;
+  line-height: 1.75;
+  min-width: 64px;
+  box-shadow: none;
+  text-transform: initial;
+  border-radius: 100px;
+  font-weight: 500;
+  padding: 8px 24px;
+  width: 100%;
+  margin: 12px 0px;
+}
+
+.alphabotButton:hover {
+  opacity: 0.75;
+  box-shadow: none;
+}
+
+.hx-already-won {
+  color: var(--raffle-wins-color);
+  background-color: var(--raffle-wins-background-color);
+  border: solid 1px black;
+  padding: 3px;
+  text-align: center;
+  width: 100%;
+}
+
+p.hx-revealed:after {
+  color: var(--raffle-odds-color);
+  background-color: var(--raffle-odds-background-color);
+  content: attr(data-hx-revealed);
+  display: inline-block;
+  font-size: 16px;
+  padding: 0;
+  margin-left: 10px;
+  padding: 2px 4px;
+}
+
+p.hx-revealed-expired:after {
+  color: var(--raffle-expired-odds-color);
+  background-color: var(--raffle-expired-odds-background-color);
+  content: attr(data-hx-revealed);
+  display: inline-block;
+  font-size: 16px;
+  padding: 0;
+  margin-left: 10px;
+  padding: 2px 4px;
+}
+
+a.twitter-link:after {
+  color: var(--raffle-followers-color);
+  background-color: var(--raffle-followers-background-color);
+  content: attr(data-hx-followers);
+  display: inline-block;
+  font-size: 18px;
+  padding: 0 6px;
+  margin: 0 10px 0 3px;
+}
+
+a.twitter-link-expired:after {
+  color: var(--raffle-expired-followers-color);
+  background-color: var(--raffle-expired-followers-background-color);
+  content: attr(data-hx-followers);
+  display: inline-block;
+  font-size: 18px;
+  padding: 0 6px;
+  margin: 0 10px 0 3px;
+}
+
+.times-won {
+  /* font-size: larger; */
+  font-weight: bold;
+}
+
+div.MuiCard-root {
+  overflow: visible !important;
+}

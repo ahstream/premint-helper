@@ -1,0 +1,17 @@
+@import 'baseVars.scss';
+@import 'basePageSimple.css';
+
+.hx-container {
+  margin: 0px;
+}
+
+body {
+  margin: 5px 15px;
+  font-size: 1.05rem;
+  line-height: 1.1;
+}
+
+img,
+video {
+  max-width: unset;
+}

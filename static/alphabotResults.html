@@ -1,0 +1,38 @@
+<!DOCTYPE html>
+
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <link rel="stylesheet" href="styles/alphabotResults.css" />
+    <title>Premint Helper > Alphabot Results</title>
+  </head>
+  <body>
+    <div class="hx-container">
+      <h2>Premint Helper > Alphabot Results</h2>
+
+      <div id="main">
+        <div id="button-row">
+          <button id="hx-update-cloud" title="Fetch new winners from Alphabot (and optionally from Cloud if configured in Options)">
+            Update Results
+          </button>
+          <!--<button id="hx-update-mine">Update Mine Only</button>-->
+          <button id="hx-reset" title="If something gone wrong you can re-fetch all Alphabot results">Reset</button>
+          <!--<button id="hx-test-1">Test 1</button>-->
+        </div>
+        <div id="status-row">
+          <ul id="hx-status" class="status"></ul>
+        </div>
+
+        <div id="main-table"></div>
+
+        <!--
+        <div id="upcoming">
+          <h3 id="upcoming-drops-header">xxx</h3>
+          <div id="upcoming-content"></div>
+        </div>
+      --></div>
+    </div>
+    <script src="alphabotResults.js"></script>
+  </body>
+</html>

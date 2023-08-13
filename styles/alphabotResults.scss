@@ -1,0 +1,152 @@
+@import url('https://cdn.jsdelivr.net/npm/fork-awesome@1.2.0/css/fork-awesome.min.css');
+
+@import 'basePage.scss';
+
+ul.status {
+  list-style-type: none;
+  background-color: rgb(248, 248, 24);
+  background-color: unset;
+  padding: 0 5px;
+  li {
+    padding: 3px 0;
+  }
+}
+
+table tr td {
+  vertical-align: top;
+}
+
+body tr:nth-child(even) {
+  background-color: rgb(241 239 235);
+}
+
+span.mint-date,
+span.mint-time,
+span.raffle-date {
+  color: black;
+}
+
+span.mint-date:not(.first),
+span.mint-time:not(.first),
+span.raffle-date:not(.first) {
+  color: #cfcbcb;
+}
+
+span.account-name {
+  color: black;
+}
+
+span.mint-address {
+  color: black;
+}
+
+span.team-name {
+  color: #cfcbcb;
+}
+
+a.raffle-link,
+a.twitter-link {
+  color: black;
+  text-decoration: none;
+}
+
+a.is-updated:after {
+  content: 'UPDATED';
+  display: inline-block;
+  font-size: 14px;
+  background-color: rgb(153, 243, 19);
+  background-color: rgb(211, 82, 82);
+  color: black;
+  color: white;
+  padding: 0 1px;
+  margin-left: 10px;
+}
+
+a.is-new:after,
+a.is-updated.is-new:after {
+  content: 'NEW';
+  display: inline-block;
+  font-size: 14px;
+  background-color: rgb(253, 4, 4);
+  background-color: rgb(153, 243, 19);
+  color: white;
+  color: black;
+  padding: 0 1px;
+  margin-left: 10px;
+}
+
+a.discord-link {
+  color: #cfcbcb;
+  text-decoration: none;
+}
+
+a:hover.raffle-link,
+a:hover.twitter-link,
+a:hover.discord-link {
+  text-decoration: underline;
+}
+
+a.raffle-link:not(.first) {
+  color: #cfcbcb;
+}
+
+a.twitter-link:after {
+  content: attr(data-hx-followers);
+  display: inline-block;
+  font-size: 14px;
+  background-color: cyan;
+  color: black;
+  padding: 0 1px;
+  margin-left: 10px;
+}
+
+a.twitter-link-expired:after {
+  content: attr(data-hx-followers);
+  display: inline-block;
+  font-size: 18px;
+  background-color: rgb(133, 4, 4);
+  color: white;
+  padding: 0 6px;
+  margin: 0 10px 0 3px;
+}
+
+.is-today {
+  border: 1px solid black;
+  background-color: #f4ea7d !important;
+}
+
+.is-yesterdayish {
+  border: 1px solid rgb(53, 53, 53);
+  background-color: rgb(248, 216, 199) !important;
+  color: black;
+}
+
+.is-tomorrowish {
+  border: 1px solid black;
+  background-color: lightblue !important;
+  color: black !important;
+
+  .raffle-link:not(.first),
+  .mint-date:not(.first),
+  .mint-time:not(.first),
+  .raffle-date:not(.first),
+  .discord-link,
+  .team-name {
+    color: darkgray;
+  }
+}
+
+.winner-count,
+.entry-count {
+  white-space: nowrap;
+}
+
+thead {
+  text-transform: uppercase;
+}
+
+thead tr td {
+  background-color: black;
+  color: white;
+  border: 1px solid lightgray;
+}

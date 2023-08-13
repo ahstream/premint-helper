@@ -1,0 +1,13 @@
+@import 'baseVars.scss';
+@import 'raffleInfo.scss';
+
+.premintButton {
+  color: var(--premint-btn-color) !important;
+  background-color: var(--premint-btn-background-color) !important;
+  border-color: var(--premint-btn-border-color) !important;
+  font-weight: 700 !important;
+}
+
+.premintButton:hover {
+  background-color: var(--premint-btn-hover-background-color) !important;
+}
