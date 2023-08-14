@@ -5,6 +5,7 @@ import {
   createStatusbarButtons,
   exitActionMain,
   getMyTabIdFromExtension,
+  makeTwitterFollowIntentUrl,
   JOIN_BUTTON_TEXT,
   JOIN_BUTTON_IN_PROGRESS_TEXT,
   JOIN_BUTTON_TITLE,
@@ -808,7 +809,7 @@ async function removeDoneLinks(user, links) {
 }
 
 function getMustFollowLinks() {
-  return parseMustFollowLinks();
+  return parseMustFollowLinks().map((x) => makeTwitterFollowIntentUrl(x));
 }
 
 function getMustLikeAndRetweetLinks() {

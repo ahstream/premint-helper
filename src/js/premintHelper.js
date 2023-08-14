@@ -1,4 +1,12 @@
-import { sleep, millisecondsAhead, getStorageItems, addPendingRequest, createLogger } from '@ahstream/hx-utils';
+import {
+  sleep,
+  millisecondsAhead,
+  getStorageItems,
+  addPendingRequest,
+  createLogger,
+  extractTwitterHandle,
+  onlyNumbers,
+} from '@ahstream/hx-utils';
 
 const debug = createLogger();
 
@@ -206,4 +214,13 @@ export async function getMyTabIdFromExtension(context, maxWait, intervall = 100)
   }
   debug.log('context.myTabId after waited in vain', context.myTabId);
   return context.myTabId;
+}
+
+export function makeTwitterFollowIntentUrl(url) {
+  if (url.includes('/intent/follow') || url.includes('/intent/user')) {
+    return url;
+  }
+  const val = extractTwitterHandle(url);
+  const key = onlyNumbers(val) ? 'user_id' : 'screen_name';
+  return `https://twitter.com/intent/user?${key}=${val}`;
 }

@@ -9,6 +9,7 @@ import {
   createStatusbarButtons,
   exitActionMain,
   getMyTabIdFromExtension,
+  makeTwitterFollowIntentUrl,
 } from './premintHelper';
 import { createHistory } from './history';
 import {
@@ -20,10 +21,8 @@ import {
   millisecondsAhead,
   noDuplicates,
   addToDate,
-  onlyNumbers,
   getLastTokenizedItem,
   getSearchParam,
-  extractTwitterHandle,
   ONE_SECOND,
   ONE_MINUTE,
   dispatch,
@@ -766,15 +765,6 @@ function setPremintCustomField(text) {
 
 function getTweetId(url) {
   return getSearchParam(url, 'tweet_id') || getLastTokenizedItem(url, '/').trim();
-}
-
-function makeTwitterFollowIntentUrl(url) {
-  if (url.includes('/intent/follow') || url.includes('/intent/user')) {
-    return url;
-  }
-  const val = extractTwitterHandle(url);
-  const key = onlyNumbers(val) ? 'user_id' : 'screen_name';
-  return `https://twitter.com/intent/user?${key}=${val}`;
 }
 
 function makeTwitterLikeIntentUrl(url) {

@@ -186,8 +186,8 @@ export async function createObserver({
   }
 
   function updateTwitterFollowers(user, linkHref) {
-    const linkHrefLow = linkHref.toLowerCase();
     debug.log('updateTwitterFollowers', user, linkHref);
+    const linkHrefLow = linkHref.toLowerCase();
     const elems = [...document.querySelectorAll(`a`)].filter((e) => e.href.toLowerCase().startsWith(linkHrefLow));
     debug.log('elems', elems);
     for (let elem of elems) {
@@ -253,6 +253,9 @@ export async function createObserver({
   }
 
   function handleProfileResult(profile) {
+    if (profile?.error) {
+      return;
+    }
     const user = createUser(profile.username, profile.follows);
     debug.log('user:', user);
     updateTwitterFollowers(user, profile.url);
