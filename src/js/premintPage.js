@@ -230,7 +230,7 @@ async function joinRaffle() {
   await getMyTabIdFromExtension(pageState, 5000);
   if (!pageState.myTabId) {
     console.error('Invalid myTabId');
-    updateStatusbarError(`Failed getting own page tab id!`);
+    updateStatusbarError(`Failed getting own page tab id! Reload page and try again.`);
     return;
   }
 
@@ -582,8 +582,15 @@ function parseMustFollowLinks() {
 function parseTwitterLinks(prefix) {
   try {
     debug.log('parseTwitterLinks; prefix', prefix);
-    const baseElems = document.querySelector('#step-twitter').querySelectorAll('div[class*="text-md"]');
+    const baseElem = document.querySelector('#step-twitter');
+    if (!baseElem) {
+      return [];
+    }
+    const baseElems = baseElem.querySelectorAll('div[class*="text-md"]');
     debug.log('baseElems', baseElems);
+    if (!baseElems?.length) {
+      return [];
+    }
     const elems = [...baseElems].filter((e) => e.innerText.toLowerCase().trim().startsWith(prefix));
     debug.log('elems', elems);
     const arr = elems.length < 1 ? [] : Array.from(elems[0].getElementsByTagName('a')).map((a) => a.href);

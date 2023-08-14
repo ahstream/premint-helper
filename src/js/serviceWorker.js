@@ -18,7 +18,7 @@ chrome.runtime.onMessage.addListener(async (request, sender, sendResponse) => {
 
   if (await defaultMessageHandler(request, sender, sendResponse)) {
     console.log('Handled in messageHandler');
-    sendResponse();
+    // sendResponse();
     return;
   }
 

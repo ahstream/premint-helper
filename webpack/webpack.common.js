@@ -41,6 +41,7 @@ module.exports = {
   plugins: [
     new ESLintPlugin(),
     new MiniCssExtractPlugin({ filename: 'styles/[name].css' }),
+    new CopyPlugin({ patterns: [{ from: 'src/manifest.json' }] }),
     new CopyPlugin({ patterns: [{ from: 'src/static' }] }),
     new NodePolyfillPlugin(),
   ],

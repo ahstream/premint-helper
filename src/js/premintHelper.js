@@ -182,6 +182,7 @@ function handleRetries(context, retries, retrySecs) {
 }
 
 export async function getMyTabIdFromExtension(context, maxWait, intervall = 100) {
+  debug.log('getMyTabIdFromExtension', context, maxWait, intervall);
   if (!context) {
     return null;
   }
@@ -191,6 +192,7 @@ export async function getMyTabIdFromExtension(context, maxWait, intervall = 100)
   }
 
   setTimeout(async () => {
+    debug.log('sendMessage getMyTabId');
     context.myTabId = await chrome.runtime.sendMessage({ cmd: 'getMyTabId' });
     debug.log('context.myTabId after fetch', context.myTabId);
   }, 1);

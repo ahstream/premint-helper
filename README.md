@@ -13,6 +13,7 @@ npm run build
 Generate key to manifest: https://itero.plasmo.com/tools/generate-keypairs
 
 Current extension id: jocbghjmdpodngcmghjklilmoipkeoop
+ceegpiflkjflcklliibajfhlgoljefio
 
 [...[...document.querySelectorAll('div.MuiBox-root')].filter(x => x.innerText.toLowerCase() === 'you won')[0].nextElementSibling.querySelectorAll('p')].filter(x => x.innerText.includes('....'))
 
