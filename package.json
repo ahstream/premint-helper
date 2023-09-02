@@ -8,8 +8,10 @@
     "child_process": false
   },
   "scripts": {
-    "dev": "webpack --watch --config webpack/webpack.dev.js",
-    "build": "npm run patch:manifest && webpack --config webpack/webpack.prod.js",
+    "dev": "npm run build:dev",
+    "prod": "npm run build:prod",
+    "build:dev": "webpack --watch --config webpack/webpack.dev.js",
+    "build:prod": "npm run patch:manifest && webpack --config webpack/webpack.prod.js",
     "patch:manifest": "node tools/patchManifest.js",
     "clean": "rm -rf node_modules",
     "clean:install": "npm run clean && npm install",
