@@ -375,6 +375,9 @@ async function getRegisterButton(maxWait = 1000, interval = 10) {
 async function finish(request) {
   debug.log('finish; request:', request);
 
+  if (pageState.abort) {
+    return exitAction('abort');
+  }
   if (request.status === 'captcha') {
     return exitAction('discordCaptcha');
   }

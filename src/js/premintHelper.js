@@ -142,6 +142,7 @@ export function exitActionMain(result, context, options) {
   if (result === 'discordCaptcha') {
     context.updateStatusbarError('Discord has captcha! First solve captcha, then click register button.');
     context.pageState.hasDiscordCaptcha = true;
+    context.pageState.abort = true;
   }
   if (result === 'premintDisabled') {
     context.updateStatusbar('Premint automation disabled, do nothing');

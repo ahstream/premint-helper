@@ -4,34 +4,34 @@ import { addRevealAlphabotRafflesRequest, isAlphabotURL } from './premintHelper.
 import { defaultOptions, overrideOptions } from '../config/config';
 import { getStorageData, setStorageData, defaultMessageHandler, fetchHelper } from '@ahstream/hx-utils';
 
-chrome.runtime.onInstalled.addListener(async () => {
-  await initOptions(defaultOptions, overrideOptions);
-  console.info('Extension successfully installed!');
+chrome.runtime.onInstalled.addListener(() => {
+  initOptions(defaultOptions, overrideOptions).then(() => {
+    console.info('Extension successfully installed!');
+  });
 });
 
 chrome.webNavigation.onHistoryStateUpdated.addListener(function (data) {
   handleAlphabotNavigation(data);
 });
 
-chrome.runtime.onMessage.addListener(async (request, sender, sendResponse) => {
+chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {
   console.info('Received message; request, sender:', request, sender);
 
-  if (request.cmd === 'getMyTabIdAsync') {
-    console.log('sender.tab.id:', sender.tab.id);
-    chrome.tabs.sendMessage(sender.tab.id, { cmd: 'getMyTabIdAsyncResponse', response: sender.tab.id });
-    sendResponse(sender.tab.id);
-    return true;
-  }
-
-  if (await defaultMessageHandler(request, sender, sendResponse)) {
+  const defaultResult = defaultMessageHandler(request, sender);
+  if (defaultResult?.ok) {
     console.log('Handled in messageHandler');
-    // sendResponse();
+    if (defaultResult.response !== undefined) {
+      sendResponse(defaultResult.response);
+    }
     return;
   }
 
-  let result;
-
   switch (request.cmd) {
+    case 'getMyTabIdAsync':
+      console.log('sender.tab.id:', sender.tab.id);
+      chrome.tabs.sendMessage(sender.tab.id, { cmd: 'getMyTabIdAsyncResponse', response: sender.tab.id });
+      sendResponse(sender.tab.id);
+      return;
     case 'revealAlphabotRaffles':
       revealAlphabotRaffles();
       break;
@@ -46,13 +46,15 @@ chrome.runtime.onMessage.addListener(async (request, sender, sendResponse) => {
       );
       break;
     case 'fetch':
-      result = await fetchHelper(request.request.url, request.request.options);
-      chrome.tabs.sendMessage(sender.tab.id, { cmd: 'fetchResult', result, context: request.context || {} });
+      fetchHelper(request.request.url, request.request.options).then((result) => {
+        chrome.tabs.sendMessage(sender.tab.id, { cmd: 'fetchResult', result, context: request.context || {} });
+      });
       break;
     default:
       console.error('Received unexpected message!', request, sender);
       break;
   }
+
   sendResponse();
 });
 

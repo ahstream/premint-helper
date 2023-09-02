@@ -601,6 +601,10 @@ async function waitForRegistered(maxWait = 1 * ONE_MINUTE, interval = 100) {
     await sleep(interval);
   }
 
+  if (pageState.hasDiscordCaptcha) {
+    return exitAction('discordCaptcha');
+  }
+
   exitAction('notRegisterProperly');
 
   debug.log('Stop waiting for registered!');

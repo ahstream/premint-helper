@@ -42,7 +42,7 @@
   },
   "dependencies": {
     "@ahstream/hx-statusbar": "^1.0.18",
-    "@ahstream/hx-utils": "^1.0.5",
+    "@ahstream/hx-utils": "^1.0.6",
     "@babel/plugin-transform-runtime": "^7.18.6",
     "@babel/runtime": "^7.18.6"
   }

@@ -34,6 +34,7 @@ async function runNow() {
 
   const hashArgs = createHashArgs(window.location.hash);
   parentTabId = hashArgs.getOne('id');
+  console.log('parentTabId', parentTabId);
 
   if (!storage.options.DISCORD_ENABLE && storage.options.DISCORD_ENABLE_MANUAL) {
     console.info('Disabled, exit!');
@@ -200,7 +201,9 @@ async function runMainLoop() {
 async function runCaptcha() {
   if (hasCaptcha()) {
     if (parentTabId) {
-      await chrome.runtime.sendMessage({ cmd: 'finish', status: 'captcha', to: parentTabId });
+      chrome.runtime.sendMessage({ cmd: 'finish', status: 'captcha', to: parentTabId });
+    } else {
+      console.log('hasCaptcha but no parentTabId!');
     }
     return true;
   }
