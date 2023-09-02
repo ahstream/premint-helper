@@ -143,6 +143,10 @@ chrome.runtime.onMessage.addListener(async (request, sender, sendResponse) => {
     }
   }
 
+  if (request.cmd === 'getMyTabIdAsyncResponse') {
+    pageState.myTabId = request.response;
+  }
+
   sendResponse();
   return true;
 });
@@ -325,18 +329,16 @@ async function joinRaffle() {
 
   pageState.abort = false;
 
-  updateStatusbarInfo('Fulfilling raffle tasks...');
+  updateStatusbarRunning('Fulfilling raffle tasks...');
   startQuickRegBtn();
 
   const reqs = getRequirements();
   debug.log('reqs', reqs);
 
-  const discordLinks = storage.options.RAFFLE_SKIP_DONE_TASKS
-    ? await removeDoneLinks(reqs.discordUser, reqs.discordLinks)
-    : reqs.discordLinks;
-  const twitterLinks = storage.options.RAFFLE_SKIP_DONE_TASKS
-    ? await removeDoneLinks(reqs.twitterUser, reqs.twitterLinks)
-    : reqs.twitterLinks;
+  const skipDoneTasks = pageState.action === 'retryJoin' || storage.options.RAFFLE_SKIP_DONE_TASKS;
+
+  const discordLinks = skipDoneTasks ? await removeDoneLinks(reqs.discordUser, reqs.discordLinks) : reqs.discordLinks;
+  const twitterLinks = skipDoneTasks ? await removeDoneLinks(reqs.twitterUser, reqs.twitterLinks) : reqs.twitterLinks;
 
   const reqLinks = [...discordLinks, ...twitterLinks];
   debug.log('reqLinks', reqLinks);
@@ -416,6 +418,10 @@ function updateStatusbarInfo(content) {
   pageState.statusbar.info(content);
 }
 
+function updateStatusbarRunning(content) {
+  pageState.statusbar.text(content, 'running');
+}
+
 // REPORT FUNCS -----------------------------------------------------------------------------------------
 
 async function finish(request) {
@@ -432,9 +438,13 @@ async function finish(request) {
   pageState.finishedTabsIds.push(request.senderTabId);
   const normalizedUrl = normalizePendingLink(request.url);
   const prevLength = pageState.pendingRequests.length;
-  debug.log('finish; url, normalizedUrl, prevLength, pendingRequests:', request.url, normalizedUrl, prevLength, pageState.pendingRequests);
 
+  debug.log('finish; url:', request.url);
+  debug.log('finish; normalizedUrl:', normalizedUrl);
+
+  debug.log('finish; pendingRequests A:', pageState.pendingRequests.length, pageState.pendingRequests);
   pageState.pendingRequests = pageState.pendingRequests.filter((item) => item !== normalizedUrl);
+  debug.log('finish; pendingRequests B:', pageState.pendingRequests.length, pageState.pendingRequests);
 
   if (pageState.pendingRequests.length === 0 && prevLength > 0 && storage.options.RAFFLE_CLOSE_TASK_PAGES) {
     console.info('Finished all required links, register raffle!');
@@ -482,7 +492,7 @@ async function registerRaffle() {
     return exitAction('joinWithWonWallet');
   }
 
-  updateStatusbar('Joining raffle...');
+  updateStatusbarRunning('Joining raffle...');
   chrome.runtime.sendMessage({ cmd: 'focusMyTab' });
 
   const regBtn = await getRegisterButton();
@@ -528,9 +538,14 @@ async function waitForRegistered(maxWait = 1 * ONE_MINUTE, interval = 100) {
         return exitAction('raffleCaptcha');
       }
 
+      if (pageState.hasDiscordCaptcha) {
+        return exitAction('discordCaptcha');
+      }
+
       if (pageState.hasHadRaffleError) {
         return exitAction('raffleUnknownError');
       }
+
       pageState.hasHadRaffleError = true;
 
       if (!errors.twitter) {
@@ -914,11 +929,23 @@ function getWonWallets() {
 
 function getSelectedWallet() {
   try {
-    const elems = [...document.querySelectorAll('svg[aria-label^="Select a wallet address"]')];
+    const elems = [...document.querySelectorAll('div.MuiAlert-message')].filter((x) =>
+      x.innerText.toLowerCase().includes(' mint wallet:\n')
+    );
+    // console.log('elems', elems);
+    //const elems = [...document.querySelectorAll('svg[aria-label^="Select a wallet address"]')];
     if (!elems?.length) {
       return null;
     }
-    return elems[0].previousElementSibling.querySelector('div[role="button"]').parentElement.innerText;
+    const elem = elems[0].querySelector('div[role="button"]');
+    return elem?.innerText || null;
+    /*
+    console.log('elem', elem);
+    console.log('elem?.nextSibling', elem?.nextSibling);
+    console.log('elem?.nextSibling?.value', elem?.nextSibling?.value);
+    return elem?.nextSibling?.value || null;
+    */
+    // return elems[0].previousElementSibling.querySelector('div[role="button"]').parentElement.innerText;
   } catch (e) {
     console.error(e);
     return null;

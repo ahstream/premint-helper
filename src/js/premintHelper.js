@@ -6,6 +6,7 @@ import {
   createLogger,
   extractTwitterHandle,
   onlyNumbers,
+  pluralize,
 } from '@ahstream/hx-utils';
 
 const debug = createLogger();
@@ -120,6 +121,7 @@ export function exitActionMain(result, context, options) {
     }
   }
   if (result === 'alreadyWon') {
+    context.pageState.done = true;
     context.updateStatusbarOk('You won a raffle for this project from the same team already');
     context.removeQuickRegBtn();
   }
@@ -130,6 +132,7 @@ export function exitActionMain(result, context, options) {
     context.updateStatusbarError('Alphabot says you are doing that too often. Please try again later.');
   }
   if (result === 'registered') {
+    context.pageState.done = true;
     context.updateStatusbarOk('You are registered');
     context.removeQuickRegBtn();
   }
@@ -151,6 +154,7 @@ export function exitActionMain(result, context, options) {
     context.removeQuickRegBtn();
   }
   if (result === 'alreadyRegistered') {
+    context.pageState.done = true;
     context.updateStatusbarOk('You are registered');
     context.removeQuickRegBtn();
   }
@@ -181,7 +185,13 @@ export function exitActionMain(result, context, options) {
 }
 
 function handleRetries(context, retries, retrySecs) {
-  context.updateStatusbarInfo(`Raffle error but will automatically retry ${retries} times in ${retrySecs} seconds...`);
+  if (context.pageState.done) {
+    return;
+  }
+  context.updateStatusbar(
+    `Raffle error but will auto retry ${retries} ${pluralize(retries, 'time', 'times')} in ${retrySecs} seconds...`,
+    'retry'
+  );
   if (retrySecs >= 1) {
     setTimeout(() => {
       handleRetries(context, retries, retrySecs - 1);
@@ -201,18 +211,22 @@ export async function getMyTabIdFromExtension(context, maxWait, intervall = 100)
 
   setTimeout(async () => {
     debug.log('sendMessage getMyTabId');
-    context.myTabId = await chrome.runtime.sendMessage({ cmd: 'getMyTabId' });
-    debug.log('context.myTabId after fetch', context.myTabId);
+    const result = await chrome.runtime.sendMessage({ cmd: 'getMyTabIdAsync' });
+    if (result) {
+      // context.myTabId = result;
+    }
+    debug.log('context.myTabId after fetch; result:', context.myTabId, result);
   }, 1);
 
   const stopTime = millisecondsAhead(maxWait);
   while (Date.now() <= stopTime) {
     if (context.myTabId) {
+      debug.log('context.myTabId after waited:', context.myTabId);
       return context.myTabId;
     }
     await sleep(intervall);
   }
-  debug.log('context.myTabId after waited in vain', context.myTabId);
+  debug.log('context.myTabId after waited in vain:', context.myTabId);
   return context.myTabId;
 }
 

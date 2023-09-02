@@ -16,6 +16,13 @@ chrome.webNavigation.onHistoryStateUpdated.addListener(function (data) {
 chrome.runtime.onMessage.addListener(async (request, sender, sendResponse) => {
   console.info('Received message; request, sender:', request, sender);
 
+  if (request.cmd === 'getMyTabIdAsync') {
+    console.log('sender.tab.id:', sender.tab.id);
+    chrome.tabs.sendMessage(sender.tab.id, { cmd: 'getMyTabIdAsyncResponse', response: sender.tab.id });
+    sendResponse(sender.tab.id);
+    return true;
+  }
+
   if (await defaultMessageHandler(request, sender, sendResponse)) {
     console.log('Handled in messageHandler');
     // sendResponse();

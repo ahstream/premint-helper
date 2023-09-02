@@ -175,6 +175,7 @@ async function checkForAction(maxWait = ONE_HOUR, interval = 100) {
   let elem;
   let isDone = false;
   const intent = getIntent();
+  debug.log('intent:', intent);
   if (intent.follow) {
     elem = await waitForSelector(storage.options.TWITTER_FOLLOWING_SEL, maxWait, interval);
     isDone = !!elem;
