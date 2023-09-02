@@ -500,7 +500,7 @@ async function createProjectWinners(winners) {
 
   for (let i = data.length - 1; i--; i >= 0) {
     const item = data[i];
-    debug.log('item:', new Date(item.mintDate), pivotTomorrowDate, item.mintDate >= pivotTomorrowDate, item);
+    // debug.trace('item:', new Date(item.mintDate), pivotTomorrowDate, item.mintDate >= pivotTomorrowDate, item);
 
     if (!item.mintDate) {
       continue;
@@ -706,7 +706,7 @@ async function fetchWinnersFromCloud() {
 async function countWinners(account) {
   const result = await fetchCountWinners(account);
   if (!result.ok) {
-    console.error('Failed getting winner cound from cloud. Error:', result);
+    console.error('Failed getting winner count from cloud. Error:', result);
   }
   return result.ok ? result.count : -1;
 }

@@ -98,3 +98,8 @@ a.twitter-link-expired:after {
 div.MuiCard-root {
   overflow: visible !important;
 }
+
+#ph-quick-reg:disabled {
+  color: var(--alphabot-btn-background-color);
+  background-color: var(--alphabot-btn-color);
+}

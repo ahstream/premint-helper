@@ -176,7 +176,7 @@ const options = [
   },
 
   {
-    header: 'Aliases',
+    header: 'Misc',
     hiddenKey: '',
     options: [
       [
@@ -196,6 +196,12 @@ const options = [
         'Lorem ipsum dolor sit amet, consectetur adipiscing elit, sed do eiusmod tempor incididunt ut labore et dolore magna aliqua. Ut enim ad minim veniam, quis nostrud exercitation ullamco laboris nisi ut aliquip ex ea commodo consequat.',
       ],
       ['property', 'ALPHABOT_TRIM_NAMES', 'Trim Alphabot team names from raffle name'],
+      ['space', 10],
+      [
+        'description',
+        'Lorem ipsum dolor sit amet, consectetur adipiscing elit, sed do eiusmod tempor incididunt ut labore et dolore magna aliqua. Ut enim ad minim veniam, quis nostrud exercitation ullamco laboris nisi ut aliquip ex ea commodo consequat.',
+      ],
+      ['property', 'ALPHABOT_IGNORED_NAMES', 'Ignore Alphabot Team Names'],
     ],
   },
 ];
@@ -212,7 +218,7 @@ async function runNow() {
     return debug.info('Options missing, exit!');
   }
 
-  if (window.location.href.toLowerCase().includes('advanced')) {
+  if (window.location.href.toLowerCase().includes('=all')) {
     let allOptions = [];
     for (const item of Object.entries(storage.options)) {
       allOptions.push(['property', item[0], item[0]]);

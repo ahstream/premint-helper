@@ -119,6 +119,10 @@ chrome.runtime.onMessage.addListener(async (request, sender, sendResponse) => {
     finish(request);
   }
 
+  if (request.cmd === 'getMyTabIdAsyncResponse') {
+    pageState.myTabId = request.response;
+  }
+
   sendResponse();
   return true;
 });
@@ -205,7 +209,7 @@ async function runRafflePage() {
 async function joinRaffle() {
   debug.log('joinRaffle');
 
-  updateStatusbarInfo('Fulfilling raffle tasks...');
+  updateStatusbarRunning('Fulfilling raffle tasks...');
   startQuickRegBtn();
 
   const reqs = getRequirements();
@@ -277,7 +281,7 @@ async function joinRaffle() {
 async function registerRaffle() {
   debug.info('Register raffle');
 
-  updateStatusbar('Joining raffle...');
+  updateStatusbarRunning('Joining raffle...');
   chrome.runtime.sendMessage({ cmd: 'focusMyTab' });
 
   const regBtn = await getRegisterButton();
@@ -380,9 +384,12 @@ async function finish(request) {
   const normalizedUrl = normalizePendingLink(request.url);
   const prevLength = pageState.pendingRequests.length;
 
-  debug.log('finish; url, normalizedUrl, prevLength, pendingRequests:', request.url, normalizedUrl, prevLength, pageState.pendingRequests);
+  debug.log('finish; url:', request.url);
+  debug.log('finish; normalizedUrl:', normalizedUrl);
 
+  debug.log('finish; pendingRequests A:', pageState.pendingRequests.length, pageState.pendingRequests);
   pageState.pendingRequests = pageState.pendingRequests.filter((item) => item !== normalizedUrl);
+  debug.log('finish; pendingRequests B:', pageState.pendingRequests.length, pageState.pendingRequests);
 
   if (pageState.pendingRequests.length === 0 && prevLength > 0 && storage.options.RAFFLE_CLOSE_TASK_PAGES) {
     debug.log('Finished all required links, register raffle!');
@@ -791,6 +798,10 @@ function updateStatusbarError(content) {
 
 function updateStatusbarInfo(content) {
   pageState.statusbar.info(content);
+}
+
+function updateStatusbarRunning(content) {
+  pageState.statusbar.text(content, 'running');
 }
 
 // MISC HELPERS ----------------------------------------------------------------------------------
