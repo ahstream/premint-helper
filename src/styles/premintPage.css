@@ -1,5 +1,5 @@
-@import 'baseVars.scss';
-@import 'raffleInfo.scss';
+@import 'baseVars.css';
+@import 'raffleInfo.css';
 @import 'statusbar.css';
 
 .premintButton {

@@ -1,13 +1,15 @@
 console.info('serviceWorker.js begin');
 
-import { addRevealAlphabotRafflesRequest, isAlphabotURL } from './premintHelper.js';
 import { defaultOptions, overrideOptions } from '../config/config';
-import { getStorageData, setStorageData, defaultMessageHandler, fetchHelper } from '@ahstream/hx-utils';
+import { initStorageWithOptions, fetchHelper } from '@ahstream/hx-lib';
+import { defaultMessageHandler } from '@ahstream/hx-chrome-lib';
+import { addRevealAlphabotRafflesRequest, isAlphabotURL } from './premintHelperLib.js';
+
+const customStorage = { runtime: { pendingRequests: [] }, pendingPremintReg: {} };
 
 chrome.runtime.onInstalled.addListener(() => {
-  initOptions(defaultOptions, overrideOptions).then(() => {
-    console.info('Extension successfully installed!');
-  });
+  initStorageWithOptions(defaultOptions, overrideOptions, customStorage);
+  console.info('Extension successfully installed!');
 });
 
 chrome.webNavigation.onHistoryStateUpdated.addListener(function (data) {
@@ -26,6 +28,16 @@ chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {
     return;
   }
 
+  if (messageHandler) {
+    messageHandler(request, sender, sendResponse);
+  } else {
+    sendResponse();
+  }
+});
+
+// MAIN FUNCTIONS
+
+function messageHandler(request, sender, sendResponse) {
   switch (request.cmd) {
     case 'getMyTabIdAsync':
       console.log('sender.tab.id:', sender.tab.id);
@@ -56,23 +68,6 @@ chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {
   }
 
   sendResponse();
-});
-
-// MAIN FUNCTIONS
-
-export async function initOptions(defaultOptions = {}, overrideOptions = {}) {
-  const storage = await getStorageData();
-  storage.options = storage.options || {};
-  const finalOptions = { ...defaultOptions, ...storage.options, ...overrideOptions };
-  console.log('storages:', {
-    storage,
-    defaultOptions,
-    currentOptions: storage.options,
-    overrideOptions,
-    finalOptions,
-  });
-  storage.options = finalOptions;
-  await setStorageData({ options: finalOptions, runtime: { pendingRequests: [] }, pendingPremintReg: {} });
 }
 
 function handleAlphabotNavigation(data) {

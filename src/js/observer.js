@@ -1,4 +1,4 @@
-import { trimMintAddress } from './premintHelper';
+import { trimMintAddress } from './premintHelperLib';
 import {
   timestampToLocaleString,
   sleep,
@@ -13,7 +13,7 @@ import {
   setStorageData,
   createLogger,
   createLogLevelArg,
-} from '@ahstream/hx-utils';
+} from '@ahstream/hx-lib';
 
 const debug = createLogger();
 

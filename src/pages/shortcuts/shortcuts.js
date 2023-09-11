@@ -1,0 +1,58 @@
+console.info('shortcuts.js begin', window?.location?.href);
+
+import { getStorageItems } from '@ahstream/hx-lib';
+import { initShortcutsPage, mountShortcutsPage } from '@ahstream/hx-chrome-lib';
+
+import { addRevealAlphabotRafflesRequest } from '../../js/premintHelperLib.js';
+
+initShortcutsPage();
+
+const VALID_URLS = [/https:\/\/www\.alphabot\.app\/[a-z\-0-9]+/i, /https:\/\/www\.premint\.xyz\//i];
+
+getStorageItems(['options']).then((storage) => {
+  mountShortcutsPage(VALID_URLS, [
+    {
+      cmd: 'close-tabs',
+      callback: () => {
+        chrome.runtime.sendMessage({ cmd: 'closeTabsButOne', url: storage.options.CLOSE_BUT_ONE_URL });
+      },
+    },
+    {
+      cmd: 'close-window',
+      callback: () => {
+        chrome.runtime.sendMessage({ cmd: 'closeWindow' });
+      },
+    },
+    {
+      cmd: 'close-tabs-minimize-window',
+      callback: () => {
+        chrome.runtime.sendMessage({ cmd: 'closeTabsButOneMinimizeWindow', url: storage.options.CLOSE_BUT_ONE_URL });
+      },
+    },
+    {
+      cmd: 'minimize-window',
+      callback: () => {
+        chrome.runtime.sendMessage({ cmd: 'minimizeWindow' });
+      },
+    },
+    {
+      cmd: 'reveal-alphabot-raffles',
+      callback: async () => {
+        const url = await addRevealAlphabotRafflesRequest();
+        return chrome.runtime.sendMessage({ cmd: 'openInSameTab', url });
+      },
+    },
+    {
+      cmd: 'show-alphabot-results',
+      callback: () => {
+        return chrome.runtime.sendMessage({ cmd: 'openInSameTab', url: chrome.runtime.getURL('/alphabotResults.html') });
+      },
+    },
+    {
+      cmd: 'update-alphabot-results',
+      callback: () => {
+        return chrome.runtime.sendMessage({ cmd: 'openInSameTab', url: chrome.runtime.getURL('/alphabotResults.html#action=update') });
+      },
+    },
+  ]);
+});

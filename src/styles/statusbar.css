@@ -1,4 +1,4 @@
-@import 'baseVars.scss';
+@import 'baseVars.css';
 @import '@ahstream/hx-statusbar/dist/main.css';
 
 .hx-statusbar {

@@ -1,6 +1,6 @@
-console.info('alphabotPage.js begin', window?.location?.href);
+console.info('alphabotRafflePage.js begin', window?.location?.href);
 
-import '../styles/alphabotPage.scss';
+import '../styles/alphabotPage.css';
 import {
   createStatusbarButtons,
   exitActionMain,
@@ -10,7 +10,7 @@ import {
   JOIN_BUTTON_IN_PROGRESS_TEXT,
   JOIN_BUTTON_TITLE,
   STATUSBAR_DEFAULT_TEXT,
-} from './premintHelper';
+} from './premintHelperLib';
 import { createObserver } from './observer';
 import { createHistory } from './history';
 
@@ -32,9 +32,8 @@ import {
   normalizePendingLink,
   ONE_SECOND,
   ONE_MINUTE,
-} from '@ahstream/hx-utils';
+} from '@ahstream/hx-lib';
 import { createStatusbar } from '@ahstream/hx-statusbar';
-//import '@ahstream/hx-statusbar/dist/main.css';
 
 const debug = createLogger();
 
@@ -172,11 +171,11 @@ async function runPage(runRaffle = false) {
     pageState.action = request?.action;
   }
 
-  if (pageState.action === 'bookmark') {
+  if (pageState.action === 'shortcut') {
     pageState.isAutoStarted = true;
   }
 
-  await showRafflePage(runRaffle || pageState.action === 'bookmark' || pageState.action === 'retryJoin');
+  await showRafflePage(runRaffle || pageState.action === 'shortcut' || pageState.action === 'retryJoin');
 }
 
 // RAFFLE PAGE FUNCS -----------------------------------------------------------------------------------------
@@ -488,6 +487,8 @@ function getDiscordUser() {
 async function registerRaffle() {
   console.info('Register raffle');
 
+  pageState.pause = false;
+
   if (checkForJoinWithWonWallet()) {
     return exitAction('joinWithWonWallet');
   }
@@ -605,7 +606,10 @@ async function waitForRegistered(maxWait = 1 * ONE_MINUTE, interval = 100) {
     return exitAction('discordCaptcha');
   }
 
-  exitAction('notRegisterProperly');
+  if (!pageState.pause) {
+    exitAction('notRegisterProperly');
+  }
+  pageState.pause = false;
 
   debug.log('Stop waiting for registered!');
 }

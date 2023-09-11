@@ -12,7 +12,7 @@ import {
   getFirstTokenizedItem,
   getStorageItems,
   setStorageData,
-} from '@ahstream/hx-utils';
+} from '@ahstream/hx-lib';
 
 // DATA ----------------------------------------------------------------------------------
 

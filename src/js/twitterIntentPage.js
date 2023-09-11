@@ -1,7 +1,7 @@
 console.info('twitterIntentPage.js begin', window?.location?.href);
 
-import { switchToUser } from './twitter.js';
-import { getStorageItems, createLogger, sleep, createHashArgs, waitForSelector, millisecondsAhead, ONE_HOUR } from '@ahstream/hx-utils';
+import { switchToUser } from './twitterLib.js';
+import { getStorageItems, createLogger, sleep, createHashArgs, waitForSelector, millisecondsAhead, ONE_HOUR } from '@ahstream/hx-lib';
 
 const debug = createLogger();
 

@@ -1,4 +1,4 @@
-import { getSearchParam } from '@ahstream/hx-utils';
+import { getSearchParam } from '@ahstream/hx-lib';
 
 export async function createHistory() {
   let hxhistory = null;

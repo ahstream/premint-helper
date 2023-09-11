@@ -7,7 +7,7 @@ import {
   extractTwitterHandle,
   onlyNumbers,
   pluralize,
-} from '@ahstream/hx-utils';
+} from '@ahstream/hx-lib';
 
 const debug = createLogger();
 
@@ -47,6 +47,8 @@ export async function addRevealAlphabotRafflesRequest() {
 }
 
 export function createStatusbarButtons({ options = true, help = false, results = false, reveal = false, followers = false } = {}) {
+  console.log('createStatusbarButtons; options, help, results, reveal, followers:', options, help, results, reveal, followers);
+
   const buttons = [];
 
   const add = (text, title, handler) => {
@@ -72,9 +74,11 @@ export function createStatusbarButtons({ options = true, help = false, results =
   }
 
   if (results) {
-    add('Results', 'Open Premint Helper Alphabot Results page', () =>
-      chrome.runtime.sendMessage({ cmd: 'openTab', active: true, url: chrome.runtime.getURL('alphabotResults.html') })
-    );
+    const callback =
+      results === 'disabled'
+        ? ''
+        : () => chrome.runtime.sendMessage({ cmd: 'openTab', active: true, url: chrome.runtime.getURL('alphabotResults.html') });
+    add('Results', 'Open Premint Helper Alphabot Results page', callback);
   }
 
   if (followers) {
@@ -100,12 +104,15 @@ export function exitActionMain(result, context, options) {
 
   if (result === 'joinWithWonWallet') {
     context.updateStatusbarError('Selected wallet has already won a raffle! Change wallet before joining raffle.');
+    context.pageState.pause = true;
   }
   if (result === 'raffleCaptcha') {
     context.updateStatusbarError('Raffle has captcha! First solve captcha, then click register button.');
+    context.pageState.pause = true;
   }
   if (result === 'invalidContext') {
     context.updateStatusbarError('Chrome Extension is not recognized by web page. Reload page and try again.');
+    context.pageState.pause = true;
   }
   if (result === 'raffleUnknownError') {
     context.updateStatusbarError('Raffle error');
@@ -119,17 +126,21 @@ export function exitActionMain(result, context, options) {
     } else {
       context.updateStatusbarInfo(`Raffle error`);
     }
+    context.pageState.pause = true;
   }
   if (result === 'alreadyWon') {
     context.pageState.done = true;
     context.updateStatusbarOk('You won a raffle for this project from the same team already');
     context.removeQuickRegBtn();
+    context.pageState.pause = true;
   }
   if (result === 'walletConnectDialog') {
     context.updateStatusbarError('Raffle has wallet connect dialog, need to be done manually');
+    context.pageState.pause = true;
   }
   if (result === 'doingItTooOften') {
     context.updateStatusbarError('Alphabot says you are doing that too often. Please try again later.');
+    context.pageState.pause = true;
   }
   if (result === 'registered') {
     context.pageState.done = true;
@@ -143,32 +154,40 @@ export function exitActionMain(result, context, options) {
     context.updateStatusbarError('Discord has captcha! First solve captcha, then click register button.');
     context.pageState.hasDiscordCaptcha = true;
     context.pageState.abort = true;
+    context.pageState.pause = true;
   }
   if (result === 'premintDisabled') {
     context.updateStatusbar('Premint automation disabled, do nothing');
+    context.pageState.pause = true;
   }
   if (result === 'twitterLocked') {
     context.updateStatusbarError('Twitter account is locked!');
+    context.pageState.pause = true;
   }
   if (result === 'alphabotDisabled') {
     context.updateStatusbar('Alphabot automation disabled, do nothing');
     context.removeQuickRegBtn();
+    context.pageState.pause = true;
   }
   if (result === 'alreadyRegistered') {
     context.pageState.done = true;
     context.updateStatusbarOk('You are registered');
     context.removeQuickRegBtn();
+    context.pageState.pause = true;
   }
   if (result === 'noRaffleTrigger') {
     context.updateStatusbarError('Cannot recognize raffle elements');
     context.removeQuickRegBtn();
+    context.pageState.pause = true;
   }
   if (result === 'noRaffleRegisterBtn') {
     context.updateStatusbarError('Cannot recognize Register button');
     context.removeQuickRegBtn();
+    context.pageState.pause = true;
   }
   if (result === 'ignoredRaffle') {
     context.updateStatusbar('Raffle is ignored');
+    context.pageState.pause = true;
   }
   if (result === 'switchTwitterUserError') {
     context.updateStatusbarError(`Cannot switch to Twitter user ${options.twitterUser}!`);
@@ -178,6 +197,8 @@ export function exitActionMain(result, context, options) {
   }
 
   context.resetQuickRegBtn();
+
+  context.pageState.pause = true;
 
   if (!context.pageState.hasDiscordCaptcha) {
     // If discord captcha, raffle tab has already been focused earlier, avoid flickering by focusing more than once!

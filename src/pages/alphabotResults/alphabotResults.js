@@ -1,8 +1,8 @@
 console.info('alphabotResults.js begin', window?.location?.href);
 
-import '../styles/alphabotResults.scss';
-import { trimMintAddress } from './premintHelper.js';
-import { createObserver } from './observer';
+import './alphabotResults.scss';
+import { trimMintAddress } from '../../js/premintHelperLib.js';
+import { createObserver } from '../../js/observer';
 import {
   winnersSortedByNewestURL,
   winnersSortedByMintingURL,
@@ -13,7 +13,7 @@ import {
   trimText,
   trimTextNum,
   accountToAlias,
-} from './alphabot.js';
+} from '../../js/alphabotLib.js';
 import {
   noDuplicatesByKey,
   sleep,
@@ -46,7 +46,7 @@ import {
   setStorageData,
   removeStorageItem,
   createLogger,
-} from '@ahstream/hx-utils';
+} from '@ahstream/hx-lib';
 
 const debug = createLogger();
 

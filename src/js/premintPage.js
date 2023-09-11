@@ -1,6 +1,6 @@
 console.info('premintPage.js begin', window?.location?.href);
 
-import '../styles/premintPage.scss';
+import '../styles/premintPage.css';
 import {
   JOIN_BUTTON_TEXT,
   JOIN_BUTTON_IN_PROGRESS_TEXT,
@@ -10,7 +10,7 @@ import {
   exitActionMain,
   getMyTabIdFromExtension,
   makeTwitterFollowIntentUrl,
-} from './premintHelper';
+} from './premintHelperLib';
 import { createHistory } from './history';
 import {
   getStorageItems,
@@ -29,7 +29,7 @@ import {
   normalizePendingLink,
   createLogger,
   createLogLevelArg,
-} from '@ahstream/hx-utils';
+} from '@ahstream/hx-lib';
 import { createStatusbar } from '@ahstream/hx-statusbar';
 
 const debug = createLogger();
@@ -139,11 +139,11 @@ async function showPage(runPage = false) {
     pageState.action = request?.action;
   }
 
-  if (pageState.action === 'bookmark') {
+  if (pageState.action === 'shortcut') {
     pageState.isAutoStarted = true;
   }
 
-  await showRafflePage(runPage || pageState.action === 'bookmark');
+  await showRafflePage(runPage || pageState.action === 'shortcut');
 }
 
 // RAFFLE FUNCS -----------------------------------------------------------------------------------------
@@ -155,12 +155,14 @@ async function showRafflePage(runPage) {
     return exitAction('premintDisabled');
   }
 
-  createStatusbarButtons({
-    options: true,
-    results: 'disabled',
-    reveal: 'disabled',
-    followers: 'disabled',
-  });
+  pageState.statusbar.buttons(
+    createStatusbarButtons({
+      options: true,
+      results: true,
+      reveal: 'disabled',
+      followers: 'disabled',
+    })
+  );
 
   await waitForRafflePageLoaded();
 
@@ -281,6 +283,8 @@ async function joinRaffle() {
 async function registerRaffle() {
   debug.info('Register raffle');
 
+  pageState.pause = false;
+
   updateStatusbarRunning('Joining raffle...');
   chrome.runtime.sendMessage({ cmd: 'focusMyTab' });
 
@@ -325,7 +329,10 @@ async function waitForRegistered(maxWait = 1 * ONE_MINUTE, interval = 100) {
     await sleep(interval);
   }
 
-  exitAction('notRegisterProperly');
+  if (!pageState.pause) {
+    exitAction('notRegisterProperly');
+  }
+  pageState.pause = false;
 
   debug.log('Stop waiting for registered!');
 }

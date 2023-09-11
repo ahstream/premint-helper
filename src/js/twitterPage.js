@@ -1,6 +1,6 @@
 console.info('twitterPage.js begin', window?.location?.href);
 
-import { switchToUser, isEmptyPage, handleLockedTwitterAccount } from './twitter.js';
+import { switchToUser, isEmptyPage, handleLockedTwitterAccount } from './twitterLib.js';
 import {
   getStorageItems,
   dispatch,
@@ -10,7 +10,7 @@ import {
   waitForEitherSelector,
   extractTwitterHandle,
   ONE_MINUTE,
-} from '@ahstream/hx-utils';
+} from '@ahstream/hx-lib';
 
 const debug = createLogger();
 

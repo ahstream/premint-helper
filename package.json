@@ -1,9 +1,11 @@
 {
-  "name": "premint-helper",
+  "name": "@ahstream/premint-helper",
   "version": "1.0.0",
-  "description": "Premint Helper by Hxdev",
-  "author": "hxdev@gmail.com",
+  "description": "Premint Helper",
+  "author": "hstream@gmail.com",
   "license": "UNLICENSED",
+  "main": "dist/index.js",
+  "browserslist": "> 0.25%, not dead",
   "browser": {
     "child_process": false
   },
@@ -12,6 +14,7 @@
     "prod": "npm run build:prod",
     "build:dev": "webpack --watch --config webpack/webpack.dev.js",
     "build:prod": "npm run patch:manifest && webpack --config webpack/webpack.prod.js",
+    "build:publish": "",
     "patch:manifest": "node tools/patchManifest.js",
     "clean": "rm -rf node_modules",
     "clean:install": "npm run clean && npm install",
@@ -24,11 +27,13 @@
   "devDependencies": {
     "@babel/core": "^7.18.6",
     "@babel/eslint-parser": "^7.22.9",
+    "@babel/plugin-transform-runtime": "^7.18.6",
     "@babel/preset-env": "^7.18.6",
     "@types/chrome": "^0.0.193",
     "babel-loader": "^8.2.5",
     "copy-webpack-plugin": "^11.0.0",
     "css-loader": "^6.7.1",
+    "css-minimizer-webpack-plugin": "^5.0.1",
     "eslint": "^8.19.0",
     "eslint-config-prettier": "^8.5.0",
     "eslint-webpack-plugin": "^3.2.0",
@@ -43,9 +48,9 @@
     "webpack-merge": "^5.8.0"
   },
   "dependencies": {
-    "@ahstream/hx-statusbar": "^1.0.18",
-    "@ahstream/hx-utils": "^1.0.6",
-    "@babel/plugin-transform-runtime": "^7.18.6",
+    "@ahstream/hx-chrome-lib": "file:../hx-chrome-lib",
+    "@ahstream/hx-lib": "file:../hx-lib",
+    "@ahstream/hx-statusbar": "file:../hx-statusbar",
     "@babel/runtime": "^7.18.6"
   }
 }

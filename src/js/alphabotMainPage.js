@@ -1,14 +1,18 @@
 console.info('alphabotMainPage.js begin', window?.location?.href);
 
-import '../styles/alphabotPage.scss';
+import '../styles/alphabotPage.css';
 import { createObserver } from './observer';
-import { waitForUser } from './twitter.js';
-import { fetchProjects } from './alphabot.js';
-import { createStatusbarButtons, addRevealAlphabotRafflesRequest, getMyTabIdFromExtension, STATUSBAR_DEFAULT_TEXT } from './premintHelper';
+import { waitForUser } from './twitterLib.js';
+import { fetchProjects } from './alphabotLib.js';
+import {
+  createStatusbarButtons,
+  addRevealAlphabotRafflesRequest,
+  getMyTabIdFromExtension,
+  STATUSBAR_DEFAULT_TEXT,
+} from './premintHelperLib';
 
-import { createLogger, sleep, getStorageItems, createHashArgs, noDuplicates, dispatch } from '@ahstream/hx-utils';
+import { getStorageItems, createLogger, sleep, createHashArgs, noDuplicates, dispatch } from '@ahstream/hx-lib';
 import { createStatusbar } from '@ahstream/hx-statusbar';
-// import '@ahstream/hx-statusbar/dist/main.css';
 
 const debug = createLogger();
 
@@ -142,7 +146,7 @@ async function runPage() {
     pageState.action = request?.action;
   }
 
-  if (pageState.action === 'bookmark') {
+  if (pageState.action === 'shortcut') {
     pageState.isAutoStarted = true;
   }
 

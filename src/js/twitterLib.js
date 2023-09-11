@@ -1,4 +1,4 @@
-import { ONE_DAY, sleep, waitForSelector, millisecondsAhead, addPendingRequest, createLogger, createLogLevelArg } from '@ahstream/hx-utils';
+import { ONE_DAY, sleep, waitForSelector, millisecondsAhead, addPendingRequest, createLogger, createLogLevelArg } from '@ahstream/hx-lib';
 
 const debug = createLogger();
 

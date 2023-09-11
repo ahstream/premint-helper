@@ -1,4 +1,4 @@
-@import 'baseVars.scss';
+@import 'baseVars.css';
 
 body.exitAction {
   opacity: 0.8 !important;
