@@ -153,7 +153,7 @@ export function exitActionMain(result, context, options) {
   if (result === 'discordCaptcha') {
     context.updateStatusbarError('Discord has captcha! First solve captcha, then click register button.');
     context.pageState.hasDiscordCaptcha = true;
-    context.pageState.abort = true;
+    // context.pageState.abort = true;
     context.pageState.pause = true;
   }
   if (result === 'premintDisabled') {
