@@ -3,7 +3,8 @@
   "version": "1.0.0",
   "description": "Premint Helper",
   "author": "hstream@gmail.com",
-  "license": "UNLICENSED",
+  "license": "COPYRIGHT",
+  "repository": "github:ahstream/premint-helper",
   "main": "dist/index.js",
   "browserslist": "> 0.25%, not dead",
   "browser": {
