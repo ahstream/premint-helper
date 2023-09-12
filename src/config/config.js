@@ -57,7 +57,6 @@ export const defaultOptions = {
   TWITTER_INTENT_BTN_SEL: '[data-testid="confirmationSheetConfirm"]',
   TWITTER_CANCEL_BTN_SEL: '[data-testid="confirmationSheetCancel"]',
   TWITTER_FOLLOWING_SEL: 'div[data-testid$="-unfollow"]',
-  TWITTER_LIKED_SEL: 'div[aria-label="Liked"]',
   TWITTER_REPLY_SEL: '[data-testid="reply"]',
   TWITTER_PROFILE_SEL: '[data-testid="UserJoinDate"]',
 
@@ -93,7 +92,8 @@ export const defaultOptions = {
 };
 
 export const overrideOptions = {
-  TWITTER_RETWEETED_SEL: 'div[aria-label="Reposted"]',
+  TWITTER_RETWEETED_SEL: 'div[aria-label$="Reposted"]',
+  TWITTER_LIKED_SEL: 'div[aria-label$="Liked"]',
   TWITTER_PARENT_SUGGESTED_DELAY: 2500,
 
   PREMINT_BTC_WALLET_RE: '(taproot)',
