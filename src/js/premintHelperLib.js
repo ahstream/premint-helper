@@ -121,12 +121,18 @@ export function exitActionMain(result, context, options) {
     context.updateStatusbarError('Unspecified raffle error, see error messages on page');
   }
   if (result === 'raffleUnknownErrorWillRetry') {
-    if (options.retries) {
-      handleRetries(context, options.retries, options.retrySecs);
+    console.log('context.forceRegister', context.forceRegister);
+    if (context.forceRegister && context.forceRegister()) {
+      console.log('forceRegister success!');
+      // successful register, do nothing
     } else {
-      context.updateStatusbarInfo(`Raffle error`);
+      if (options.retries) {
+        handleRetries(context, options.retries, options.retrySecs);
+      } else {
+        context.updateStatusbarInfo(`Raffle error`);
+      }
+      context.pageState.pause = true;
     }
-    context.pageState.pause = true;
   }
   if (result === 'alreadyWon') {
     context.pageState.done = true;

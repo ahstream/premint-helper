@@ -229,7 +229,7 @@ async function lookupTwitter() {
     }
   }
 
-  updateStatusbar(`Done getting follower count for ${links.length} Twitter links`);
+  updateStatusbarOk(`Done getting follower count for ${links.length} Twitter links`);
   await pageState.observer.saveTwitter();
 }
 
@@ -315,6 +315,10 @@ function updateStatusbar(content, className = null) {
 
 function updateStatusbarError(content) {
   pageState.statusbar.error(content);
+}
+
+function updateStatusbarOk(content) {
+  pageState.statusbar.ok(content);
 }
 
 // HELPERS ---------------------------------------------------------------------------------------------------

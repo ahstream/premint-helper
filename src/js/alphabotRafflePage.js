@@ -30,6 +30,8 @@ import {
   addPendingRequest,
   dispatch,
   normalizePendingLink,
+  getTextContains,
+  simulateClick,
   ONE_SECOND,
   ONE_MINUTE,
 } from '@ahstream/hx-lib';
@@ -112,8 +114,12 @@ async function onLoad() {
 chrome.runtime.onMessage.addListener(async (request, sender, sendResponse) => {
   debug.log('Received message:', request, sender);
 
+  if (request.message === 'hekt-captcha-solved') {
+    window.alert('hekt-captcha-solved in premint-helper');
+  }
+
   if (request.cmd === 'finish') {
-    finish(request);
+    finish(request, sender);
   }
 
   if (request.cmd === 'switchedToTwitterUser') {
@@ -423,15 +429,18 @@ function updateStatusbarRunning(content) {
 
 // REPORT FUNCS -----------------------------------------------------------------------------------------
 
-async function finish(request) {
-  debug.log('finish; request:', request);
+async function finish(request, sender) {
+  debug.log('finish; request, sender:', request, sender);
 
   if (pageState.abort) {
     return exitAction('abort');
   }
 
   if (request.status === 'captcha') {
-    return exitAction('discordCaptcha');
+    pageState.discordCaptchaSender = sender;
+    pageState.discordCaptchaTabId = sender.tab.id;
+    console.log('sender', sender);
+    return handleDiscordCaptcha();
   }
 
   pageState.finishedTabsIds.push(request.senderTabId);
@@ -456,7 +465,8 @@ async function finish(request) {
   console.info('Not all required links finished yet!');
 
   if (pageState.hasDiscordCaptcha) {
-    chrome.runtime.sendMessage({ cmd: 'focusMyTab' });
+    handleDiscordCaptcha();
+    // chrome.runtime.sendMessage({ cmd: 'focusMyTab' });
   }
 }
 
@@ -484,6 +494,23 @@ function getDiscordUser() {
 
 // REGISTER ----------------------------------------------------------------------------------
 
+function forceRegister() {
+  debug.log('forceRegister');
+  const regBtn = getRegisterButtonSync();
+  debug.log('forceRegister; regBtn:', regBtn, storage.options.ALPHABOT_REG_BTN_SEL);
+  if (!regBtn) {
+    debug.log('!regBtn');
+    return null;
+  }
+  if (regBtn?.disabled) {
+    debug.log('regBtn?.disable');
+    return null;
+  }
+  clickElement(regBtn);
+  // pageState.isRegistering = true;
+  return regBtn;
+}
+
 async function registerRaffle() {
   console.info('Register raffle');
 
@@ -503,7 +530,9 @@ async function registerRaffle() {
   }
 
   if (hasCaptcha()) {
-    return exitAction('raffleCaptcha');
+    // return exitAction('raffleCaptcha');
+    // return exitAction('raffleCaptcha');
+    return handleRaffleCaptcha();
   }
 
   if (regBtn && !regBtn.disabled) {
@@ -512,7 +541,7 @@ async function registerRaffle() {
       await sleep(1500);
     }
     debug.log('Click register button:', regBtn);
-    regBtn.click();
+    clickElement(regBtn);
     pageState.isRegistering = true;
   }
 
@@ -521,6 +550,11 @@ async function registerRaffle() {
     await sleep(1500);
     await waitForRegistered();
   }
+}
+
+function clickElement(elem) {
+  elem.click();
+  simulateClick(elem);
 }
 
 async function waitForRegistered(maxWait = 1 * ONE_MINUTE, interval = 100) {
@@ -536,11 +570,12 @@ async function waitForRegistered(maxWait = 1 * ONE_MINUTE, interval = 100) {
       debug.log('Has errors:', errors);
 
       if (hasCaptcha()) {
-        return exitAction('raffleCaptcha');
+        //return exitAction('raffleCaptcha');
+        return handleRaffleCaptcha();
       }
 
       if (pageState.hasDiscordCaptcha) {
-        return exitAction('discordCaptcha');
+        return handleDiscordCaptcha();
       }
 
       if (pageState.hasHadRaffleError) {
@@ -562,19 +597,15 @@ async function waitForRegistered(maxWait = 1 * ONE_MINUTE, interval = 100) {
       exitAction('raffleUnknownErrorWillRetry', { retrySecs: storage.options.RAFFLE_RETRY_SECS, retries });
 
       debug.log('retry in secs; times:', storage.options.RAFFLE_RETRY_SECS, retries);
-      await sleep(storage.options.RAFFLE_RETRY_SECS * 1000);
 
-      if (hasRegistered()) {
-        return exitAction('registered');
-      }
+      await waitAndTryRegisterBeforeRetry(retries);
 
-      await addPendingRequest(window.location.href, { action: 'retryJoin', retries });
-      window.location.reload();
       return;
     }
 
     if (hasCaptcha()) {
-      return exitAction('raffleCaptcha');
+      // return exitAction('raffleCaptcha');
+      return handleRaffleCaptcha();
     }
 
     if (hasAlreadyWon()) {
@@ -603,7 +634,7 @@ async function waitForRegistered(maxWait = 1 * ONE_MINUTE, interval = 100) {
   }
 
   if (pageState.hasDiscordCaptcha) {
-    return exitAction('discordCaptcha');
+    return handleDiscordCaptcha();
   }
 
   if (!pageState.pause) {
@@ -614,20 +645,70 @@ async function waitForRegistered(maxWait = 1 * ONE_MINUTE, interval = 100) {
   debug.log('Stop waiting for registered!');
 }
 
-async function waitForRegisteredMainLoop(maxWait = 300 * ONE_MINUTE, interval = 1000) {
+async function waitAndTryRegisterBeforeRetry(retries) {
+  debug.log('waitAndTryRegisterBeforeRetry; retries:', retries);
+
+  const stopTime = millisecondsAhead(storage.options.RAFFLE_RETRY_SECS * 1000);
+  while (Date.now() <= stopTime) {
+    debug.log('try to forceRegister');
+    const regBtn = forceRegister();
+    if (regBtn) {
+      debug.log('forceRegister ok!');
+      return waitForRegisteredMainLoop(regBtn);
+    }
+    await sleep(1000);
+  }
+
+  if (hasRegistered()) {
+    return exitAction('registered');
+  }
+
+  await addPendingRequest(window.location.href, { action: 'retryJoin', retries });
+  window.location.reload();
+}
+
+async function handleRaffleCaptcha() {
+  debug.log('handleRaffleCaptcha');
+
+  if (pageState.hasHandledRaffleCaptcha) {
+    return;
+  }
+  pageState.hasHandledRaffleCaptcha = true;
+  exitAction('raffleCaptcha');
+
+  const stopTime = millisecondsAhead(60 * 1000);
+  while (Date.now() <= stopTime) {
+    debug.log('try to handleRaffleCaptcha with forceRegister');
+    if (forceRegister()) {
+      debug.log('forceRegister ok!');
+      return waitForRegisteredMainLoop();
+    } else {
+      debug.log('forceRegister NOK!');
+    }
+    await sleep(1000);
+  }
+}
+
+async function handleDiscordCaptcha() {
+  pageState.hasDiscordCaptcha = true;
+  exitAction('discordCaptcha');
+  chrome.runtime.sendMessage({ cmd: 'focusTab', id: pageState.discordCaptchaTabId });
+}
+
+async function waitForRegisteredMainLoop(regBtn = null, maxWait = 300 * ONE_MINUTE, interval = 1000) {
   debug.log('Wait for registered main loop...');
 
   const stopTime = millisecondsAhead(maxWait);
 
   while (Date.now() <= stopTime) {
+    if (regBtn) {
+      clickElement(regBtn);
+    }
     if (hasRegistered()) {
       return exitAction('registered');
     }
     if (hasCaptcha()) {
-      if (!pageState.hasReportedCaptchaPresence) {
-        pageState.hasReportedCaptchaPresence = true;
-        exitAction('raffleCaptcha');
-      }
+      handleRaffleCaptcha();
     }
     await sleep(interval);
   }
@@ -641,6 +722,14 @@ async function getRegisterButton() {
     return regPlus1Btn;
   }
   return await waitForSelector(storage.options.ALPHABOT_REG_BTN_SEL, 60 * ONE_SECOND, 100);
+}
+
+function getRegisterButtonSync() {
+  const regPlus1Btn = getTextContains(storage.options.ALPHABOT_REG_PLUS_1_BTN_SEL, 'button');
+  if (regPlus1Btn) {
+    return regPlus1Btn;
+  }
+  return document.querySelector(storage.options.ALPHABOT_REG_BTN_SEL);
 }
 
 // EXIT ACTIONS -------------------------------------------------------------------
@@ -691,7 +780,7 @@ function hasCaptcha() {
   }
 
   if (typeof elem?.disabled === 'boolean' && elem.disabled === false) {
-    debug.log('Has captcha:', elem);
+    // debug.log('Has captcha:', elem);
     return true;
   }
 
@@ -704,7 +793,7 @@ function hasCaptcha() {
     return false;
   }
 
-  debug.log('Has captcha:', elem, parent);
+  // debug.log('Has captcha:', elem, parent);
 
   return true;
 }

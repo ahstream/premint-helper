@@ -7,7 +7,8 @@ import { addRevealAlphabotRafflesRequest } from '../../js/premintHelperLib.js';
 
 initShortcutsPage();
 
-const VALID_URLS = [/https:\/\/www\.alphabot\.app\/[a-z\-0-9]+/i, /https:\/\/www\.premint\.xyz\//i];
+// const VALID_URLS = [/https:\/\/www\.alphabot\.app\/[a-z\-0-9]+/i, /https:\/\/www\.premint\.xyz\//i];
+const VALID_URLS = null;
 
 getStorageItems(['options']).then((storage) => {
   mountShortcutsPage(VALID_URLS, [
