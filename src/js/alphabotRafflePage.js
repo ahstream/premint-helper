@@ -181,6 +181,12 @@ async function runPage(runRaffle = false) {
     pageState.isAutoStarted = true;
   }
 
+  if (pageState.action === 'verifyAlphabotRaffle') {
+    pageState.isAutoStarted = true;
+    pageState.verifyRaffle = true;
+    runRaffle = true;
+  }
+
   await showRafflePage(runRaffle || pageState.action === 'shortcut' || pageState.action === 'retryJoin');
 }
 
@@ -506,6 +512,19 @@ function forceRegister() {
     debug.log('regBtn?.disable');
     return null;
   }
+
+  const errors = getErrors();
+  debug.log('errors:', errors);
+  if (errors.discord) {
+    debug.log('Do not force register when discord errors!');
+    return null;
+  }
+
+  if (hasDoingItTooOften()) {
+    debug.log('hasDoingItTooOften');
+    return null;
+  }
+
   clickElement(regBtn);
   // pageState.isRegistering = true;
   return regBtn;
@@ -702,7 +721,12 @@ async function waitForRegisteredMainLoop(regBtn = null, maxWait = 300 * ONE_MINU
 
   while (Date.now() <= stopTime) {
     if (regBtn) {
-      clickElement(regBtn);
+      if (hasDoingItTooOften()) {
+        debug.log('hasDoingItTooOften');
+        return;
+      } else {
+        clickElement(regBtn);
+      }
     }
     if (hasRegistered()) {
       return exitAction('registered');
@@ -824,6 +848,7 @@ function getErrors() {
   return {
     texts: elems,
     twitter: elems.some((x) => x.includes('follow') || x.includes('like') || x.includes('retweet')),
+    discord: elems.some((x) => x.includes('join')),
   };
 }
 

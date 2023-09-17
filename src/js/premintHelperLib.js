@@ -152,6 +152,9 @@ export function exitActionMain(result, context, options) {
     context.pageState.done = true;
     context.updateStatusbarOk('You are registered');
     context.removeQuickRegBtn();
+    if (context.pageState.verifyRaffle) {
+      chrome.runtime.sendMessage({ cmd: 'minimizeWindow' });
+    }
   }
   if (result === 'notRegisterProperly') {
     context.updateStatusbarError('Raffle does not seem to register properly');
@@ -180,6 +183,9 @@ export function exitActionMain(result, context, options) {
     context.updateStatusbarOk('You are registered');
     context.removeQuickRegBtn();
     context.pageState.pause = true;
+    if (context.pageState.verifyRaffle) {
+      chrome.runtime.sendMessage({ cmd: 'minimizeWindow' });
+    }
   }
   if (result === 'noRaffleTrigger') {
     context.updateStatusbarError('Cannot recognize raffle elements');
@@ -194,6 +200,9 @@ export function exitActionMain(result, context, options) {
   if (result === 'ignoredRaffle') {
     context.updateStatusbar('Raffle is ignored');
     context.pageState.pause = true;
+    if (context.pageState.verifyRaffle) {
+      chrome.runtime.sendMessage({ cmd: 'minimizeWindow' });
+    }
   }
   if (result === 'switchTwitterUserError') {
     context.updateStatusbarError(`Cannot switch to Twitter user ${options.twitterUser}!`);

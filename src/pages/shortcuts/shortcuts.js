@@ -1,6 +1,6 @@
 console.info('shortcuts.js begin', window?.location?.href);
 
-import { getStorageItems } from '@ahstream/hx-lib';
+import { getStorageItems, getQueryParam, addPendingRequest } from '@ahstream/hx-lib';
 import { initShortcutsPage, mountShortcutsPage } from '@ahstream/hx-chrome-lib';
 
 import { addRevealAlphabotRafflesRequest } from '../../js/premintHelperLib.js';
@@ -36,6 +36,16 @@ getStorageItems(['options']).then((storage) => {
         chrome.runtime.sendMessage({ cmd: 'minimizeWindow' });
       },
     },
+
+    {
+      cmd: 'verify-alphabot-raffle',
+      callback: async () => {
+        const url = getQueryParam(window.location.href, 'url');
+        await addPendingRequest(url, { action: 'verifyAlphabotRaffle' });
+        window.location.href = url;
+      },
+    },
+
     {
       cmd: 'reveal-alphabot-raffles',
       callback: async () => {
