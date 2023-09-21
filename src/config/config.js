@@ -89,6 +89,8 @@ export const defaultOptions = {
   USER_INFO_TEZ_WALLET: '',
 
   CLOSE_BUT_ONE_URL: 'chrome://extensions/',
+
+  MINIMIZE_FINISHED_AUTO: true,
 };
 
 export const overrideOptions = {

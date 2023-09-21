@@ -86,6 +86,7 @@ async function onLoad() {
     return;
   }
   pageState.loaded = true;
+  pageState.minimizeFinishedAuto = storage.options.MINIMIZE_FINISHED_AUTO;
 
   const hashArgs = createHashArgs(window.location.hash);
 
@@ -104,6 +105,7 @@ async function onLoad() {
       finishedTabsIds: [],
     },
   };
+
   debug.log('pageState', pageState);
 
   runPage();

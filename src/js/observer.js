@@ -1,4 +1,4 @@
-import { trimMintAddress } from './premintHelperLib';
+import { trimMintAddress, walletToAlias, sortMintAddresses } from './premintHelperLib';
 import {
   timestampToLocaleString,
   sleep,
@@ -6,7 +6,6 @@ import {
   round,
   kFormatter,
   extractTwitterHandle,
-  dynamicSortMultiple,
   ONE_DAY,
   noDuplicates,
   getStorageItems,
@@ -468,9 +467,9 @@ export async function createObserver({
     if (!walletsWon.length) {
       return null;
     }
-    const mintAddresses = sortMintAddresses(walletsWon);
+    const mintAddresses = sortMintAddresses(walletsWon, storage.options);
     const mintAddress = mintAddresses[0];
-    const walletAliasFirst = walletToAlias(mintAddress);
+    const walletAliasFirst = walletToAlias(mintAddress, storage.options);
 
     debug.log('walletAliasFirst', walletAliasFirst);
     const walletAliasTextFirst = walletAliasFirst ? ` &nbsp;(${walletAliasFirst})` : '';
@@ -480,7 +479,7 @@ export async function createObserver({
       if (showAll) {
         mintAddresses.shift();
         for (const addr of mintAddresses) {
-          const walletAlias = walletToAlias(addr);
+          const walletAlias = walletToAlias(addr, storage.options);
           const walletAliasText = walletAlias ? ` (${walletAlias})` : '';
           html = html + `<br>${trimMintAddress(addr)}${walletAliasText}`;
         }
@@ -491,7 +490,7 @@ export async function createObserver({
     div.innerHTML = html;
     const text = mintAddresses
       .map((x) => {
-        const walletAlias = walletToAlias(x);
+        const walletAlias = walletToAlias(x, storage.options);
         const walletAliasText = walletAlias ? ` (${walletAlias})` : '';
         return `${trimMintAddress(x)}${walletAliasText}`;
       })
@@ -586,31 +585,6 @@ function makeRaffleOdds(entries, winners) {
   } else {
     return round(pct, 0);
   }
-}
-
-function sortMintAddresses(addrList) {
-  const sortData = addrList.map((x) => {
-    const alias = walletToAlias(x);
-    const tokens = alias.split('-');
-    const sortParamNumber =
-      tokens.length > 1
-        ? Number(tokens[tokens.length - 1])
-            .toString()
-            .padStart(5, '0')
-        : alias;
-    const sortParamName = tokens.length > 1 ? tokens[0] : alias;
-    return { sortParamNumber, sortParamName, addr: x };
-  });
-  sortData.sort(dynamicSortMultiple('-sortParamName', 'sortParamNumber'));
-  const result = sortData.map((x) => x.addr);
-  return result;
-}
-
-function walletToAlias(wallet) {
-  const walletLow = wallet.toLowerCase();
-  debug.trace('walletToAlias:', wallet, storage.options.WALLET_ALIAS);
-  const items = storage.options.WALLET_ALIAS.filter((x) => x.toLowerCase().endsWith(walletLow));
-  return items.length ? items[0].toLowerCase().replace(`${walletLow}`, '').replace(':', '').trim() : '';
 }
 
 async function reloadStorage(key = null) {

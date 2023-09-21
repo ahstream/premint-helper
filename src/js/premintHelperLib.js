@@ -7,6 +7,7 @@ import {
   extractTwitterHandle,
   onlyNumbers,
   pluralize,
+  dynamicSortMultiple,
 } from '@ahstream/hx-lib';
 
 const debug = createLogger();
@@ -20,6 +21,23 @@ export const STATUSBAR_DEFAULT_TEXT = 'Premint Helper';
 
 // FUNCTIONS ----------------------------------------------------------------------------------
 
+export function accountToAlias(account, options) {
+  if (!account || !account.length) {
+    return '';
+  }
+  const items = options.ACCOUNT_ALIAS.filter((x) => x.endsWith(`${account}`));
+  const result = items.length ? items[0].replace(`${account}`, '').replace(':', '').trim() : '';
+  return result;
+}
+
+export function walletToAlias(wallet, options) {
+  console.log('wallet', wallet);
+  const walletLow = wallet.toLowerCase();
+  debug.trace('walletToAlias:', wallet, options.WALLET_ALIAS);
+  const items = options.WALLET_ALIAS.filter((x) => x.toLowerCase().endsWith(walletLow));
+  return items.length ? items[0].toLowerCase().replace(`${walletLow}`, '').replace(':', '').trim() : '';
+}
+
 export function trimMintAddress(text) {
   if (typeof text !== 'string') {
     return '';
@@ -32,6 +50,26 @@ export function trimMintAddress(text) {
 
 export function trimMintAddresses(texts) {
   return texts.map((x) => trimMintAddress(x));
+}
+
+export function sortMintAddresses(addrList, options) {
+  console.log('addrList', addrList);
+  const sortData = addrList.map((x) => {
+    console.log('x', x);
+    const alias = walletToAlias(x, options);
+    const tokens = alias.split('-');
+    const sortParamNumber =
+      tokens.length > 1
+        ? Number(tokens[tokens.length - 1])
+            .toString()
+            .padStart(5, '0')
+        : alias;
+    const sortParamName = tokens.length > 1 ? tokens[0] : alias;
+    return { sortParamNumber, sortParamName, addr: x };
+  });
+  sortData.sort(dynamicSortMultiple('-sortParamName', 'sortParamNumber'));
+  const result = sortData.map((x) => x.addr);
+  return result;
 }
 
 export function isAlphabotURL(href) {
@@ -99,6 +137,7 @@ function setPageBodyClass(className) {
 }
 
 export function exitActionMain(result, context, options) {
+  console.log('exitActionMain', result, context, options);
   setPageBodyClass('exitAction');
   setPageBodyClass(result);
 
@@ -155,6 +194,9 @@ export function exitActionMain(result, context, options) {
     if (context.pageState.verifyRaffle) {
       chrome.runtime.sendMessage({ cmd: 'minimizeWindow' });
     }
+    if (context.pageState.isAutoStarted && context.pageState.minimizeFinishedAuto) {
+      chrome.runtime.sendMessage({ cmd: 'minimizeWindow' });
+    }
   }
   if (result === 'notRegisterProperly') {
     context.updateStatusbarError('Raffle does not seem to register properly');
@@ -186,6 +228,9 @@ export function exitActionMain(result, context, options) {
     if (context.pageState.verifyRaffle) {
       chrome.runtime.sendMessage({ cmd: 'minimizeWindow' });
     }
+    if (context.pageState.isAutoStarted && context.pageState.minimizeFinishedAuto) {
+      chrome.runtime.sendMessage({ cmd: 'minimizeWindow' });
+    }
   }
   if (result === 'noRaffleTrigger') {
     context.updateStatusbarError('Cannot recognize raffle elements');
@@ -201,6 +246,9 @@ export function exitActionMain(result, context, options) {
     context.updateStatusbar('Raffle is ignored');
     context.pageState.pause = true;
     if (context.pageState.verifyRaffle) {
+      chrome.runtime.sendMessage({ cmd: 'minimizeWindow' });
+    }
+    if (context.pageState.isAutoStarted && context.pageState.minimizeFinishedAuto) {
       chrome.runtime.sendMessage({ cmd: 'minimizeWindow' });
     }
   }

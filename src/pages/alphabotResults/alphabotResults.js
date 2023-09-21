@@ -1,7 +1,7 @@
 console.info('alphabotResults.js begin', window?.location?.href);
 
 import './alphabotResults.scss';
-import { trimMintAddress } from '../../js/premintHelperLib.js';
+import { trimMintAddress, accountToAlias, walletToAlias, sortMintAddresses } from '../../js/premintHelperLib.js';
 import { createObserver } from '../../js/observer';
 import {
   winnersSortedByNewestURL,
@@ -12,7 +12,6 @@ import {
   trimPrice,
   trimText,
   trimTextNum,
-  accountToAlias,
 } from '../../js/alphabotLib.js';
 import {
   noDuplicatesByKey,
@@ -882,6 +881,7 @@ function createTableHeaderRow() {
   row.appendChild(createCell('#W', 'Num raffle winners'));
   row.appendChild(createCell('#E', 'Num raffle entrants'));
   row.appendChild(createCell('Wallets'));
+  row.appendChild(createCell('Alias'));
   row.appendChild(createCell('Account'));
   row.appendChild(createCell('Team'));
   row.appendChild(createCell('Discord'));
@@ -1001,11 +1001,40 @@ function createProjectsTable(projects, mountOnElementId) {
       )
     );
 
-    const mintAddresses = noDuplicates(p.winners.map((x) => trimMintAddress(x.mintAddress.toLowerCase())));
-    row.appendChild(createCell(createMultiTexts(mintAddresses, { className: 'mint-address' })));
+    const sortedMintAddresses = sortMintAddresses(
+      p.winners.map((x) => x.mintAddress),
+      storage.options
+    );
+    // const sortedMintAddresses = p.winners.map((x) => x.mintAddress);
+    const mintAddresses = noDuplicates(
+      sortedMintAddresses.map((addr) => {
+        console.log('x', addr);
+        const walletAlias = walletToAlias(addr, storage.options);
+        const suffix = walletAlias; // ? ` (${walletAlias})` : '';
+        return { addr: trimMintAddress(addr.toLowerCase()), alias: suffix };
+      })
+    );
+
+    // row.appendChild(createCell(createMultiTexts(mintAddresses, { className: 'mint-address' })));
+    row.appendChild(
+      createCell(
+        createMultiTexts(
+          mintAddresses.map((x) => x.addr),
+          { className: 'mint-address' }
+        )
+      )
+    );
+    row.appendChild(
+      createCell(
+        createMultiTexts(
+          mintAddresses.map((x) => x.alias),
+          { className: 'mint-aliases' }
+        )
+      )
+    );
 
     const accountAddresses = noDuplicates(
-      p.winners.map((x) => accountToAlias(x.hxAccount, storage.options.ACCOUNT_ALIAS) || trimMintAddress(x.hxAccount))
+      p.winners.map((x) => accountToAlias(x.hxAccount, storage.options) || trimMintAddress(x.hxAccount))
     );
 
     row.appendChild(createCell(createMultiTexts(accountAddresses, { className: 'account-name' })));

@@ -54,15 +54,6 @@ export function trimTextNum(valToTrim, maxLen, errVal = '') {
   return text.length <= maxLen ? text : text.substring(0, maxLen - 1) + '...';
 }
 
-export function accountToAlias(account, aliases) {
-  if (!account || !account.length) {
-    return '';
-  }
-  const items = aliases.filter((x) => x.endsWith(`${account}`));
-  const result = items.length ? items[0].replace(`${account}`, '').replace(':', '').trim() : '';
-  return result;
-}
-
 // PROJECTS ----------------------------------------------------------------------------------
 
 export async function fetchProjects({ pageSize = 16, maxPages = null, all = false, delayMs = 1000, callback = null } = {}) {

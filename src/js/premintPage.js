@@ -78,7 +78,9 @@ async function onLoad() {
     debug.log('Page already loaded, ignore onLoad event!');
     return;
   }
+
   pageState.loaded = true;
+  pageState.minimizeFinishedAuto = storage.options.MINIMIZE_FINISHED_AUTO;
 
   const hashArgs = createHashArgs(window.location.hash);
 
@@ -97,6 +99,7 @@ async function onLoad() {
       finishedTabsIds: [],
     },
   };
+
   debug.log('pageState', pageState);
 
   showPage();

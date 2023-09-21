@@ -17,6 +17,7 @@ const options = [
       ],
       ['property', 'ALPHABOT_ENABLE', 'Enable Alphabot raffle automation'],
       ['property', 'PREMINT_ENABLE', 'Enable Premint raffle automation'],
+      ['property', 'MINIMIZE_FINISHED_AUTO', 'MINIMIZE_FINISHED_AUTO'],
     ],
   },
 
