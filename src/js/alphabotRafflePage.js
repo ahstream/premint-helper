@@ -86,7 +86,6 @@ async function onLoad() {
     return;
   }
   pageState.loaded = true;
-  pageState.minimizeFinishedAuto = storage.options.MINIMIZE_FINISHED_AUTO;
 
   const hashArgs = createHashArgs(window.location.hash);
 
@@ -181,15 +180,20 @@ async function runPage(runRaffle = false) {
 
   if (pageState.action === 'shortcut') {
     pageState.isAutoStarted = true;
+    runRaffle = true;
+  }
+
+  if (pageState.action === 'retryJoin') {
+    pageState.isAutoStarted = true;
+    runRaffle = true;
   }
 
   if (pageState.action === 'verifyAlphabotRaffle') {
     pageState.isAutoStarted = true;
-    pageState.verifyRaffle = true;
     runRaffle = true;
   }
 
-  await showRafflePage(runRaffle || pageState.action === 'shortcut' || pageState.action === 'retryJoin');
+  await showRafflePage(runRaffle);
 }
 
 // RAFFLE PAGE FUNCS -----------------------------------------------------------------------------------------
@@ -282,6 +286,7 @@ function getRequirements() {
   const mustLikeLinks = getMustLikeLinks();
   const mustRetweetLinks = getMustRetweetLinks();
   const mustJoinLinks = getMustJoinLinks();
+  const mustJoinWithRoleLinks = getMustJoinWithRoleLinks();
 
   const twitterLinks = noDuplicates(mustFollowLinks, mustLikeLinks, mustRetweetLinks);
   const discordLinks = noDuplicates(mustJoinLinks);
@@ -293,6 +298,7 @@ function getRequirements() {
     mustLikeLinks,
     mustRetweetLinks,
     mustJoinLinks,
+    mustJoinWithRoleLinks,
     twitterLinks,
     discordLinks,
     links: [...twitterLinks, ...discordLinks],
@@ -351,6 +357,7 @@ async function joinRaffle() {
   const skipDoneTasks = pageState.action === 'retryJoin' || storage.options.RAFFLE_SKIP_DONE_TASKS;
 
   const discordLinks = skipDoneTasks ? await removeDoneLinks(reqs.discordUser, reqs.discordLinks) : reqs.discordLinks;
+
   const twitterLinks = skipDoneTasks ? await removeDoneLinks(reqs.twitterUser, reqs.twitterLinks) : reqs.twitterLinks;
 
   const reqLinks = [...discordLinks, ...twitterLinks];
@@ -377,6 +384,15 @@ async function joinRaffle() {
       return exitAction('abort');
     }
     const reqLink = reqLinks[i];
+    const mustJoinWithRole = reqs.mustJoinWithRoleLinks.some((x) => x === reqLink);
+    if (mustJoinWithRole) {
+      pageState.haveRoleDiscordLink = true;
+      pageState.roleDiscordLinks = pageState.roleDiscordLinks || [];
+      pageState.roleDiscordLinks.push(reqLink);
+      debug.log('pageState.haveRoleDiscordLink', pageState.haveRoleDiscordLink);
+      debug.log('pageState.roleDiscordLinks', pageState.roleDiscordLinks);
+    }
+
     const url =
       reqLink +
       `#id=${pageState.myTabId}&user=${storage.options.RAFFLE_SWITCH_TWITTER_USER ? reqs.twitterUser : ''}&${createLogLevelArg()}`;
@@ -452,6 +468,12 @@ async function finish(request, sender) {
   }
 
   pageState.finishedTabsIds.push(request.senderTabId);
+  pageState.finishedDiscordTabIds = pageState.finishedDiscordTabIds || [];
+  if (request.isDiscord) {
+    pageState.finishedDiscordTabIds.push(request.senderTabId);
+  }
+  debug.log('pageState.finishedDiscordTabIds:', pageState.finishedDiscordTabIds);
+
   const normalizedUrl = normalizePendingLink(request.url);
   const prevLength = pageState.pendingRequests.length;
 
@@ -462,19 +484,36 @@ async function finish(request, sender) {
   pageState.pendingRequests = pageState.pendingRequests.filter((item) => item !== normalizedUrl);
   debug.log('finish; pendingRequests B:', pageState.pendingRequests.length, pageState.pendingRequests);
 
-  if (pageState.pendingRequests.length === 0 && prevLength > 0 && storage.options.RAFFLE_CLOSE_TASK_PAGES) {
+  if (pageState.pendingRequests.length === 0 && prevLength > 0) {
     console.info('Finished all required links, register raffle!');
     await sleep(request.delay ?? 500);
-    debug.log('Close task tabs');
-    chrome.runtime.sendMessage({ cmd: 'closeTabs', tabIds: pageState.finishedTabsIds });
-    return registerRaffle();
+    debug.log('pageState:', pageState);
+
+    let tabsToClose = [...pageState.finishedTabsIds];
+
+    if (pageState.haveRoleDiscordLink && storage.options.RAFFLE_KEEP_ROLED_DISCORD_TASK_OPEN) {
+      // if having role discord link we often times need to do some verification task to get role.
+      // we save time by keeping those tabs open!
+      debug.log('focus roled discord tabs');
+      pageState.finishedDiscordTabIds.forEach((id) => {
+        tabsToClose = tabsToClose.filter((tabId) => tabId !== id);
+        chrome.runtime.sendMessage({ cmd: 'focusTab', id });
+      });
+    }
+
+    if (storage.options.RAFFLE_CLOSE_TASKS_BEFORE_JOIN) {
+      debug.log('Close finishedTabsIds');
+      chrome.runtime.sendMessage({ cmd: 'closeTabs', tabIds: tabsToClose });
+    }
+
+    const focusTabWhenRegister = pageState.haveRoleDiscordLink ? false : true;
+    return registerRaffle(focusTabWhenRegister);
   }
 
   console.info('Not all required links finished yet!');
 
   if (pageState.hasDiscordCaptcha) {
     handleDiscordCaptcha();
-    // chrome.runtime.sendMessage({ cmd: 'focusMyTab' });
   }
 }
 
@@ -532,8 +571,8 @@ function forceRegister() {
   return regBtn;
 }
 
-async function registerRaffle() {
-  console.info('Register raffle');
+async function registerRaffle(focusTab = true) {
+  console.info('Register raffle; focusTab:', focusTab);
 
   pageState.pause = false;
 
@@ -542,7 +581,10 @@ async function registerRaffle() {
   }
 
   updateStatusbarRunning('Joining raffle...');
-  chrome.runtime.sendMessage({ cmd: 'focusMyTab' });
+  if (focusTab) {
+    console.info('focusTab');
+    chrome.runtime.sendMessage({ cmd: 'focusMyTab' });
+  }
 
   const regBtn = await getRegisterButton();
   debug.log('registerRaffle; regBtn:', regBtn, storage.options.ALPHABOT_REG_BTN_SEL);
@@ -671,11 +713,13 @@ async function waitAndTryRegisterBeforeRetry(retries) {
 
   const stopTime = millisecondsAhead(storage.options.RAFFLE_RETRY_SECS * 1000);
   while (Date.now() <= stopTime) {
-    debug.log('try to forceRegister');
-    const regBtn = forceRegister();
-    if (regBtn) {
-      debug.log('forceRegister ok!');
-      return waitForRegisteredMainLoop(regBtn);
+    if (storage.options.RAFFLE_FORCE_REGISTER) {
+      debug.log('try to forceRegister');
+      const regBtn = forceRegister();
+      if (regBtn) {
+        debug.log('forceRegister ok!');
+        return waitForRegisteredMainLoop(regBtn);
+      }
     }
     await sleep(1000);
   }
@@ -769,6 +813,7 @@ function exitAction(result, options) {
     removeQuickRegBtn,
     resetQuickRegBtn,
     pageState,
+    options: storage.options,
   };
   console.info('Exit:', result);
   exitActionMain(result, context, options);
@@ -785,14 +830,14 @@ function hasRegistered() {
 }
 
 async function shouldIgnore() {
-  if (!pageState.isAutoStarted) {
-    // only ignore auto started raffles!
-    return false;
-  }
-
-  if (storage.options.ALPHABOT_IGNORED_NAMES && storage.options.ALPHABOT_IGNORED_NAMES.includes(getAlphaName())) {
+  if (
+    pageState.isAutoStarted && // only ignore auto started raffles!
+    storage.options.ALPHABOT_IGNORED_NAMES &&
+    storage.options.ALPHABOT_IGNORED_NAMES.includes(getAlphaName())
+  ) {
     return true;
   }
+  return false;
 }
 
 function hasCaptcha() {
@@ -968,6 +1013,10 @@ function getMustJoinLinks() {
   return parseMustJoinLinks();
 }
 
+function getMustJoinWithRoleLinks() {
+  return parseMustJoinLinks(true);
+}
+
 function parseMustLikeLinks() {
   return parseTwitterLinks('like\n');
 }
@@ -991,9 +1040,21 @@ function parseTwitterLinks(prefix) {
   return elems.length < 1 ? [] : Array.from(elems[0].getElementsByTagName('a')).map((a) => a.href);
 }
 
-function parseMustJoinLinks() {
-  return [...document.querySelectorAll('p.MuiTypography-root')]
-    .filter((e) => e.innerText.toLowerCase().includes('join') && e.innerText.toLowerCase().includes('discord'))
+function parseMustJoinLinks(mustHaveRole = false) {
+  let elems;
+  if (mustHaveRole) {
+    elems = [...document.querySelectorAll('p.MuiTypography-root')].filter(
+      (e) =>
+        e.innerText.toLowerCase().includes('join') &&
+        e.innerText.toLowerCase().includes('discord') &&
+        e.innerText.toLowerCase().includes('have role')
+    );
+  } else {
+    elems = [...document.querySelectorAll('p.MuiTypography-root')].filter(
+      (e) => e.innerText.toLowerCase().includes('join') && e.innerText.toLowerCase().includes('discord')
+    );
+  }
+  return elems
     .map((e) => e.getElementsByTagName('a'))
     .map((e) => Array.from(e))
     .flat()

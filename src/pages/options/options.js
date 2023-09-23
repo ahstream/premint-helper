@@ -8,7 +8,7 @@ initOptionsPage();
 
 const options = [
   {
-    header: 'General',
+    header: 'General Settings',
     hiddenKey: '',
     options: [
       [
@@ -17,14 +17,8 @@ const options = [
       ],
       ['property', 'ALPHABOT_ENABLE', 'Enable Alphabot raffle automation'],
       ['property', 'PREMINT_ENABLE', 'Enable Premint raffle automation'],
-      ['property', 'MINIMIZE_FINISHED_AUTO', 'MINIMIZE_FINISHED_AUTO'],
-    ],
-  },
+      ['space', 16],
 
-  {
-    header: 'Raffle Automation',
-    hiddenKey: '',
-    options: [
       [
         'property',
         'RAFFLE_SKIP_DONE_TASKS',
@@ -32,8 +26,6 @@ const options = [
         null,
         'If Premint Helper have opened a task page before it can be skipped in future raffles.',
       ],
-      ['space', 10],
-
       [
         'property',
         'RAFFLE_SWITCH_TWITTER_USER',
@@ -41,7 +33,6 @@ const options = [
         null,
         'If enabled, Premint Helper will switch to (on raffle page) selected Twitter user before fulfilling Twitter tasks.',
       ],
-      ['space', 10],
       [
         'property',
         'RAFFLE_OPEN_TWITTER_LINK_DELAY',
@@ -49,24 +40,41 @@ const options = [
         '(milliseconds)',
         'Best practice is pause a couple of seconds between opening Twitter task pages.',
       ],
-      ['space', 10],
+      ['space', 16],
+
+      ['property', 'RAFFLE_FORCE_REGISTER', 'RAFFLE_FORCE_REGISTER', null, 'Lorem'],
+      ['property', 'RAFFLE_RETRY_TIMES', 'RAFFLE_RETRY_TIMES', null, 'Lorem'],
+      ['property', 'RAFFLE_RETRY_SECS', 'RAFFLE_RETRY_SECS', null, 'Lorem'],
+      ['space', 16],
 
       [
-        'description',
-        'Having both these options enabled probably makes for a better experience. If Twitter is rate limiting you for opening too many pages too fast, it might be better to disable first option.',
+        'property',
+        'TWITTER_CLOSE_TASK_PAGE',
+        'TWITTER_CLOSE_TASK_PAGE',
+        null,
+        'If Twitter is rate limiting you for opening too many pages too fast, it might be better to disable this one.',
       ],
-      ['property', 'TWITTER_CLOSE_TASK_PAGE', 'Close Twitter task page as soon as task is finished', null, ''],
-      ['property', 'RAFFLE_CLOSE_TASK_PAGES', 'Close all opened task pages when all tasks are finished', null, ''],
-      ['space', 10],
-
-      ['description', 'lorem...'],
-      ['property', 'RAFFLE_RETRY_TIMES', 'RAFFLE_RETRY_TIMES', null, ''],
-      ['property', 'RAFFLE_RETRY_SECS', 'RAFFLE_RETRY_SECS', null, ''],
+      ['property', 'RAFFLE_CLOSE_TASKS_BEFORE_JOIN', 'RAFFLE_CLOSE_TASKS_BEFORE_JOIN', null, 'lorem'],
+      ['property', 'RAFFLE_KEEP_ROLED_DISCORD_TASK_OPEN', 'RAFFLE_KEEP_ROLED_DISCORD_TASK_OPEN', null, 'lorem'],
     ],
   },
 
   {
-    header: 'Non-Raffle Automation',
+    header: 'Auto-Start Settings',
+    hiddenKey: '',
+    options: [
+      ['description', ' Lorem ipsum'],
+      ['property', 'RAFFLE_CLOSE_TASKS_WHEN_FINISHED', 'RAFFLE_CLOSE_TASKS_WHEN_FINISHED', null, 'lorem'],
+      ['property', 'RAFFLE_MINIMIZE_WHEN_FINISHED', 'RAFFLE_MINIMIZE_WHEN_FINISHED', null, 'lorem'],
+      // ['property', 'RAFFLE_CLOSE_WHEN_FINISHED', 'RAFFLE_CLOSE_WHEN_FINISHED', null, 'lorem'],
+      ['property', 'RAFFLE_CLEANUP_WHEN_FINISHED', 'RAFFLE_CLEANUP_WHEN_FINISHED', null, 'lorem'],
+      ['space', 10],
+      ['property', 'ALPHABOT_IGNORED_NAMES', 'Ignore Alphabot Teams', null, 'Name of Alphabot teams to ignore when auto-start raffle join'],
+    ],
+  },
+
+  {
+    header: 'Non-Raffle Automation Settings',
     hiddenKey: '',
     options: [
       [
@@ -91,27 +99,34 @@ const options = [
   },
 
   {
-    header: 'Twitter Followers Lookup',
+    header: 'Twitter Lookup Settings',
     hiddenKey: '',
     options: [
       [
-        'description',
+        'property',
+        'TWITTER_FOLLOWERS_CACHE_HOURS',
+        'Hours to cache Twitter followers',
+        '',
         'Premint Helper can fetch follower counts for Twitter links on Alphabot pages. Best practice is to cache this to avoid fetching it too often from Twitter.',
       ],
-      ['property', 'TWITTER_FOLLOWERS_CACHE_HOURS', 'Hours to cache Twitter followers', '', ''],
+      [
+        'property',
+        'TWITTER_AUTO_UPDATE_FOLLOWERS',
+        'Auto update Twitter follower count when opening Twitter link',
+        '',
+        'Premint Helper can update follower count when opening a Twitter link.',
+      ],
+
       [
         'description',
         'Since Twitter is getting more aggresive in rate limiting users it is best practice to use a burner Twitter user account for looking up follower counts. Otherwise you risk your main account have to wait a day before you can enter raffles with it again. Even so, using a burner account will likely hit rate limits on page views per 15 minutes, meaning you might have to wait up to 15 minutes before you can switch from burner to main account again.',
       ],
       ['property', 'TWITTER_FETCH_FOLLOWERS_USER', 'Twitter user for fetching followers', '', ''],
-
-      ['description', 'Premint Helper can update follower count when opening a Twitter link.'],
-      ['property', 'TWITTER_AUTO_UPDATE_FOLLOWERS', 'Auto update Twitter follower count when opening Twitter link', '', ''],
     ],
   },
 
   {
-    header: 'Cloud Storage',
+    header: 'Raffle Result Cloud Storage Settings',
     hiddenKey: '',
     options: [
       [
@@ -131,8 +146,20 @@ const options = [
       ['property', 'CLOUD_TAG', 'Cloud tag'],
     ],
   },
+
   {
-    header: 'Custom Data',
+    header: 'Raffle Result Page Settings',
+    hiddenKey: '',
+    options: [
+      ['property', 'WALLET_ALIAS', 'Wallet aliases', null, 'Lorem ipsum'],
+      ['space', 10],
+      ['property', 'ACCOUNT_ALIAS', 'Account aliases', null, 'Lorem ipsum'],
+      ['space', 10],
+      ['property', 'ALPHABOT_TRIM_NAMES', 'Trim Alphabot team names from raffle name', null, 'Lorem ipsum'],
+    ],
+  },
+  {
+    header: 'Custom Data Settings',
     hiddenKey: '',
     options: [
       [
@@ -151,36 +178,6 @@ const options = [
           ['propertyCell', 'USER_INFO_TEZ_WALLET', 'TEZ wallet'],
         ],
       ],
-    ],
-  },
-
-  {
-    header: 'Misc',
-    hiddenKey: '',
-    options: [
-      [
-        'description',
-        'Lorem ipsum dolor sit amet, consectetur adipiscing elit, sed do eiusmod tempor incididunt ut labore et dolore magna aliqua. Ut enim ad minim veniam, quis nostrud exercitation ullamco laboris nisi ut aliquip ex ea commodo consequat.',
-      ],
-      ['property', 'WALLET_ALIAS', 'Wallet aliases'],
-      ['space', 10],
-      [
-        'description',
-        'Lorem ipsum dolor sit amet, consectetur adipiscing elit, sed do eiusmod tempor incididunt ut labore et dolore magna aliqua. Ut enim ad minim veniam, quis nostrud exercitation ullamco laboris nisi ut aliquip ex ea commodo consequat.',
-      ],
-      ['property', 'ACCOUNT_ALIAS', 'Account aliases'],
-      ['space', 10],
-      [
-        'description',
-        'Lorem ipsum dolor sit amet, consectetur adipiscing elit, sed do eiusmod tempor incididunt ut labore et dolore magna aliqua. Ut enim ad minim veniam, quis nostrud exercitation ullamco laboris nisi ut aliquip ex ea commodo consequat.',
-      ],
-      ['property', 'ALPHABOT_TRIM_NAMES', 'Trim Alphabot team names from raffle name'],
-      ['space', 10],
-      [
-        'description',
-        'Lorem ipsum dolor sit amet, consectetur adipiscing elit, sed do eiusmod tempor incididunt ut labore et dolore magna aliqua. Ut enim ad minim veniam, quis nostrud exercitation ullamco laboris nisi ut aliquip ex ea commodo consequat.',
-      ],
-      ['property', 'ALPHABOT_IGNORED_NAMES', 'Ignore Alphabot Team Names'],
     ],
   },
 ];

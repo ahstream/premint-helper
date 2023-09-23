@@ -80,7 +80,6 @@ async function onLoad() {
   }
 
   pageState.loaded = true;
-  pageState.minimizeFinishedAuto = storage.options.MINIMIZE_FINISHED_AUTO;
 
   const hashArgs = createHashArgs(window.location.hash);
 
@@ -404,7 +403,7 @@ async function finish(request) {
   pageState.pendingRequests = pageState.pendingRequests.filter((item) => item !== normalizedUrl);
   debug.log('finish; pendingRequests B:', pageState.pendingRequests.length, pageState.pendingRequests);
 
-  if (pageState.pendingRequests.length === 0 && prevLength > 0 && storage.options.RAFFLE_CLOSE_TASK_PAGES) {
+  if (pageState.pendingRequests.length === 0 && prevLength > 0 && storage.options.RAFFLE_CLOSE_TASKS_BEFORE_JOIN) {
     debug.log('Finished all required links, register raffle!');
     await sleep(request.delay ?? 500);
     chrome.runtime.sendMessage({ cmd: 'closeTabs', tabIds: pageState.finishedTabsIds });
@@ -421,7 +420,7 @@ async function finish(request) {
 
 // EXIT ACTIONS -------------------------------------------------------------------
 
-function exitAction(result, { twitterUser = null } = {}) {
+function exitAction(result, options = {}) {
   const context = {
     updateStatusbar,
     updateStatusbarError,
@@ -430,8 +429,9 @@ function exitAction(result, { twitterUser = null } = {}) {
     removeQuickRegBtn,
     resetQuickRegBtn,
     pageState,
+    options: storage.options,
   };
-  exitActionMain(result, context, { twitterUser });
+  exitActionMain(result, context, options);
 }
 
 // RAFFLE STATE CHECKERS -------------------------------------------------------------------

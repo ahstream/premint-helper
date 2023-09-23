@@ -39,6 +39,25 @@ chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {
 
 function messageHandler(request, sender, sendResponse) {
   switch (request.cmd) {
+    case 'closeRaffleWhenFinished':
+      chrome.tabs.query({}, (tabs) => {
+        console.log('tabs', tabs);
+        if (tabs.length < 2) {
+          chrome.tabs.create({ url: `chrome://extensions/?url=${request.url}`, active: true });
+        }
+        chrome.tabs.remove(sender.tab.id, () => console.log('close tab'));
+      });
+      break;
+    case 'cleanupRaffleWhenFinished':
+      chrome.tabs.query({}, (tabs) => {
+        console.log('tabs', tabs);
+        tabs.forEach((tab) => {
+          if (tab.id !== sender.tab.id) {
+            chrome.tabs.remove(tab.id, () => console.log('close tab'));
+          }
+        });
+      });
+      break;
     case 'getMyTabIdAsync':
       console.log('sender.tab.id:', sender.tab.id);
       chrome.tabs.sendMessage(sender.tab.id, { cmd: 'getMyTabIdAsyncResponse', response: sender.tab.id });

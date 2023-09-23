@@ -167,6 +167,9 @@ async function finishIntentAction() {
     debug.log('Close Twitter page after action...');
     await sleep(storage.options.TWITTER_CLOSE_TASK_PAGE_DELAY, null, 0.2);
     window.close();
+  } else {
+    //debug.log('unfocusMyTab');
+    //chrome.runtime.sendMessage({ cmd: 'unfocusMyTab' });
   }
 }
 

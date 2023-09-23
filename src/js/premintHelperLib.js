@@ -150,7 +150,7 @@ export function exitActionMain(result, context, options) {
     context.pageState.pause = true;
   }
   if (result === 'invalidContext') {
-    context.updateStatusbarError('Chrome Extension is not recognized by web page. Reload page and try again.');
+    context.updateStatusbarError('Chrome Extension is not recognized by web page. Reload extension and webpage and try again.');
     context.pageState.pause = true;
   }
   if (result === 'raffleUnknownError') {
@@ -191,12 +191,11 @@ export function exitActionMain(result, context, options) {
     context.pageState.done = true;
     context.updateStatusbarOk('You are registered');
     context.removeQuickRegBtn();
-    if (context.pageState.verifyRaffle) {
-      chrome.runtime.sendMessage({ cmd: 'minimizeWindow' });
-    }
-    if (context.pageState.isAutoStarted && context.pageState.minimizeFinishedAuto) {
-      chrome.runtime.sendMessage({ cmd: 'minimizeWindow' });
-    }
+    minimizeVerifiedRaffle(context);
+    minimizeRaffleWhenFinished(context);
+    closeRaffleWhenFinished(context);
+    cleanupRaffleWhenFinished(context);
+    closeTasksWhenFinished(context);
   }
   if (result === 'notRegisterProperly') {
     context.updateStatusbarError('Raffle does not seem to register properly');
@@ -225,12 +224,11 @@ export function exitActionMain(result, context, options) {
     context.updateStatusbarOk('You are registered');
     context.removeQuickRegBtn();
     context.pageState.pause = true;
-    if (context.pageState.verifyRaffle) {
-      chrome.runtime.sendMessage({ cmd: 'minimizeWindow' });
-    }
-    if (context.pageState.isAutoStarted && context.pageState.minimizeFinishedAuto) {
-      chrome.runtime.sendMessage({ cmd: 'minimizeWindow' });
-    }
+    minimizeVerifiedRaffle(context);
+    minimizeRaffleWhenFinished(context);
+    closeRaffleWhenFinished(context);
+    cleanupRaffleWhenFinished(context);
+    closeTasksWhenFinished(context);
   }
   if (result === 'noRaffleTrigger') {
     context.updateStatusbarError('Cannot recognize raffle elements');
@@ -245,15 +243,11 @@ export function exitActionMain(result, context, options) {
   if (result === 'ignoredRaffle') {
     context.updateStatusbar('Raffle is ignored');
     context.pageState.pause = true;
-    if (context.pageState.verifyRaffle) {
-      chrome.runtime.sendMessage({ cmd: 'minimizeWindow' });
-    }
-    if (context.pageState.isAutoStarted && context.pageState.minimizeFinishedAuto) {
-      chrome.runtime.sendMessage({ cmd: 'minimizeWindow' });
-    }
-  }
-  if (result === 'switchTwitterUserError') {
-    context.updateStatusbarError(`Cannot switch to Twitter user ${options.twitterUser}!`);
+    minimizeVerifiedRaffle(context);
+    minimizeRaffleWhenFinished(context);
+    closeRaffleWhenFinished(context);
+    cleanupRaffleWhenFinished(context);
+    closeTasksWhenFinished(context);
   }
   if (result === 'abort') {
     // do nothing
@@ -263,9 +257,52 @@ export function exitActionMain(result, context, options) {
 
   context.pageState.pause = true;
 
-  if (!context.pageState.hasDiscordCaptcha) {
-    // If discord captcha, raffle tab has already been focused earlier, avoid flickering by focusing more than once!
+  if (context.pageState.hasDiscordCaptcha) {
+    // Do nothing! If discord captcha, raffle tab has already been focused earlier, avoid flickering by focusing more than once!
+  } else if (context.pageState.haveRoleDiscordLink) {
+    // Do nothing! Let Discord page be focused so user can complete role verificattion!
+  } else {
     chrome.runtime.sendMessage({ cmd: 'focusMyTab' });
+  }
+}
+
+function minimizeVerifiedRaffle(context) {
+  console.log('minimizeVerifiedRaffle', context);
+  if (context.pageState.action === 'verifyAlphabotRaffle') {
+    console.log('do minimizeVerifiedRaffle');
+    chrome.runtime.sendMessage({ cmd: 'minimizeWindow' });
+  }
+}
+
+function closeTasksWhenFinished(context) {
+  console.log('closeTasksWhenFinished', context);
+  if (context.options.RAFFLE_CLOSE_TASKS_WHEN_FINISHED && context.pageState.finishedTabsIds?.length) {
+    console.log('do closeTasksWhenFinished');
+    chrome.runtime.sendMessage({ cmd: 'closeTabs', tabIds: context.pageState.finishedTabsIds });
+  }
+}
+
+function minimizeRaffleWhenFinished(context) {
+  console.log('minimizeRaffleWhenFinished', context);
+  if (context.options.RAFFLE_MINIMIZE_WHEN_FINISHED && context.pageState.isAutoStarted) {
+    console.log('do minimizeRaffleWhenFinished');
+    chrome.runtime.sendMessage({ cmd: 'minimizeWindow' });
+  }
+}
+
+function closeRaffleWhenFinished(context) {
+  console.log('closeRaffleWhenFinished', context);
+  if (context.options.RAFFLE_CLOSE_WHEN_FINISHED && context.pageState.isAutoStarted) {
+    console.log('do closeRaffleWhenFinished');
+    chrome.runtime.sendMessage({ cmd: 'closeRaffleWhenFinished', url: window.location.href });
+  }
+}
+
+function cleanupRaffleWhenFinished(context) {
+  console.log('cleanupRaffleWhenFinished', context);
+  if (context.options.RAFFLE_CLEANUP_WHEN_FINISHED && context.pageState.isAutoStarted) {
+    console.log('do cleanupRaffleWhenFinished');
+    chrome.runtime.sendMessage({ cmd: 'cleanupRaffleWhenFinished', url: window.location.href });
   }
 }
 
@@ -274,7 +311,7 @@ function handleRetries(context, retries, retrySecs) {
     return;
   }
   context.updateStatusbar(
-    `Raffle error but will auto retry ${retries} ${pluralize(retries, 'time', 'times')} in ${retrySecs} seconds...`,
+    `Raffle error! Will auto retry ${retries} ${pluralize(retries, 'time', 'times')} in ${retrySecs} seconds...`,
     'retry'
   );
   if (retrySecs >= 1) {

@@ -54,7 +54,7 @@ function onLoad() {
 window.addEventListener('beforeunload', function () {
   console.log('beforeunload');
   if (parentTabId) {
-    chrome.runtime.sendMessage({ cmd: 'finish', delay: 500, to: parentTabId });
+    chrome.runtime.sendMessage({ cmd: 'finish', delay: 500, to: parentTabId, isDiscord: true });
   }
 });
 
@@ -91,7 +91,7 @@ async function joinDiscord() {
 
   if (isFromRaffle && !storage.options.DISCORD_ENABLE) {
     console.info('Discord Join automation disabled!');
-    await chrome.runtime.sendMessage({ cmd: 'finish', delay: 0, to: parentTabId });
+    await chrome.runtime.sendMessage({ cmd: 'finish', delay: 0, to: parentTabId, isDiscord: true });
     return false;
   }
 
@@ -104,7 +104,7 @@ async function joinDiscord() {
     await sleep(2000);
     if (isDiscordServerAlreadyJoined()) {
       console.info('Discord server already joined! Close this window...');
-      await chrome.runtime.sendMessage({ cmd: 'finish', delay: 0, to: parentTabId });
+      await chrome.runtime.sendMessage({ cmd: 'finish', delay: 0, to: parentTabId, isDiscord: true });
       await sleep(storage.options.DISCORD_CLOSE_JOINED_DELAY, null, 0.5);
       window.close();
     }
@@ -120,7 +120,7 @@ async function joinDiscord() {
   if (!joinBtn) {
     console.log('No Discord join button!');
     if (parentTabId) {
-      await chrome.runtime.sendMessage({ cmd: 'finish', delay: 0, to: parentTabId });
+      await chrome.runtime.sendMessage({ cmd: 'finish', delay: 0, to: parentTabId, isDiscord: true });
     }
     return false;
   }
@@ -148,7 +148,7 @@ async function joinDiscord() {
 
   if (isFromRaffle) {
     console.log('send finish msg to parent');
-    await chrome.runtime.sendMessage({ cmd: 'finish', delay: 0, to: parentTabId });
+    await chrome.runtime.sendMessage({ cmd: 'finish', delay: 0, to: parentTabId, isDiscord: true });
   }
 }
 
@@ -170,7 +170,7 @@ async function runMainLoop() {
   if (isFromRaffle && !storage.options.DISCORD_ENABLE && parentTabId) {
     console.info('Discord Complete automation disabled!');
     console.log('send finish...');
-    await chrome.runtime.sendMessage({ cmd: 'finish', delay: 0, to: parentTabId });
+    await chrome.runtime.sendMessage({ cmd: 'finish', delay: 0, to: parentTabId, isDiscord: true });
     return false;
   }
 
@@ -201,7 +201,7 @@ async function runMainLoop() {
 async function runCaptcha() {
   if (hasCaptcha()) {
     if (parentTabId) {
-      chrome.runtime.sendMessage({ cmd: 'finish', status: 'captcha', to: parentTabId });
+      chrome.runtime.sendMessage({ cmd: 'finish', status: 'captcha', to: parentTabId, isDiscord: true });
     } else {
       console.log('hasCaptcha but no parentTabId!');
     }
