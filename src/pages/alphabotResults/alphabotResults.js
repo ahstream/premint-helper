@@ -1,7 +1,14 @@
 console.info('alphabotResults.js begin', window?.location?.href);
 
 import './alphabotResults.scss';
-import { trimMintAddress, accountToAlias, walletToAlias, sortMintAddresses } from '../../js/premintHelperLib.js';
+import {
+  trimMintAddress,
+  accountToAlias,
+  walletToAlias,
+  sortMintAddresses,
+  createStatusbarButtons,
+  STATUSBAR_DEFAULT_TEXT,
+} from '../../js/premintHelperLib.js';
 import { createObserver } from '../../js/observer';
 import {
   winnersSortedByNewestURL,
@@ -47,12 +54,16 @@ import {
   createLogger,
 } from '@ahstream/hx-lib';
 
+import { createStatusbar } from '@ahstream/hx-statusbar';
+
 const debug = createLogger();
 
 // DATA ----------------------------------------------------------------------------
 
 let storage;
-let pageState = {};
+let pageState = {
+  statusbar: null,
+};
 
 const DEBUG_MODE = false;
 
@@ -97,6 +108,7 @@ async function runPage() {
   pageState = {
     hashArgs,
     twitterObserver: await createObserver({ autoFollowers: true }),
+    statusbar: createStatusbar(STATUSBAR_DEFAULT_TEXT),
   };
   debug.log('pageState', pageState);
 
@@ -160,6 +172,15 @@ function getAllWinners() {
 
 async function showPage() {
   debug.log('showPage:');
+
+  pageState.statusbar.buttons(
+    createStatusbarButtons({
+      options: true,
+      results: 'disabled',
+      reveal: 'disabled',
+      followers: 'disabled',
+    })
+  );
 
   const allWinners = getAllWinners();
   debug.log('allWinners:', allWinners);

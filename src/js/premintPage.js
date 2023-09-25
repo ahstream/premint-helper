@@ -282,13 +282,16 @@ async function joinRaffle() {
 
 // REGISTER ----------------------------------------------------------------------------------
 
-async function registerRaffle() {
-  debug.info('Register raffle');
+async function registerRaffle(focusTab = true) {
+  console.info('Register raffle; focusTab:', focusTab);
 
   pageState.pause = false;
 
   updateStatusbarRunning('Joining raffle...');
-  chrome.runtime.sendMessage({ cmd: 'focusMyTab' });
+  if (focusTab) {
+    console.info('focusTab');
+    chrome.runtime.sendMessage({ cmd: 'focusMyTab' });
+  }
 
   const regBtn = await getRegisterButton();
   if (!regBtn) {
@@ -381,17 +384,26 @@ async function getRegisterButton(maxWait = 1000, interval = 10) {
 
 // FINISH ----------------------------------------------------------------------------------
 
-async function finish(request) {
-  debug.log('finish; request:', request);
+async function finish(request, sender) {
+  debug.log('finish; request, sender:', request, sender);
 
   if (pageState.abort) {
     return exitAction('abort');
   }
+
   if (request.status === 'captcha') {
-    return exitAction('discordCaptcha');
+    pageState.discordCaptchaSender = sender;
+    pageState.discordCaptchaTabId = sender.tab.id;
+    console.log('sender', sender);
+    return handleDiscordCaptcha();
   }
 
   pageState.finishedTabsIds.push(request.senderTabId);
+  pageState.finishedDiscordTabIds = pageState.finishedDiscordTabIds || [];
+  if (request.isDiscord) {
+    pageState.finishedDiscordTabIds.push(request.senderTabId);
+  }
+  debug.log('pageState.finishedDiscordTabIds:', pageState.finishedDiscordTabIds);
 
   const normalizedUrl = normalizePendingLink(request.url);
   const prevLength = pageState.pendingRequests.length;
@@ -403,19 +415,43 @@ async function finish(request) {
   pageState.pendingRequests = pageState.pendingRequests.filter((item) => item !== normalizedUrl);
   debug.log('finish; pendingRequests B:', pageState.pendingRequests.length, pageState.pendingRequests);
 
-  if (pageState.pendingRequests.length === 0 && prevLength > 0 && storage.options.RAFFLE_CLOSE_TASKS_BEFORE_JOIN) {
-    debug.log('Finished all required links, register raffle!');
+  if (pageState.pendingRequests.length === 0 && prevLength > 0) {
+    console.info('Finished all required links, register raffle!');
     await sleep(request.delay ?? 500);
-    chrome.runtime.sendMessage({ cmd: 'closeTabs', tabIds: pageState.finishedTabsIds });
-    return registerRaffle();
+    debug.log('pageState:', pageState);
+
+    let tabsToClose = [...pageState.finishedTabsIds];
+
+    if (pageState.haveRoleDiscordLink && storage.options.RAFFLE_KEEP_ROLED_DISCORD_TASK_OPEN) {
+      // if having role discord link we often times need to do some verification task to get role.
+      // we save time by keeping those tabs open!
+      debug.log('focus roled discord tabs');
+      pageState.finishedDiscordTabIds.forEach((id) => {
+        tabsToClose = tabsToClose.filter((tabId) => tabId !== id);
+        chrome.runtime.sendMessage({ cmd: 'focusTab', id });
+      });
+    }
+
+    if (storage.options.RAFFLE_CLOSE_TASKS_BEFORE_JOIN) {
+      debug.log('Close finishedTabsIds');
+      chrome.runtime.sendMessage({ cmd: 'closeTabs', tabIds: tabsToClose });
+    }
+
+    const focusTabWhenRegister = pageState.haveRoleDiscordLink ? false : true;
+    return registerRaffle(focusTabWhenRegister);
   }
 
-  debug.log('Not all required links finished yet! Still left:', pageState.pendingRequests);
+  console.info('Not all required links finished yet!');
 
   if (pageState.hasDiscordCaptcha) {
-    debug.log('Discord captcha present, focus raffle tab!');
-    chrome.runtime.sendMessage({ cmd: 'focusMyTab' });
+    handleDiscordCaptcha();
   }
+}
+
+async function handleDiscordCaptcha() {
+  pageState.hasDiscordCaptcha = true;
+  exitAction('discordCaptcha');
+  chrome.runtime.sendMessage({ cmd: 'focusTab', id: pageState.discordCaptchaTabId });
 }
 
 // EXIT ACTIONS -------------------------------------------------------------------

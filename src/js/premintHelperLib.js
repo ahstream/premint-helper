@@ -102,13 +102,16 @@ export function createStatusbarButtons({ options = true, help = false, results =
   };
 
   if (options) {
-    add('Options', 'Open Premint Helper Options page', () => chrome.runtime.sendMessage({ cmd: 'openOptionsPage' }));
+    const callback = options === 'disabled' ? '' : () => chrome.runtime.sendMessage({ cmd: 'openOptionsPage' });
+    add('Options', 'Open Premint Helper Options page', callback);
   }
 
   if (help) {
-    add('Help', 'Open Premint Helper Help page', () =>
-      chrome.runtime.sendMessage({ cmd: 'openTab', active: true, url: chrome.runtime.getURL('/help.html') })
-    );
+    const callback =
+      help === 'disabled'
+        ? ''
+        : () => chrome.runtime.sendMessage({ cmd: 'openTab', active: true, url: chrome.runtime.getURL('/help.html') });
+    add('Help', 'Open Premint Helper Help page', callback);
   }
 
   if (results) {

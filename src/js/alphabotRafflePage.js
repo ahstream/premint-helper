@@ -593,8 +593,6 @@ async function registerRaffle(focusTab = true) {
   }
 
   if (hasCaptcha()) {
-    // return exitAction('raffleCaptcha');
-    // return exitAction('raffleCaptcha');
     return handleRaffleCaptcha();
   }
 
