@@ -1,8 +1,6 @@
 # Premint Helper
 
-Google Chrome extension with Premint.xyz and Alphabot.app raffle helpers.
-
-COPYRIGHT 2022 by hstream@gmail.com
+Google Chrome extension with Premint and Alphabot raffle helpers.
 
 ## How to use
 
@@ -22,3 +20,7 @@ Current extension id: ceegpiflkjflcklliibajfhlgoljefio
 
 - https://www.alphabot.app/
 - https://www.premint.xyz/
+
+## Credits
+
+Copyright 2022-, hstream@gmail.com
