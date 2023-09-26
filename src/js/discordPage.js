@@ -152,14 +152,26 @@ async function joinDiscord() {
   }
 }
 
-async function getJoinButton() {
-  return await waitForSelector(storage.options.DISCORD_JOIN_BTN_SEL, ONE_MINUTE * 10, 250);
+async function getJoinButton(waitMs = ONE_MINUTE * 10, interval = 250) {
+  return await waitForSelector(storage.options.DISCORD_JOIN_BTN_SEL, waitMs, interval);
 }
 
 // MAIN LOOP -----------------------------------------------------------------------------------------
 
+function clickElement(elem) {
+  elem.click();
+  simulateClick(elem);
+}
+
 async function runMainLoop() {
   console.log('runMainLoop');
+
+  const joinBtn = await getJoinButton(500, 10);
+  console.log('joinBtn:', joinBtn);
+  if (joinBtn) {
+    console.log('click joinBtn:', joinBtn);
+    clickElement(joinBtn);
+  }
 
   const isDispatched = !!parentTabId;
   const isPendingJoin = isPendingDiscordJoin();
@@ -181,6 +193,10 @@ async function runMainLoop() {
 
   const stopTime = millisecondsAhead(storage.options.DISCORD_MAIN_LOOP_RUN_FOR);
   while (Date.now() <= stopTime) {
+    if (joinBtn) {
+      console.log('click joinBtn:', joinBtn);
+      clickElement(joinBtn);
+    }
     if (await runCaptcha()) {
       return;
     }
@@ -201,6 +217,7 @@ async function runMainLoop() {
 async function runCaptcha() {
   if (hasCaptcha()) {
     if (parentTabId) {
+      console.log('hasCaptcha, send finish msg to parentTabId!', parentTabId);
       chrome.runtime.sendMessage({ cmd: 'finish', status: 'captcha', to: parentTabId, isDiscord: true });
     } else {
       console.log('hasCaptcha but no parentTabId!');
@@ -364,8 +381,9 @@ function hasCaptcha() {
   console.log('hasCaptcha, elems:', elems);
   if (elems.length) {
     console.log('DETECTED CAPTCHA!');
+    return true;
   }
-  return elems.length > 0;
+  return false;
 }
 
 async function clickDiscordElement(elem, dx, dy, simulateToo = false) {
