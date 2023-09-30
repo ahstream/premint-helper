@@ -12,7 +12,7 @@ import {
   setStorageData,
   createLogger,
   createLogLevelArg,
-} from '@ahstream/hx-lib';
+} from 'hx-lib';
 
 const debug = createLogger();
 

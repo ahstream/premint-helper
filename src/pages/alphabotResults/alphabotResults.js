@@ -52,9 +52,9 @@ import {
   setStorageData,
   removeStorageItem,
   createLogger,
-} from '@ahstream/hx-lib';
+} from 'hx-lib';
 
-import { createStatusbar } from '@ahstream/hx-statusbar';
+import { createStatusbar } from 'hx-statusbar';
 
 const debug = createLogger();
 

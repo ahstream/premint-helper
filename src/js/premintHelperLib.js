@@ -8,7 +8,7 @@ import {
   onlyNumbers,
   pluralize,
   dynamicSortMultiple,
-} from '@ahstream/hx-lib';
+} from 'hx-lib';
 
 const debug = createLogger();
 
@@ -279,9 +279,12 @@ function minimizeVerifiedRaffle(context) {
 
 function closeTasksWhenFinished(context) {
   console.log('closeTasksWhenFinished', context);
+  console.log('closeTasksWhenFinished', JSON.stringify(context));
   if (context.options.RAFFLE_CLOSE_TASKS_WHEN_FINISHED && context.pageState.finishedTabsIds?.length) {
     console.log('do closeTasksWhenFinished');
     chrome.runtime.sendMessage({ cmd: 'closeTabs', tabIds: context.pageState.finishedTabsIds });
+  } else {
+    console.log('do NOT closeTasksWhenFinished');
   }
 }
 
@@ -295,9 +298,12 @@ function minimizeRaffleWhenFinished(context) {
 
 function closeRaffleWhenFinished(context) {
   console.log('closeRaffleWhenFinished', context);
+  console.log('closeRaffleWhenFinished', JSON.stringify(context));
   if (context.options.RAFFLE_CLOSE_WHEN_FINISHED && context.pageState.isAutoStarted) {
     console.log('do closeRaffleWhenFinished');
     chrome.runtime.sendMessage({ cmd: 'closeRaffleWhenFinished', url: window.location.href });
+  } else {
+    console.log('do NOT closeRaffleWhenFinished');
   }
 }
 

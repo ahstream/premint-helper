@@ -10,7 +10,7 @@ import {
   waitForEitherSelector,
   extractTwitterHandle,
   ONE_MINUTE,
-} from '@ahstream/hx-lib';
+} from 'hx-lib';
 
 const debug = createLogger();
 

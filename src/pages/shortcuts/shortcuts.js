@@ -1,7 +1,7 @@
 console.info('shortcuts.js begin', window?.location?.href);
 
-import { getStorageItems, getQueryParam, addPendingRequest } from '@ahstream/hx-lib';
-import { initShortcutsPage, mountShortcutsPage } from '@ahstream/hx-chrome-lib';
+import { getStorageItems, getQueryParam, addPendingRequest } from 'hx-lib';
+import { initShortcutsPage, mountShortcutsPage } from 'hx-chrome-lib';
 
 import { addRevealAlphabotRafflesRequest } from '../../js/premintHelperLib.js';
 

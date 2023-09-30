@@ -29,8 +29,8 @@ import {
   normalizePendingLink,
   createLogger,
   createLogLevelArg,
-} from '@ahstream/hx-lib';
-import { createStatusbar } from '@ahstream/hx-statusbar';
+} from 'hx-lib';
+import { createStatusbar } from 'hx-statusbar';
 
 const debug = createLogger();
 
@@ -118,7 +118,7 @@ chrome.runtime.onMessage.addListener(async (request, sender, sendResponse) => {
   }
 
   if (request.cmd === 'finish') {
-    finish(request);
+    finish(request, sender);
   }
 
   if (request.cmd === 'getMyTabIdAsyncResponse') {
@@ -393,7 +393,7 @@ async function finish(request, sender) {
 
   if (request.status === 'captcha') {
     pageState.discordCaptchaSender = sender;
-    pageState.discordCaptchaTabId = sender.tab.id;
+    pageState.discordCaptchaTabId = sender?.tab?.id;
     console.log('sender', sender);
     return handleDiscordCaptcha();
   }

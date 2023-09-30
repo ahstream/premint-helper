@@ -2,9 +2,9 @@ console.info('options.js begin', window?.location?.href);
 
 import './options.css';
 
-import { initOptionsPage, mountOptionsPage } from '@ahstream/hx-chrome-lib';
+import { initOptionsPage, mountOptionsPage } from 'hx-chrome-lib';
 import { createStatusbarButtons, STATUSBAR_DEFAULT_TEXT } from '../../js/premintHelperLib.js';
-import { createStatusbar } from '@ahstream/hx-statusbar';
+import { createStatusbar } from 'hx-statusbar';
 
 // DATA ----------------------------------------------------------------------------
 

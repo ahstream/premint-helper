@@ -1,4 +1,4 @@
-import { createLogger, sleep, fetchHelper } from '@ahstream/hx-lib';
+import { createLogger, sleep, fetchHelper } from 'hx-lib';
 
 const debug = createLogger();
 

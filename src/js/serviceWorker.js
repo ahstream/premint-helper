@@ -1,8 +1,8 @@
 console.info('serviceWorker.js begin');
 
 import { defaultOptions, overrideOptions } from '../config/config';
-import { initStorageWithOptions, fetchHelper } from '@ahstream/hx-lib';
-import { defaultMessageHandler } from '@ahstream/hx-chrome-lib';
+import { initStorageWithOptions, fetchHelper } from 'hx-lib';
+import { defaultMessageHandler } from 'hx-chrome-lib';
 import { addRevealAlphabotRafflesRequest, isAlphabotURL } from './premintHelperLib.js';
 
 const customStorage = { runtime: { pendingRequests: [] }, pendingPremintReg: {} };

@@ -11,8 +11,8 @@ import {
   STATUSBAR_DEFAULT_TEXT,
 } from './premintHelperLib';
 
-import { getStorageItems, createLogger, sleep, createHashArgs, noDuplicates, dispatch } from '@ahstream/hx-lib';
-import { createStatusbar } from '@ahstream/hx-statusbar';
+import { getStorageItems, createLogger, sleep, createHashArgs, noDuplicates, dispatch } from 'hx-lib';
+import { createStatusbar } from 'hx-statusbar';
 
 const debug = createLogger();
 

@@ -1,5 +1,5 @@
 @import 'baseVars.css';
-@import '@ahstream/hx-statusbar/dist/main.css';
+@import 'hx-statusbar/dist/main.css';
 
 .hx-statusbar {
   color: var(--statusbar-color);

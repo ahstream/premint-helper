@@ -23,4 +23,4 @@ Current extension id: ceegpiflkjflcklliibajfhlgoljefio
 
 ## Credits
 
-Copyright 2022-, hstream@gmail.com
+Copyright 2022-
