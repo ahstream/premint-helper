@@ -70,6 +70,7 @@ export const defaultOptions = {
   DISCORD_ACCEPT_CHECKBOX_DELAY: 100,
   DISCORD_ACCEPT_RULES_DELAY: 101,
   DISCORD_JOIN_BTN_SEL: '[type="button" i]',
+  DISCORD_JOIN_BTN_TEXT: 'Accept Invite',
   DISCORD_COMPLETE_BTN_SEL: 'Complete',
   DISCORD_CONTINUE_BTN_SEL: 'Continue to Discord',
   DISCORD_ACCEPT_CHECKBOX_SEL: 'I have read and agree to the rules',

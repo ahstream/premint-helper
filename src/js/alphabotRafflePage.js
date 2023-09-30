@@ -162,6 +162,8 @@ chrome.runtime.onMessage.addListener(async (request, sender, sendResponse) => {
 async function runPage(runRaffle = false) {
   debug.log('runPage; runRaffle, pageState:', runRaffle, pageState);
 
+  debug.log('pageState:', JSON.stringify(pageState));
+
   pageState.statusbar.buttons(
     createStatusbarButtons({
       options: true,
@@ -172,6 +174,7 @@ async function runPage(runRaffle = false) {
   );
 
   if (!pageState.action) {
+    await sleep(100);
     const request = await dispatch(window.location.href, 5 * 60);
     debug.log('dispatched request:', request);
     pageState.request = request;
@@ -462,7 +465,7 @@ async function finish(request, sender) {
 
   if (request.status === 'captcha') {
     pageState.discordCaptchaSender = sender;
-    pageState.discordCaptchaTabId = sender.tab.id;
+    pageState.discordCaptchaTabId = sender?.tab?.id;
     console.log('sender', sender);
     return handleDiscordCaptcha();
   }
@@ -651,6 +654,11 @@ async function waitForRegistered(maxWait = 1 * ONE_MINUTE, interval = 100) {
 
       const retries = pageState.request?.retries ? pageState.request?.retries - 1 : storage.options.RAFFLE_RETRY_TIMES;
 
+      if (!retries && pageState.request?.retries) {
+        // Have retried before but have no retries left, try one last time without retries!
+        return waitAndTryRegisterOneLastTime();
+      }
+
       if (!retries) {
         return exitAction('raffleUnknownError');
       }
@@ -699,11 +707,39 @@ async function waitForRegistered(maxWait = 1 * ONE_MINUTE, interval = 100) {
   }
 
   if (!pageState.pause) {
-    exitAction('notRegisterProperly');
+    return waitAndTryRegisterOneLastTime();
+    // exitAction('notRegisterProperly');
   }
   pageState.pause = false;
 
   debug.log('Stop waiting for registered!');
+}
+
+async function waitAndTryRegisterOneLastTime() {
+  // We have retried max number of times, now we can as well
+  // wait for register button one last time and try to register!
+  debug.log('waitAndTryRegisterOneLastTime');
+
+  const waitSecs = 600;
+
+  updateStatusbarRunning(`Raffle error? Wait for register button ${waitSecs} secs and try again...`);
+
+  const stopTime = millisecondsAhead(waitSecs * 1000);
+  while (Date.now() <= stopTime && storage.options.RAFFLE_FORCE_REGISTER) {
+    debug.log('try to forceRegister');
+    const regBtn = forceRegister();
+    if (regBtn) {
+      debug.log('forceRegister ok!');
+      return waitForRegisteredMainLoop(regBtn);
+    }
+    await sleep(1000);
+  }
+
+  if (hasRegistered()) {
+    return exitAction('registered');
+  }
+
+  return exitAction('raffleUnknownError');
 }
 
 async function waitAndTryRegisterBeforeRetry(retries) {

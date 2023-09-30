@@ -3,7 +3,7 @@ console.info('discordPage.js begin', window?.location?.href);
 import {
   sleep,
   createHashArgs,
-  waitForSelector,
+  waitForTextContains,
   addToDate,
   simulateClick,
   millisecondsAhead,
@@ -153,7 +153,7 @@ async function joinDiscord() {
 }
 
 async function getJoinButton(waitMs = ONE_MINUTE * 10, interval = 250) {
-  return await waitForSelector(storage.options.DISCORD_JOIN_BTN_SEL, waitMs, interval);
+  return await waitForTextContains(storage.options.DISCORD_JOIN_BTN_TEXT, storage.options.DISCORD_JOIN_BTN_SEL, waitMs, interval);
 }
 
 // MAIN LOOP -----------------------------------------------------------------------------------------
