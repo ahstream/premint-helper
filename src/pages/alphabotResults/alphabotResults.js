@@ -7,6 +7,7 @@ import {
   walletToAlias,
   sortMintAddresses,
   createStatusbarButtons,
+  checkIfSubscriptionEnabled,
   STATUSBAR_DEFAULT_TEXT,
 } from '../../js/premintHelperLib.js';
 import { createObserver } from '../../js/observer';
@@ -53,6 +54,7 @@ import {
   removeStorageItem,
   createLogger,
 } from 'hx-lib';
+import { getPermissions } from '../../js/permissions';
 
 import { createStatusbar } from 'hx-statusbar';
 
@@ -109,8 +111,20 @@ async function runPage() {
     hashArgs,
     twitterObserver: await createObserver({ autoFollowers: true }),
     statusbar: createStatusbar(STATUSBAR_DEFAULT_TEXT),
+    permissions: await getPermissions(),
   };
   debug.log('pageState', pageState);
+
+  pageState.statusbar.buttons(
+    createStatusbarButtons({
+      options: true,
+      results: 'disabled',
+      reveal: 'disabled',
+      followers: 'disabled',
+    })
+  );
+
+  checkIfSubscriptionEnabled(pageState.permissions, false, pageState.statusbar.warn);
 
   document.getElementById('hx-update-cloud').addEventListener('click', () => updatePage({ cloud: true }));
   document.getElementById('hx-reset').addEventListener('click', () => resetWinners());
@@ -172,15 +186,6 @@ function getAllWinners() {
 
 async function showPage() {
   debug.log('showPage:');
-
-  pageState.statusbar.buttons(
-    createStatusbarButtons({
-      options: true,
-      results: 'disabled',
-      reveal: 'disabled',
-      followers: 'disabled',
-    })
-  );
 
   const allWinners = getAllWinners();
   debug.log('allWinners:', allWinners);
@@ -794,7 +799,9 @@ function createMultiLinks(links, { target, className } = {}) {
     const thisClass = `${className || ''} ${isFirst ? 'first' : ''} ${link.isNew ? 'is-new' : ''} ${
       link.isUpdated ? 'is-updated' : ''
     }`.trim();
-    elem.appendChild(createLink(link.url, link.text, { target, className: thisClass }));
+    const thisUrl = pageState.permissions?.enabled ? link.url : 'http://example.org/hidden-premium-feature';
+    const thisText = pageState.permissions?.enabled ? link.text : 'Hidden Raffle Name';
+    elem.appendChild(createLink(thisUrl, thisText, { target, className: thisClass }));
     isFirst = false;
   }
   return elem;
@@ -943,9 +950,10 @@ function createProjectsTable(projects, mountOnElementId) {
     const dtcTexts = p.winners.map((x) => `${typeof x.dtc === 'undefined' ? ' ' : x.dtc ? 'Yes' : 'No'}`);
     row.appendChild(createCell(createMultiTexts(dtcTexts, { className: 'dtc', useTextAsClass: true })));
 
+    const twitterHandle = pageState.permissions?.enabled ? p.twitterHandle : 'hidden';
     row.appendChild(
       createCell(
-        createLink(makeTwitterURL(p.twitterHandle), p.twitterHandle, {
+        createLink(makeTwitterURL(twitterHandle), twitterHandle, {
           dataset: [{ key: 'username', val: p.twitterHandle }],
           className: 'twitter-link',
           target: '_blank',
@@ -1061,11 +1069,15 @@ function createProjectsTable(projects, mountOnElementId) {
     row.appendChild(createCell(createMultiTexts(accountAddresses, { className: 'account-name' })));
 
     const teamNames = p.winners.map((x) => trimTeamName(x.teamName));
-    row.appendChild(createCell(createMultiTexts(teamNames, { className: 'team-name' })));
+    const teamNamesEnabled = pageState.permissions?.enabled ? teamNames : Array(teamNames.length).fill('hidden');
+    row.appendChild(createCell(createMultiTexts(teamNamesEnabled, { className: 'team-name' })));
 
     const discordUrls = p.winners.filter((x) => x.discordUrl);
     const discordUrl = discordUrls.length ? discordUrls[0].discordUrl : null;
-    row.appendChild(createCell(createLink(discordUrl, extractDiscordHandle(discordUrl), { className: 'discord-link', target: '_blank' })));
+    const discordUrlEnabled = pageState.permissions?.enabled ? discordUrl : 'https://discord.gg/hidden';
+    row.appendChild(
+      createCell(createLink(discordUrlEnabled, extractDiscordHandle(discordUrlEnabled), { className: 'discord-link', target: '_blank' }))
+    );
 
     table.appendChild(row);
   }

@@ -460,6 +460,7 @@ function exitAction(result, options = {}) {
   const context = {
     updateStatusbar,
     updateStatusbarError,
+    updateStatusbarWarn,
     updateStatusbarInfo,
     updateStatusbarOk,
     removeQuickRegBtn,
@@ -843,6 +844,10 @@ function updateStatusbarOk(content) {
 
 function updateStatusbarError(content) {
   pageState.statusbar.error(content);
+}
+
+function updateStatusbarWarn(content) {
+  pageState.statusbar.warn(content);
 }
 
 function updateStatusbarInfo(content) {

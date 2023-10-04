@@ -23,6 +23,7 @@ let storage = null;
 // MAIN FUNCS ----------------------------------------------------------------------------------
 
 export async function createObserver({
+  permissions,
   cacheTwitterHours,
   cacheProjectMins,
   trimAlphabotWhiteSpace,
@@ -37,6 +38,7 @@ export async function createObserver({
     saveProjectsTimeout: null,
     twitterModified: false,
     projectsModified: false,
+    permissions,
   };
 
   await reloadStorage();
@@ -441,7 +443,7 @@ export async function createObserver({
       return;
     }
 
-    const div = createPreviousWonSection(twitterHandle);
+    const div = createPreviousWonSection(twitterHandle, false, pageState.permissions);
     if (div) {
       raffleBox.after(div);
       document.documentElement.style.setProperty('--raffle-wins-background-color', storage.options.RAFFLE_WINS_BACKGROUND_COLOR);
@@ -462,18 +464,21 @@ export async function createObserver({
     }
   }
 
-  function createPreviousWonSection(twitterHandle, showAll = false) {
+  function createPreviousWonSection(twitterHandle, showAll = false, permissions = null) {
     const walletsWon = getPreviousWalletsWon(twitterHandle);
     if (!walletsWon.length) {
       return null;
     }
+
+    const hidden = permissions?.enabled ? '' : '[ PREMIUM FEATURE HIDDEN ]';
+
     const mintAddresses = sortMintAddresses(walletsWon, storage.options);
     const mintAddress = mintAddresses[0];
     const walletAliasFirst = walletToAlias(mintAddress, storage.options);
 
     debug.log('walletAliasFirst', walletAliasFirst);
     const walletAliasTextFirst = walletAliasFirst ? ` &nbsp;(${walletAliasFirst})` : '';
-    let html = `${trimMintAddress(mintAddress)}${walletAliasTextFirst}`;
+    let html = hidden || `${trimMintAddress(mintAddress)}${walletAliasTextFirst}`;
     if (mintAddresses.length > 1) {
       html = `<span class='times-won'>[x${mintAddresses.length}]</span> ` + html;
       if (showAll) {
@@ -481,7 +486,8 @@ export async function createObserver({
         for (const addr of mintAddresses) {
           const walletAlias = walletToAlias(addr, storage.options);
           const walletAliasText = walletAlias ? ` (${walletAlias})` : '';
-          html = html + `<br>${trimMintAddress(addr)}${walletAliasText}`;
+          const mintAddrText = hidden || `${trimMintAddress(addr)}${walletAliasText}`;
+          html = html + `<br>${mintAddrText}`;
         }
       }
     }
@@ -495,7 +501,7 @@ export async function createObserver({
         return `${trimMintAddress(x)}${walletAliasText}`;
       })
       .join('\n');
-    div.title = `Wallets with previous wins:\n\n` + text;
+    div.title = `Wallets with previous wins:\n\n` + (hidden || text);
 
     return div;
   }

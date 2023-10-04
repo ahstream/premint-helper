@@ -6,6 +6,8 @@ import {
   exitActionMain,
   getMyTabIdFromExtension,
   makeTwitterFollowIntentUrl,
+  checkIfSubscriptionEnabled,
+  showNoSubscriptionStatusbar,
   JOIN_BUTTON_TEXT,
   JOIN_BUTTON_IN_PROGRESS_TEXT,
   JOIN_BUTTON_TITLE,
@@ -13,6 +15,7 @@ import {
 } from './premintHelperLib';
 import { createObserver } from './observer';
 import { createHistory } from './history';
+import { getPermissions } from './permissions';
 
 import {
   createLogger,
@@ -100,6 +103,7 @@ async function onLoad() {
       isRegistering: false,
       statusbar: createStatusbar(STATUSBAR_DEFAULT_TEXT),
       history: await createHistory(),
+      permissions: await getPermissions(),
       lastURL: window.location.href,
       finishedTabsIds: [],
     },
@@ -196,6 +200,12 @@ async function runPage(runRaffle = false) {
     runRaffle = true;
   }
 
+  if (!pageState.permissions?.enabled) {
+    showNoSubscriptionStatusbar(pageState.statusbar.warn);
+    runRaffle = false;
+    pageState.isAutoStarted = false;
+  }
+
   await showRafflePage(runRaffle);
 }
 
@@ -217,6 +227,10 @@ async function showRafflePage(runRaffle) {
   }
 
   await addQuickRegButton();
+
+  if (!checkIfSubscriptionEnabled(pageState.permissions, false, pageState.statusbar.warn)) {
+    return;
+  }
 
   if (await shouldIgnore()) {
     return exitAction('ignoredRaffle');
@@ -244,7 +258,7 @@ function addPreviouslyWonWallets() {
   }
   debug.log('twitterHandle', twitterHandle);
 
-  const section = pageState.observer.createPreviousWonSection(twitterHandle, true);
+  const section = pageState.observer.createPreviousWonSection(twitterHandle, true, pageState.permissions);
   if (!section) {
     return;
   }
@@ -346,6 +360,10 @@ async function runRafflePage() {
 
 async function joinRaffle() {
   debug.log('joinRaffle');
+
+  if (!checkIfSubscriptionEnabled(pageState.permissions, true, pageState.statusbar.warn)) {
+    return;
+  }
 
   await reloadStorage();
 

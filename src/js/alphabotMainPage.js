@@ -13,6 +13,7 @@ import {
 
 import { getStorageItems, createLogger, sleep, createHashArgs, noDuplicates, dispatch } from 'hx-lib';
 import { createStatusbar } from 'hx-statusbar';
+import { getPermissions } from './permissions';
 
 const debug = createLogger();
 
@@ -50,7 +51,8 @@ async function runNow() {
     return;
   }
 
-  pageState.observer = await createObserver();
+  pageState.permissions = await getPermissions();
+  pageState.observer = await createObserver({ permissions: pageState.permissions });
 
   window.addEventListener('load', onLoad);
   window.addEventListener('DOMContentLoaded', onLoad);

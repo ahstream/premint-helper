@@ -5,25 +5,31 @@ import { getStorageItems, setStorageData } from 'hx-lib';
 // FUNCTIONS ----------------------------------------------------------------------------------
 
 export async function showPermissions() {
-  const p = await getPermissions();
-  if (p.enabled) {
-    window.alert(`Subscription active until ${new Date(p.enabledTo).toLocaleString()}`);
-    return;
+  const key = await enterNewKey(await getSubscriptionInfo());
+  if (key) {
+    await setPermissions(key);
+    window.alert(await getSubscriptionInfo());
   }
+}
 
-  let promptText = 'No active subscription. Enter subscription key:';
+async function getSubscriptionInfo() {
+  const p = await getPermissions();
+  return p.enabled ? `Subscription active until ${new Date(p.enabledTo).toLocaleString()}` : 'No active subscription';
+}
+
+async function enterNewKey(prefix) {
+  let promptText = `${prefix}\nEnter new subscription key?`;
   // eslint-disable-next-line no-constant-condition
   while (true) {
     const key = window.prompt(promptText, '');
     if (!key) {
-      return;
+      return null;
     }
     if (!isValidSubscriptionKey(key)) {
-      promptText = 'Invalid key. Enter new subscription key:';
+      promptText = `Invalid key! ${prefix}\nEnter new subscription key?`;
       continue;
     }
-    await setPermissions(key);
-    return showPermissions();
+    return key;
   }
 }
 
