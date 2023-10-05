@@ -30,6 +30,10 @@ async function runNow() {
     })
   );
 
+  if (!window.location.href.toLowerCase().includes('=storage')) {
+    document.querySelector('#storage').style.display = 'none';
+  }
+
   initHelpPage();
   mountHelpPage();
 }

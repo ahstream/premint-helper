@@ -17,64 +17,91 @@ const options = [
     header: 'General Settings',
     hiddenKey: '',
     options: [
+      ['property', 'ALPHABOT_ENABLE', 'Enable raffle automation on Alphabot.app pages'],
+      ['property', 'PREMINT_ENABLE', 'Enable raffle automation on Premint.xyz pages'],
+      /*
       [
-        'box',
-        [
-          ['property', 'ALPHABOT_ENABLE', 'Enable Alphabot raffle automation'],
-          ['property', 'PREMINT_ENABLE', 'Enable Premint raffle automation'],
-        ],
+        'description',
+        'You can have Premint Helper automate Discord and Twitter Intent links when you open them yourself. For Discord, this means that when opening an invite link, Premint Helper will try to automate everything needed to join that server, including accepting rules etc. For Twitter, this means that intent links for follow/like/retweet will be automatically clicked.',
+      ],
+      */
+      ['space', 10],
+      [
+        'property',
+        'DISCORD_ENABLE_MANUAL',
+        'Automate manually opened Discord pages',
+        '',
+        'If enabled, Premint Helper will auto join Discord invite links and then try to click all buttons that turn up while joining server.',
+      ],
+      [
+        'property',
+        'TWITTER_ENABLE_MANUAL',
+        'Automate manually opened Twitter pages',
+        '',
+        'If enabled, Premint Helper will auto click OK button on Twitter intent pages.',
+      ],
+    ],
+  },
+
+  {
+    header: 'Raffle Settings',
+    hiddenKey: '',
+    options: [
+      [
+        'property',
+        'RAFFLE_SKIP_DONE_TASKS',
+        'Skip raffle tasks already done before',
+        null,
+        'If Premint Helper have opened a task page before it can be skipped in future raffles.',
+      ],
+      [
+        'property',
+        'RAFFLE_SWITCH_TWITTER_USER',
+        'Switch to selected Twitter user',
+        null,
+        'If enabled, Premint Helper will switch to (on raffle page) selected Twitter user before fulfilling Twitter tasks.',
+      ],
+      [
+        'property',
+        'RAFFLE_OPEN_TWITTER_LINK_DELAY',
+        'Pause between opening Twitter raffle tasks (milliseconds)',
+        '',
+        'Best practice is pause a couple of seconds between opening Twitter task pages.',
       ],
 
+      ['space', 15],
       [
-        'box',
-        [
-          [
-            'property',
-            'RAFFLE_SKIP_DONE_TASKS',
-            'Skip raffle tasks already done before',
-            null,
-            'If Premint Helper have opened a task page before it can be skipped in future raffles.',
-          ],
-          [
-            'property',
-            'RAFFLE_SWITCH_TWITTER_USER',
-            'Switch to selected Twitter user',
-            null,
-            'If enabled, Premint Helper will switch to (on raffle page) selected Twitter user before fulfilling Twitter tasks.',
-          ],
-          [
-            'property',
-            'RAFFLE_OPEN_TWITTER_LINK_DELAY',
-            'Pause between opening Twitter raffle tasks',
-            '(milliseconds)',
-            'Best practice is pause a couple of seconds between opening Twitter task pages.',
-          ],
-        ],
+        'property',
+        'RAFFLE_FORCE_REGISTER',
+        'Force join raffle if possible',
+        null,
+        'Alphabot can be buggy and show performed Twitter tasks as failed. This option will continue to click register button if this happens.',
       ],
-
       [
-        'box',
-        [
-          ['property', 'RAFFLE_FORCE_REGISTER', 'RAFFLE_FORCE_REGISTER', null, 'Lorem'],
-          ['property', 'RAFFLE_RETRY_TIMES', 'RAFFLE_RETRY_TIMES', null, 'Lorem'],
-          ['property', 'RAFFLE_RETRY_SECS', 'RAFFLE_RETRY_SECS', null, 'Lorem'],
-        ],
+        'property',
+        'RAFFLE_RETRY_TIMES',
+        'Retry raffle join if failed',
+        null,
+        'If raffle join fails despite tasks being fulfilled, retry this many times',
       ],
+      ['property', 'RAFFLE_RETRY_SECS', 'Wait between retries (seconds)', null, ''],
 
+      ['space', 15],
       [
-        'box',
-        [
-          [
-            'property',
-            'TWITTER_CLOSE_TASK_PAGE',
-            'TWITTER_CLOSE_TASK_PAGE',
-            null,
-            'If Twitter is rate limiting you for opening too many pages too fast, it might be better to disable this one.',
-          ],
-          ['property', 'RAFFLE_CLOSE_TASKS_BEFORE_JOIN', 'RAFFLE_CLOSE_TASKS_BEFORE_JOIN', null, 'lorem'],
-          ['property', 'RAFFLE_CLOSE_TASKS_WHEN_FINISHED', 'RAFFLE_CLOSE_TASKS_WHEN_FINISHED', null, 'lorem'],
-          ['property', 'RAFFLE_KEEP_ROLED_DISCORD_TASK_OPEN', 'RAFFLE_KEEP_ROLED_DISCORD_TASK_OPEN', null, 'lorem'],
-        ],
+        'property',
+        'TWITTER_CLOSE_TASK_PAGE',
+        'Close Twitter page when task is finished',
+        null,
+        'If Twitter is rate limiting you for opening too many pages too fast, it might be better to disable this one.',
+      ],
+      ['property', 'RAFFLE_CLOSE_TASKS_BEFORE_JOIN', 'Close all task pages before joining raffle', null, ''],
+      ['property', 'RAFFLE_CLOSE_TASKS_WHEN_FINISHED', 'Close all task pages when raffle is joined', null, ''],
+      [
+        'property',
+        'RAFFLE_KEEP_ROLED_DISCORD_TASK_OPEN',
+        'Do not close Discord pages that have role requirement ',
+        null,
+        'When raffle has Discord role requirement it is often needed to verify in server before getting that role. Keeping Discord task pages open in these cases makes it more convenient.',
       ],
     ],
   },
@@ -83,40 +110,19 @@ const options = [
     header: 'Auto-Start Settings',
     hiddenKey: '',
     options: [
-      ['description', ' Lorem ipsum'],
-      ['property', 'RAFFLE_MINIMIZE_WHEN_FINISHED', 'RAFFLE_MINIMIZE_WHEN_FINISHED', null, 'lorem'],
-      ['property', 'RAFFLE_CLEANUP_WHEN_FINISHED', 'RAFFLE_CLEANUP_WHEN_FINISHED', null, 'lorem'],
-      ['space', 10],
-      ['property', 'ALPHABOT_IGNORED_NAMES', 'Ignore Alphabot Teams', null, 'Name of Alphabot teams to ignore when auto-start raffle join'],
-    ],
-  },
-
-  {
-    header: 'Non-Raffle Automation Settings',
-    hiddenKey: '',
-    options: [
       [
-        'box',
-        [
-          [
-            'description',
-            'You can have Premint Helper automate Discord and Twitter Intent links when you open them yourself. For Discord, this means that when opening an invite link, Premint Helper will try to automate everything needed to join that server, including accepting rules etc. For Twitter, this means that intent links for follow/like/retweet will be automatically clicked.',
-          ],
-          [
-            'property',
-            'DISCORD_ENABLE_MANUAL',
-            'Automate Discord pages opened manually',
-            '',
-            // 'If enabled, Premint Helper will auto join Discord invite links and then try to click all buttons that turn up when joining.',
-          ],
-          [
-            'property',
-            'TWITTER_ENABLE_MANUAL',
-            'Automate Twitter pages opened manually',
-            '',
-            // 'If enabled, Premint Helper will auto click OK button on Twitter intent pages.',
-          ],
-        ],
+        'description',
+        'These are only applicable when using Shortcuts to automate raffle joins. Minimize options makes it much easier to see which raffles need manual operation (captchas etc). See help page for more info.',
+      ],
+      ['property', 'RAFFLE_MINIMIZE_WHEN_FINISHED', 'Minimize raffle window when finished', null, ''],
+      ['property', 'RAFFLE_CLEANUP_WHEN_FINISHED', 'Close all tabs except raffle tab + minimize window when finished', null, ''],
+      ['space', 10],
+      [
+        'property',
+        'ALPHABOT_IGNORED_NAMES',
+        'Ignore Alphabot Teams',
+        null,
+        'Name of Alphabot teams to ignore when auto-start raffle join. Typically you may want to ignore raffles from teams that require an NFT you do not have.',
       ],
     ],
   },
@@ -126,75 +132,64 @@ const options = [
     hiddenKey: '',
     options: [
       [
-        'box',
-        [
-          [
-            'property',
-            'TWITTER_FOLLOWERS_CACHE_HOURS',
-            'Hours to cache Twitter followers',
-            '',
-            'Premint Helper can fetch follower counts for Twitter links on Alphabot pages. Best practice is to cache this to avoid fetching it too often from Twitter.',
-          ],
-          [
-            'property',
-            'TWITTER_AUTO_UPDATE_FOLLOWERS',
-            'Auto update Twitter follower count when opening Twitter link',
-            '',
-            'Premint Helper can update follower count when opening a Twitter link.',
-          ],
-        ],
+        'property',
+        'TWITTER_FOLLOWERS_CACHE_HOURS',
+        'Hours to cache Twitter followers',
+        '',
+        'Premint Helper can fetch follower counts for Twitter links on Alphabot pages. Best practice is to cache this to avoid fetching it too often from Twitter.',
       ],
-
+      ['space', 10],
       [
-        'box',
-        [
-          [
-            'description',
-            'Since Twitter is getting more aggresive in rate limiting users it is best practice to use a burner Twitter user account for looking up follower counts. Otherwise you risk your main account have to wait a day before you can enter raffles with it again. Even so, using a burner account will likely hit rate limits on page views per 15 minutes, meaning you might have to wait up to 15 minutes before you can switch from burner to main account again.',
-          ],
-          ['property', 'TWITTER_FETCH_FOLLOWERS_USER', 'Twitter user for fetching followers', '', ''],
-        ],
+        'property',
+        'TWITTER_AUTO_UPDATE_FOLLOWERS',
+        'Auto update Twitter follower count when opening Twitter links',
+        '',
+        'Update follower count on Alphabot pages when opening Twitter links.',
       ],
+      ['space', 10],
+      [
+        'description',
+        'Since Twitter is getting more aggresive in rate limiting users it is good practice to use a burner Twitter user account for looking up follower counts. Otherwise you risk your main account have to wait a day before you can enter raffles with it again. Even so, using a burner account will likely hit rate limits on page views per 15 minutes, meaning you might have to wait up to 15 minutes before you can switch from burner to main account again.',
+      ],
+      ['property', 'TWITTER_FETCH_FOLLOWERS_USER', 'Twitter user for fetching followers', '', ''],
     ],
   },
 
   {
-    header: 'Raffle Result Cloud Storage Settings',
+    header: 'Alphabot Result Settings',
     hiddenKey: '',
     options: [
       [
         'description',
-        'Lorem ipsum dolor sit amet, consectetur adipiscing elit, sed do eiusmod tempor incididunt ut labore et dolore magna aliqua. Ut enim ad minim veniam, quis nostrud exercitation ullamco laboris nisi ut aliquip ex ea commodo consequat.',
+        'If joining Alphabot raffles on multiple accounts you can collect results for all on Alphabot results page by using cloud storage. Set the same "Cloud tag" on all instances of Premint Helper. On main account, choose "Load from cloud", on other accounts choose "Save to cloud"',
       ],
-
       [
-        'box',
+        'radioButtons',
+        'CLOUD_MODE',
         [
-          [
-            'radioButtons',
-            'CLOUD_MODE',
-            [
-              ['disabled', 'Disable'],
-              ['save', 'Save to cloud'],
-              ['load', 'Load from cloud'],
-            ],
-          ],
-          ['space', 10],
-          ['property', 'CLOUD_TAG', 'Cloud tag'],
+          ['disabled', 'Disable'],
+          ['save', 'Save to cloud'],
+          ['load', 'Load from cloud'],
         ],
       ],
+      ['space', 10],
+      ['property', 'CLOUD_TAG', 'Cloud tag'],
+      ['space', 20],
+      ['property', 'WALLET_ALIAS', 'Wallet aliases', null, 'Use aliases for wallet addresses'],
+      ['space', 20],
+      ['property', 'ACCOUNT_ALIAS', 'Account aliases', null, 'Use aliases for account addresses'],
+      ['space', 20],
+      [
+        'property',
+        'ALPHABOT_TRIM_NAMES',
+        'Remove Alphabot team names from raffle name',
+        null,
+        'Raffles often have team names included in them. Removing these makes results page easier to overview.',
+      ],
+      ['space', 10],
     ],
   },
 
-  {
-    header: 'Raffle Result Page Settings',
-    hiddenKey: '',
-    options: [
-      ['box', [['property', 'WALLET_ALIAS', 'Wallet aliases', null, 'Lorem ipsum']]],
-      ['box', [['property', 'ACCOUNT_ALIAS', 'Account aliases', null, 'Lorem ipsum']]],
-      ['box', [['property', 'ALPHABOT_TRIM_NAMES', 'Trim Alphabot team names from raffle name', null, 'Lorem ipsum']]],
-    ],
-  },
   {
     header: 'Custom Data Settings',
     hiddenKey: '',

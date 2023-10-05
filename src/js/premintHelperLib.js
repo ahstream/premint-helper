@@ -21,6 +21,7 @@ export const STATUSBAR_DEFAULT_TEXT = 'Premint Helper';
 
 // FUNCTIONS ----------------------------------------------------------------------------------
 
+/*
 const premiumFeatures = [
   'Auto Join button on Alphabot.app raffles that automatically fulfills raffle task requirements and join raffle',
   'Show wallets that have already won Alphabot raffles (on all accounts)',
@@ -35,6 +36,7 @@ const freeFeatures = [
   'Reveal current odds of winning Alphabot raffles',
   'Show Twitter follower counts on Alphabot raffles',
 ];
+*/
 
 const NO_SUBSCRIPTION_STATUSBAR_TEXT = 'No active Premint Helper subscription, premium features disabled';
 
@@ -42,11 +44,14 @@ export function checkIfSubscriptionEnabled(permissions, doAlert, updateStatusbar
   if (!permissions?.enabled) {
     showNoSubscriptionStatusbar(updateStatusbarFn);
     if (doAlert) {
+      /*
       const premiumText = premiumFeatures.join('\n* ');
       const freeText = freeFeatures.join('\n* ');
       window.alert(
         `No active Premint Helper subscription! These premium features are disabled:\n\n* ${premiumText}\n\nThe features are free:\n\n* ${freeText}`
       );
+      */
+      window.alert(`No active Premint Helper subscription! Premium features are disabled.`);
     }
     return false;
   }
