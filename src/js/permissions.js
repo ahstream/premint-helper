@@ -1,8 +1,15 @@
 import { getStorageItems, setStorageData } from 'hx-lib';
 
+import CryptoJS from 'crypto-js';
+
 // DATA ----------------------------------------------------------------------------------
 
 // FUNCTIONS ----------------------------------------------------------------------------------
+
+const w = '2fjnk234i6580hjklnvlagjk012948it5g';
+// const encrypt = (t) => CryptoJS.AES.encrypt(t, w).toString();
+const decrypt = (c) => CryptoJS.AES.decrypt(c, w).toString(CryptoJS.enc.Utf8);
+const parseKey = (k) => JSON.parse(JSON.parse(decrypt(k)));
 
 export async function showPermissions() {
   const key = await enterNewKey(await getSubscriptionInfo());
@@ -14,7 +21,8 @@ export async function showPermissions() {
 
 async function getSubscriptionInfo() {
   const p = await getPermissions();
-  return p.enabled ? `Subscription active until ${new Date(p.enabledTo).toLocaleString()}` : 'No active subscription';
+  console.log('p', p);
+  return p?.enabled ? `Subscription active until ${new Date(p.enabledTo).toLocaleString()}` : 'No active subscription';
 }
 
 async function enterNewKey(prefix) {
@@ -25,7 +33,7 @@ async function enterNewKey(prefix) {
     if (!key) {
       return null;
     }
-    if (!isValidSubscriptionKey(key)) {
+    if (!isValidKey(key)) {
       promptText = `Invalid key! ${prefix}\nEnter new subscription key?`;
       continue;
     }
@@ -33,11 +41,21 @@ async function enterNewKey(prefix) {
   }
 }
 
+function parsePermissions(key) {
+  try {
+    return parseKey(key);
+  } catch (e) {
+    return null;
+  }
+}
+
 export async function getPermissions() {
   const storage = await getStorageItems(['permissions']);
-  const permissionsString = storage?.permissions || '{}';
-  console.log('permissionsString', permissionsString);
-  const permissions = JSON.parse(permissionsString);
+  const permissions = storage.permissions ? parsePermissions(storage.permissions) : { enabled: false };
+  if (!permissions) {
+    return null;
+  }
+  permissions.enabledTo = Number(permissions?.enabledTo);
 
   permissions.enabled = permissions.enabledTo && Date.now() <= permissions.enabledTo;
   console.log('permissions', permissions);
@@ -45,38 +63,14 @@ export async function getPermissions() {
   return permissions;
 }
 
-export async function setPermissions(keyTo) {
-  const timestamp = parseInt(keyTo, 10) || 0;
-  const now = Date.now();
-  const maxToAdd = 1000 * 60 * 60 * 24 * 30;
-  const enabledToNew = Math.min(now + maxToAdd, timestamp);
-  console.log('timestamp', timestamp);
-  console.log('now', now);
-  console.log('maxToAdd', maxToAdd);
-  console.log('enabledToNew', enabledToNew);
-  console.log('now + maxToAdd', now + maxToAdd);
-  console.log('now + timestamp', now + timestamp);
-  console.log('enabledToNew', enabledToNew);
-
+export async function setPermissions(key) {
   const storage = await getStorageItems(['permissions']);
-  const permissionsString = storage?.permissions || '{}';
-  console.log('permissionsString', permissionsString);
-  const permissions = JSON.parse(permissionsString);
-
-  permissions.enabledTo = enabledToNew;
-  permissions.enabledToText = new Date(enabledToNew).toLocaleString();
-  permissions.enabled = permissions.enabledTo && Date.now() <= permissions.enabledTo;
-  console.log('permissions', permissions);
-
-  storage.permissions = JSON.stringify(permissions);
-
+  storage.permissions = key;
   await setStorageData(storage);
-  console.log('storage', storage);
-
-  return permissions;
+  return getPermissions();
 }
 
-function isValidSubscriptionKey(key) {
-  const timestamp = parseInt(key, 10) || 0;
-  return !!timestamp;
+function isValidKey(key) {
+  const permissions = parsePermissions(key);
+  return typeof permissions?.enabledTo !== 'undefined';
 }
