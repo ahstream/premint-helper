@@ -20,9 +20,9 @@ export async function showPermissions() {
 }
 
 async function getSubscriptionInfo() {
-  const p = await getPermissions();
-  console.log('p', p);
-  return p?.enabled ? `Subscription active until ${new Date(p.enabledTo).toLocaleString()}` : 'No active subscription';
+  const permissions = await getPermissions();
+  console.log('permissions', permissions);
+  return permissions?.enabled ? `Subscription active until ${new Date(permissions.enabledTo).toLocaleString()}` : 'No active subscription';
 }
 
 async function enterNewKey(prefix) {
@@ -43,7 +43,9 @@ async function enterNewKey(prefix) {
 
 function parsePermissions(key) {
   try {
-    return parseKey(key);
+    const p = parseKey(key);
+    console.log('parsePermissions', p);
+    return p;
   } catch (e) {
     return null;
   }
@@ -51,6 +53,7 @@ function parsePermissions(key) {
 
 export async function getPermissions() {
   const storage = await getStorageItems(['permissions']);
+  console.log('storage', storage);
   const permissions = storage.permissions ? parsePermissions(storage.permissions) : { enabled: false };
   if (!permissions) {
     return null;
@@ -58,6 +61,9 @@ export async function getPermissions() {
   permissions.enabledTo = Number(permissions?.enabledTo);
 
   permissions.enabled = permissions.enabledTo && Date.now() <= permissions.enabledTo;
+  console.log('Date.now()', Date.now());
+  console.log('permissions.enabledTo', permissions.enabledTo);
+  console.log('permissions.enabledTo', new Date(permissions.enabledTo));
   console.log('permissions', permissions);
 
   return permissions;

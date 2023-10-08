@@ -69,6 +69,7 @@ export async function fetchProjects({ pageSize = 16, maxPages = null, all = fals
   const sort = params.sortBy || 'ending';
   const sortDir = params.sortDir || '1';
   const search = params.q || '';
+  const reqFilters = params.reqFilters?.length ? params.reqFilters.map((a) => `req=${a}`).join('&') || 'req=' : '';
 
   let pageNum = 0;
   const projects = [];
@@ -84,7 +85,7 @@ export async function fetchProjects({ pageSize = 16, maxPages = null, all = fals
       callback(pageNum);
     }
 
-    const url = `https://www.alphabot.app/api/projects?sort=${sort}&scope=${scope}&sortDir=${sortDir}&showHidden=${hidden}&pageSize=${pageSize}&pageNum=${pageNum}&search=${search}&${filters}&${alphas}`;
+    const url = `https://www.alphabot.app/api/projects?sort=${sort}&scope=${scope}&sortDir=${sortDir}&showHidden=${hidden}&pageSize=${pageSize}&pageNum=${pageNum}&search=${search}&${filters}&${reqFilters}&${alphas}`;
     debug.log('url:', url);
 
     const result = await fetchHelper(url);
@@ -139,6 +140,9 @@ function getAlphabotFilterParams() {
   }
   if (typeof params.filters === 'string') {
     params.filters = [params.filters];
+  }
+  if (typeof params.reqFilters === 'string') {
+    params.reqFilters = [params.reqFilters];
   }
   return params;
 }
