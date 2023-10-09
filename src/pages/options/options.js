@@ -63,10 +63,17 @@ const options = [
       ],
       [
         'property',
+        'TWITTER_OPEN_LINKS_IN_SEQUENCE',
+        'Fulfill Twitter tasks one at a time',
+        null,
+        'If disabled, all Twitter tasks will be opened at once (with configured delay between)',
+      ],
+      [
+        'property',
         'RAFFLE_OPEN_TWITTER_LINK_DELAY',
-        'Pause between opening Twitter raffle tasks (milliseconds)',
+        'Delay before opening next Twitter task (milliseconds)',
         '',
-        'Best practice is pause a couple of seconds between opening Twitter task pages.',
+        'If fulfilling Twitter tasks one at a time you can set this short (500 ms), otherwise need to be longer (2500 ms) to avoid bot behaviour.',
       ],
 
       ['space', 15],

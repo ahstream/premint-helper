@@ -5,9 +5,10 @@ import {
   createStatusbarButtons,
   exitActionMain,
   getMyTabIdFromExtension,
-  makeTwitterFollowIntentUrl,
   checkIfSubscriptionEnabled,
   showNoSubscriptionStatusbar,
+  removeDoneLinks,
+  finishTask,
   JOIN_BUTTON_TEXT,
   JOIN_BUTTON_IN_PROGRESS_TEXT,
   JOIN_BUTTON_TITLE,
@@ -35,6 +36,10 @@ import {
   normalizePendingLink,
   getTextContains,
   simulateClick,
+  makeTwitterFollowIntentUrl,
+  makeTwitterRetweetIntentUrl,
+  makeTwitterLikeIntentUrl,
+  isTwitterURL,
   ONE_SECOND,
   ONE_MINUTE,
 } from 'hx-lib';
@@ -124,7 +129,14 @@ chrome.runtime.onMessage.addListener(async (request, sender, sendResponse) => {
   }
 
   if (request.cmd === 'finish') {
-    finish(request, sender);
+    return finishTask(request, sender, {
+      pageState,
+      exitAction,
+      handleDiscordCaptcha,
+      registerRaffle,
+      normalizePendingLink,
+      options: storage.options,
+    });
   }
 
   if (request.cmd === 'switchedToTwitterUser') {
@@ -293,37 +305,6 @@ async function waitForRafflePageLoaded() {
   return false;
 }
 
-function getRequirements() {
-  debug.log('getRequirements');
-
-  const twitterUser = getTwitterUser();
-  const discordUser = getDiscordUser();
-
-  const mustFollowLinks = getMustFollowLinks();
-  const mustLikeLinks = getMustLikeLinks();
-  const mustRetweetLinks = getMustRetweetLinks();
-  const mustJoinLinks = getMustJoinLinks();
-  const mustJoinWithRoleLinks = getMustJoinWithRoleLinks();
-
-  const twitterLinks = noDuplicates(mustFollowLinks, mustLikeLinks, mustRetweetLinks);
-  const discordLinks = noDuplicates(mustJoinLinks);
-
-  const result = {
-    twitterUser,
-    discordUser,
-    mustFollowLinks,
-    mustLikeLinks,
-    mustRetweetLinks,
-    mustJoinLinks,
-    mustJoinWithRoleLinks,
-    twitterLinks,
-    discordLinks,
-    links: [...twitterLinks, ...discordLinks],
-  };
-
-  return result;
-}
-
 async function runRafflePage() {
   debug.log('runRafflePage');
 
@@ -376,10 +357,8 @@ async function joinRaffle() {
   debug.log('reqs', reqs);
 
   const skipDoneTasks = pageState.action === 'retryJoin' || storage.options.RAFFLE_SKIP_DONE_TASKS;
-
-  const discordLinks = skipDoneTasks ? await removeDoneLinks(reqs.discordUser, reqs.discordLinks) : reqs.discordLinks;
-
-  const twitterLinks = skipDoneTasks ? await removeDoneLinks(reqs.twitterUser, reqs.twitterLinks) : reqs.twitterLinks;
+  const discordLinks = skipDoneTasks ? await removeDoneLinks(reqs.discordUser, reqs.discordLinks, pageState) : reqs.discordLinks;
+  const twitterLinks = skipDoneTasks ? await removeDoneLinks(reqs.twitterUser, reqs.twitterLinks, pageState) : reqs.twitterLinks;
 
   const reqLinks = [...discordLinks, ...twitterLinks];
   debug.log('reqLinks', reqLinks);
@@ -400,6 +379,10 @@ async function joinRaffle() {
   reqLinks.forEach((link) => pageState.pendingRequests.push(normalizePendingLink(link)));
   debug.log('pageState.pendingRequests:', pageState.pendingRequests);
 
+  pageState.twitterLinkSuffix = `#id=${pageState.myTabId}&user=${
+    storage.options.RAFFLE_SWITCH_TWITTER_USER ? reqs.twitterUser : ''
+  }&${createLogLevelArg()}`;
+
   for (let i = 0; i < reqLinks.length; i++) {
     if (pageState.abort) {
       return exitAction('abort');
@@ -414,21 +397,32 @@ async function joinRaffle() {
       debug.log('pageState.roleDiscordLinks', pageState.roleDiscordLinks);
     }
 
-    const url =
-      reqLink +
-      `#id=${pageState.myTabId}&user=${storage.options.RAFFLE_SWITCH_TWITTER_USER ? reqs.twitterUser : ''}&${createLogLevelArg()}`;
+    const url = reqLink + pageState.twitterLinkSuffix;
     debug.log('Open URL:', url);
 
-    const isTwitter = reqLink.includes('twitter.com');
+    const isTwitter = isTwitterURL(reqLink);
     const user = isTwitter ? reqs.twitterUser : reqs.discordUser;
 
-    await pageState.history.add(user, reqLink);
+    if (isTwitter) {
+      pageState.twitterUser = reqs.twitterUser;
+    }
+
+    if (!isTwitter) {
+      // Only add discord links to history at once; add twitter links when they are finished!
+      await pageState.history.add(user, reqLink);
+    }
 
     if (storage.options.ALPHABOT_OPEN_IN_FOREGROUND) {
       window.open(url, '_blank');
     } else {
       chrome.runtime.sendMessage({ cmd: 'openTab', url });
     }
+
+    if (isTwitter && storage.options.TWITTER_OPEN_LINKS_IN_SEQUENCE) {
+      console.log('Open rest of twitter links in sequence!');
+      break;
+    }
+
     if (i + 1 < reqLinks.length) {
       const delayMs = Math.round(
         isTwitter ? storage.options.RAFFLE_OPEN_TWITTER_LINK_DELAY : storage.options.RAFFLE_OPEN_TWITTER_LINK_DELAY / 2
@@ -448,6 +442,8 @@ async function joinRaffle() {
   if (reqLinks.length === 0) {
     registerRaffle();
   }
+
+  waitForRegistered();
 }
 
 // STATUSBAR FUNCS ----------------------------------------------------------------------------------
@@ -474,7 +470,18 @@ function updateStatusbarRunning(content) {
 
 // REPORT FUNCS -----------------------------------------------------------------------------------------
 
+/*
 async function finish(request, sender) {
+  const context = {
+    pageState,
+    exitAction,
+    handleDiscordCaptcha,
+    registerRaffle,
+    normalizePendingLink,
+    options: storage.options,
+  };
+  return finishTask(request, sender, context);
+
   debug.log('finish; request, sender:', request, sender);
 
   if (pageState.abort) {
@@ -505,9 +512,16 @@ async function finish(request, sender) {
   pageState.pendingRequests = pageState.pendingRequests.filter((item) => item !== normalizedUrl);
   debug.log('finish; pendingRequests B:', pageState.pendingRequests.length, pageState.pendingRequests);
 
+  if (request.twitter) {
+    console.log('Add url to history:', request.url);
+    await pageState.history.add(pageState.twitterUser, request.url);
+    await pageState.history.save();
+  }
+
   if (pageState.pendingRequests.length === 0 && prevLength > 0) {
-    console.info('Finished all required links, register raffle!');
-    await sleep(request.delay ?? 500);
+    const sleepMs = request.delay ?? 500;
+    console.info('Finished all required links, register raffle after sleep:', sleepMs);
+    await sleep(sleepMs);
     debug.log('pageState:', pageState);
 
     let tabsToClose = [...pageState.finishedTabsIds];
@@ -533,10 +547,29 @@ async function finish(request, sender) {
 
   console.info('Not all required links finished yet!');
 
+  if (storage.options.TWITTER_OPEN_LINKS_IN_SEQUENCE & request.twitter) {
+    const nextLink = pageState.pendingRequests.find((x) => isTwitterURL(x));
+    if (nextLink) {
+      const nextLinkUrl = 'https://' + nextLink + pageState.twitterLinkSuffix;
+      console.log('Open next twitter link:', nextLinkUrl);
+
+      await sleep(storage.options.RAFFLE_OPEN_TWITTER_LINK_DELAY, null, 0.1);
+
+      if (storage.options.ALPHABOT_OPEN_IN_FOREGROUND) {
+        window.open(nextLinkUrl, '_blank');
+      } else {
+        chrome.runtime.sendMessage({ cmd: 'openTab', url: nextLinkUrl });
+      }
+    } else {
+      console.log('No more twitter links');
+    }
+  }
+
   if (pageState.hasDiscordCaptcha) {
     handleDiscordCaptcha();
   }
 }
+  */
 
 // GETTERS -----------------------------------------------------------------------------------------
 
@@ -1033,15 +1066,37 @@ function quickRegClickHandler(event) {
 
 // RAFFLE LINKS ----------------------------------------------------------------------------------
 
-async function removeDoneLinks(user, links) {
-  const validLinks = [];
-  for (const link of links) {
-    if (await pageState.history.has(user, link)) {
-      continue;
-    }
-    validLinks.push(link);
-  }
-  return validLinks;
+function getRequirements() {
+  debug.log('getRequirements');
+
+  const twitterUser = getTwitterUser();
+  const discordUser = getDiscordUser();
+
+  const mustFollowLinks = getMustFollowLinks();
+  const mustLikeLinks = getMustLikeLinks();
+  const mustRetweetLinks = getMustRetweetLinks();
+  const mustLikeAndRetweetLinks = getMustLikeAndRetweetLinks();
+  const mustJoinLinks = getMustJoinLinks();
+  const mustJoinWithRoleLinks = getMustJoinWithRoleLinks();
+
+  const twitterLinks = noDuplicates(mustFollowLinks, mustLikeLinks, mustRetweetLinks);
+  const discordLinks = noDuplicates(mustJoinLinks);
+
+  const result = {
+    twitterUser,
+    discordUser,
+    mustFollowLinks,
+    mustLikeLinks,
+    mustRetweetLinks,
+    mustLikeAndRetweetLinks,
+    mustJoinLinks,
+    mustJoinWithRoleLinks,
+    twitterLinks,
+    discordLinks,
+    links: [...twitterLinks, ...discordLinks],
+  };
+
+  return result;
 }
 
 function getMustFollowLinks() {
@@ -1053,12 +1108,13 @@ function getMustLikeAndRetweetLinks() {
 }
 
 function getMustRetweetLinks() {
-  return [...new Set([...parseMustRetweetLinks(), ...parseMustLikeAndRetweetLinks().filter((u) => u.includes('/retweet'))])];
+  const links = [...new Set([...parseMustRetweetLinks(), ...parseMustLikeAndRetweetLinks()].map((x) => makeTwitterRetweetIntentUrl(x)))];
+  return links;
 }
 
 function getMustLikeLinks() {
-  const likeLinks = parseMustLikeAndRetweetLinks().map((x) => x.replace('/retweet?', '/like?'));
-  return [...new Set([...parseMustLikeLinks(), ...likeLinks])];
+  const links = [...new Set([...parseMustLikeLinks(), ...parseMustLikeAndRetweetLinks()].map((x) => makeTwitterLikeIntentUrl(x)))];
+  return links;
 }
 
 function getMustJoinLinks() {
@@ -1082,14 +1138,18 @@ function parseMustLikeAndRetweetLinks() {
 }
 
 function parseMustFollowLinks() {
-  return [...document.querySelectorAll('a')]
-    .filter((elem) => elem.href.toLowerCase().startsWith('https://twitter.com/intent/user?'))
+  const val = [...document.querySelectorAll('a')]
+    .filter((elem) => isTwitterURL(elem.href) && elem.href.toLowerCase().includes('intent/user?'))
     .map((e) => e.href);
+  console.log('parseMustFollowLinks:', val);
+  return val;
 }
 
 function parseTwitterLinks(prefix) {
   const elems = [...[...document.querySelectorAll('div.MuiPaper-root')].filter((e) => e.innerText.toLowerCase().startsWith(prefix))];
-  return elems.length < 1 ? [] : Array.from(elems[0].getElementsByTagName('a')).map((a) => a.href);
+  const val = elems.length < 1 ? [] : Array.from(elems[0].getElementsByTagName('a')).map((a) => a.href);
+  console.log('parseTwitterLinks:', prefix, val);
+  return val;
 }
 
 function parseMustJoinLinks(mustHaveRole = false) {
@@ -1106,11 +1166,13 @@ function parseMustJoinLinks(mustHaveRole = false) {
       (e) => e.innerText.toLowerCase().includes('join') && e.innerText.toLowerCase().includes('discord')
     );
   }
-  return elems
+  const val = elems
     .map((e) => e.getElementsByTagName('a'))
     .map((e) => Array.from(e))
     .flat()
     .map((e) => e.href);
+  console.log('parseMustJoinLinks:', val);
+  return val;
 }
 
 async function addQuickLinks() {
@@ -1120,13 +1182,17 @@ async function addQuickLinks() {
   }
 
   const links = getMustLikeAndRetweetLinks();
+  console.log('links', links);
 
+  return;
+  /*
   links.forEach((url) => {
     const retweetUrl = url;
     const likeUrl = url.replace('/retweet?', '/like?');
 
     sectionElem.innerHTML = `<a href="${likeUrl}" target="_blank">Like</a> & <a href="${retweetUrl}" target="_blank">retweet</a>`;
   });
+  */
 }
 
 // HELPERS ---------------------------------------------------------------------------------------------------

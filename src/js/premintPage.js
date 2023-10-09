@@ -9,7 +9,8 @@ import {
   createStatusbarButtons,
   exitActionMain,
   getMyTabIdFromExtension,
-  makeTwitterFollowIntentUrl,
+  removeDoneLinks,
+  finishTask,
 } from './premintHelperLib';
 import { createHistory } from './history';
 import {
@@ -21,14 +22,16 @@ import {
   millisecondsAhead,
   noDuplicates,
   addToDate,
-  getLastTokenizedItem,
-  getSearchParam,
   ONE_SECOND,
   ONE_MINUTE,
   dispatch,
   normalizePendingLink,
   createLogger,
   createLogLevelArg,
+  makeTwitterFollowIntentUrl,
+  makeTwitterRetweetIntentUrl,
+  makeTwitterLikeIntentUrl,
+  isTwitterURL,
 } from 'hx-lib';
 import { createStatusbar } from 'hx-statusbar';
 
@@ -54,8 +57,7 @@ let pageState = {
 runNow();
 
 async function runNow() {
-  storage = await getStorageItems(['runtime', 'options', 'pendingPremintReg']);
-  debug.log('storage', storage);
+  await reloadStorage();
 
   if (!storage?.options) {
     debug.info('Options missing, exit!');
@@ -118,7 +120,14 @@ chrome.runtime.onMessage.addListener(async (request, sender, sendResponse) => {
   }
 
   if (request.cmd === 'finish') {
-    finish(request, sender);
+    return finishTask(request, sender, {
+      pageState,
+      exitAction,
+      handleDiscordCaptcha,
+      registerRaffle,
+      normalizePendingLink,
+      options: storage.options,
+    });
   }
 
   if (request.cmd === 'getMyTabIdAsyncResponse') {
@@ -213,54 +222,83 @@ async function runRafflePage() {
 async function joinRaffle() {
   debug.log('joinRaffle');
 
+  await reloadStorage();
+
+  pageState.abort = false;
+
   updateStatusbarRunning('Fulfilling raffle tasks...');
   startQuickRegBtn();
 
   const reqs = getRequirements();
   debug.log('reqs', reqs);
 
-  const discordLinks = storage.options.RAFFLE_SKIP_DONE_TASKS
-    ? await removeDoneLinks(reqs.discordUser, reqs.discordLinks)
-    : reqs.discordLinks;
-  const twitterLinks = storage.options.RAFFLE_SKIP_DONE_TASKS
-    ? await removeDoneLinks(reqs.twitterUser, reqs.twitterLinks)
-    : reqs.twitterLinks;
+  const skipDoneTasks = storage.options.RAFFLE_SKIP_DONE_TASKS;
+  const discordLinks = skipDoneTasks ? await removeDoneLinks(reqs.discordUser, reqs.discordLinks, pageState) : reqs.discordLinks;
+  const twitterLinks = skipDoneTasks ? await removeDoneLinks(reqs.twitterUser, reqs.twitterLinks, pageState) : reqs.twitterLinks;
 
   const reqLinks = [...discordLinks, ...twitterLinks];
   debug.log('reqLinks', reqLinks);
+
+  if (reqLinks.length) {
+    await getMyTabIdFromExtension(pageState, 5000);
+    if (!pageState.myTabId) {
+      console.error('Invalid myTabId');
+      return exitAction('invalidContext');
+    }
+  }
 
   if (discordLinks.length) {
     storage.runtime.pendingDiscordJoin = JSON.stringify(new Date());
     await setStorageData(storage);
   }
 
-  await getMyTabIdFromExtension(pageState, 5000);
-  if (!pageState.myTabId) {
-    console.error('Invalid myTabId');
-    updateStatusbarError(`Failed getting own page tab id! Reload page and try again.`);
-    return;
-  }
-
   reqLinks.forEach((link) => pageState.pendingRequests.push(normalizePendingLink(link)));
   debug.log('pageState.pendingRequests:', pageState.pendingRequests);
 
+  pageState.twitterLinkSuffix = `#id=${pageState.myTabId}&user=${
+    storage.options.RAFFLE_SWITCH_TWITTER_USER ? reqs.twitterUser : ''
+  }&${createLogLevelArg()}`;
+
   for (let i = 0; i < reqLinks.length; i++) {
+    if (pageState.abort) {
+      return exitAction('abort');
+    }
     const reqLink = reqLinks[i];
-    const url =
-      reqLink +
-      `#id=${pageState.myTabId}&user=${storage.options.RAFFLE_SWITCH_TWITTER_USER ? reqs.twitterUser : ''}&${createLogLevelArg()}`;
+    const mustJoinWithRole = reqs.mustJoinWithRoleLinks.some((x) => x === reqLink);
+    if (mustJoinWithRole) {
+      pageState.haveRoleDiscordLink = true;
+      pageState.roleDiscordLinks = pageState.roleDiscordLinks || [];
+      pageState.roleDiscordLinks.push(reqLink);
+      debug.log('pageState.haveRoleDiscordLink', pageState.haveRoleDiscordLink);
+      debug.log('pageState.roleDiscordLinks', pageState.roleDiscordLinks);
+    }
+
+    const url = reqLink + pageState.twitterLinkSuffix;
     debug.log('Open URL:', url);
 
-    const isTwitter = reqLink.includes('twitter.com');
+    const isTwitter = isTwitterURL(reqLink);
     const user = isTwitter ? reqs.twitterUser : reqs.discordUser;
 
-    await pageState.history.add(user, reqLink);
+    if (isTwitter) {
+      pageState.twitterUser = reqs.twitterUser;
+    }
+
+    if (!isTwitter) {
+      // Only add discord links to history at once; add twitter links when they are finished!
+      await pageState.history.add(user, reqLink);
+    }
 
     if (storage.options.PREMINT_OPEN_IN_FOREGROUND) {
       window.open(url, '_blank');
     } else {
       chrome.runtime.sendMessage({ cmd: 'openTab', url });
     }
+
+    if (isTwitter && storage.options.TWITTER_OPEN_LINKS_IN_SEQUENCE) {
+      console.log('Open rest of twitter links in sequence!');
+      break;
+    }
+
     if (i + 1 < reqLinks.length) {
       const delayMs = Math.round(
         isTwitter ? storage.options.RAFFLE_OPEN_TWITTER_LINK_DELAY : storage.options.RAFFLE_OPEN_TWITTER_LINK_DELAY / 2
@@ -384,6 +422,7 @@ async function getRegisterButton(maxWait = 1000, interval = 10) {
 
 // FINISH ----------------------------------------------------------------------------------
 
+/*
 async function finish(request, sender) {
   debug.log('finish; request, sender:', request, sender);
 
@@ -447,6 +486,7 @@ async function finish(request, sender) {
     handleDiscordCaptcha();
   }
 }
+*/
 
 async function handleDiscordCaptcha() {
   pageState.hasDiscordCaptcha = true;
@@ -578,8 +618,9 @@ function getRequirements() {
   const mustRetweetLinks = getMustRetweetLinks();
   const mustLikeAndRetweetLinks = getMustLikeAndRetweetLinks();
   const mustJoinLinks = getMustJoinLinks();
+  const mustJoinWithRoleLinks = getMustJoinWithRoleLinks();
 
-  const twitterLinks = noDuplicates(mustFollowLinks, mustLikeLinks, mustRetweetLinks, mustLikeAndRetweetLinks);
+  const twitterLinks = noDuplicates(mustFollowLinks, mustLikeLinks, mustRetweetLinks);
   const discordLinks = noDuplicates(mustJoinLinks);
 
   const result = {
@@ -590,6 +631,7 @@ function getRequirements() {
     mustRetweetLinks,
     mustLikeAndRetweetLinks,
     mustJoinLinks,
+    mustJoinWithRoleLinks,
     twitterLinks,
     discordLinks,
     links: [...twitterLinks, ...discordLinks],
@@ -603,6 +645,21 @@ function getMustFollowLinks() {
 }
 
 function getMustLikeAndRetweetLinks() {
+  return [...new Set([...parseMustLikeAndRetweetLinks()])];
+}
+
+function getMustRetweetLinks() {
+  const links = [...new Set([...parseMustRetweetLinks(), ...parseMustLikeAndRetweetLinks()].map((x) => makeTwitterRetweetIntentUrl(x)))];
+  return links;
+}
+
+function getMustLikeLinks() {
+  const links = [...new Set([...parseMustLikeLinks(), ...parseMustLikeAndRetweetLinks()].map((x) => makeTwitterLikeIntentUrl(x)))];
+  return links;
+}
+
+/*
+function getMustLikeAndRetweetLinks() {
   const links = parseMustLikeAndRetweetLinks();
   return [...links.map((x) => makeTwitterLikeIntentUrl(x)), ...links.map((x) => makeTwitterRetweetIntentUrl(x))];
 }
@@ -614,9 +671,14 @@ function getMustRetweetLinks() {
 function getMustLikeLinks() {
   return parseMustLikeLinks().map((x) => makeTwitterLikeIntentUrl(x));
 }
+*/
 
 function getMustJoinLinks() {
   return parseMustJoinLinks();
+}
+
+function getMustJoinWithRoleLinks() {
+  return parseMustJoinLinks(true);
 }
 
 function parseMustLikeLinks() {
@@ -658,7 +720,7 @@ function parseTwitterLinks(prefix) {
   }
 }
 
-function parseMustJoinLinks() {
+function parseMustJoinLinks(mustHaveRole = false) {
   /*
   return [...document.querySelectorAll('p.MuiTypography-root')]
     .filter((e) => e.innerText.toLowerCase().includes('join') && e.innerText.toLowerCase().includes('discord'))
@@ -668,7 +730,8 @@ function parseMustJoinLinks() {
     .map((e) => e.href);
     */
   debug.log('parseMustJoinLinks');
-  const selectors = storage.options.PREMINT_JOIN_DISCORD_SEL;
+  const selectors = mustHaveRole ? storage.options.PREMINT_JOIN_DISCORD_WITH_ROLE_SEL : storage.options.PREMINT_JOIN_DISCORD_SEL;
+
   const allElems = [...document.querySelectorAll(selectors[0])].filter(
     (el) => el.textContent.trim().toLowerCase().startsWith(selectors[1]) && el.textContent.trim().toLowerCase().includes(selectors[2])
   );
@@ -680,17 +743,6 @@ function parseMustJoinLinks() {
   const links = validElems.filter((e) => !!e).map((x) => x.href);
   debug.log('links', links);
   return links;
-}
-
-async function removeDoneLinks(user, links) {
-  const validLinks = [];
-  for (const link of links) {
-    if (await pageState.history.has(user, link)) {
-      continue;
-    }
-    validLinks.push(link);
-  }
-  return validLinks;
 }
 
 // HELPERS ---------------------------------------------------------------------------------------------------
@@ -818,20 +870,6 @@ function setPremintCustomField(text) {
   }
 }
 
-// TWITTER HELPERS ----------------------------------------------------------------------------------
-
-function getTweetId(url) {
-  return getSearchParam(url, 'tweet_id') || getLastTokenizedItem(url, '/').trim();
-}
-
-function makeTwitterLikeIntentUrl(url) {
-  return url.includes('/intent/like') ? url : `https://twitter.com/intent/like?tweet_id=${getTweetId(url)}`;
-}
-
-function makeTwitterRetweetIntentUrl(url) {
-  return url.includes('/intent/like') ? url : `https://twitter.com/intent/retweet?tweet_id=${getTweetId(url)}`;
-}
-
 // STATUSBAR FUNCS ----------------------------------------------------------------------------------
 
 function updateStatusbar(content, className = null) {
@@ -876,4 +914,14 @@ function getDiscordUser() {
     console.error('Failed getting Twitter user! Error:', e);
     return null;
   }
+}
+
+async function reloadStorage(key = null) {
+  if (!key) {
+    storage = await getStorageItems(['runtime', 'options', 'pendingPremintReg']);
+  } else {
+    const storageTemp = await getStorageItems([key]);
+    storage[key] = storageTemp[key];
+  }
+  debug.log('reloadStorage:', key, storage);
 }

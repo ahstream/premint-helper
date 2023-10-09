@@ -133,7 +133,7 @@ async function waitForNoIntentBtn() {
       break;
     }
   }
-  await sleep(250);
+  await sleep(100);
   debug.log('Exit waitForNoIntentBtn!');
 }
 
@@ -159,7 +159,7 @@ async function finishIntentAction() {
       cmd: 'finish',
       delay: storage.options.TWITTER_PARENT_SUGGESTED_DELAY,
       to: pageState.parentTabId,
-      what: 'twitterIntent',
+      twitter: true,
     });
   }
   const shouldClose = pageState.parentTabId && storage.options.TWITTER_CLOSE_TASK_PAGE;
@@ -167,9 +167,6 @@ async function finishIntentAction() {
     debug.log('Close Twitter page after action...');
     await sleep(storage.options.TWITTER_CLOSE_TASK_PAGE_DELAY, null, 0.2);
     window.close();
-  } else {
-    //debug.log('unfocusMyTab');
-    //chrome.runtime.sendMessage({ cmd: 'unfocusMyTab' });
   }
 }
 

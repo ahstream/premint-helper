@@ -4,10 +4,10 @@ import {
   getStorageItems,
   addPendingRequest,
   createLogger,
-  extractTwitterHandle,
-  onlyNumbers,
   pluralize,
   dynamicSortMultiple,
+  normalizePendingLink,
+  isTwitterURL,
 } from 'hx-lib';
 
 const debug = createLogger();
@@ -402,11 +402,102 @@ export async function getMyTabIdFromExtension(context, maxWait, intervall = 100)
   return context.myTabId;
 }
 
-export function makeTwitterFollowIntentUrl(url) {
-  if (url.includes('/intent/follow') || url.includes('/intent/user')) {
-    return url;
+export async function removeDoneLinks(user, links, pageState) {
+  const validLinks = [];
+  for (const link of links) {
+    if (await pageState.history.has(user, link)) {
+      continue;
+    }
+    validLinks.push(link);
   }
-  const val = extractTwitterHandle(url);
-  const key = onlyNumbers(val) ? 'user_id' : 'screen_name';
-  return `https://twitter.com/intent/user?${key}=${val}`;
+  return validLinks;
+}
+
+export async function finishTask(request, sender, context) {
+  debug.log('finishTask; request, sender:', request, sender);
+
+  if (context.pageState.abort) {
+    return context.exitAction('abort');
+  }
+
+  if (request.status === 'captcha') {
+    context.pageState.discordCaptchaSender = sender;
+    context.pageState.discordCaptchaTabId = sender?.tab?.id;
+    console.log('sender', sender);
+    return context.handleDiscordCaptcha();
+  }
+
+  context.pageState.finishedTabsIds.push(request.senderTabId);
+  context.pageState.finishedDiscordTabIds = context.pageState.finishedDiscordTabIds || [];
+  if (request.isDiscord) {
+    context.pageState.finishedDiscordTabIds.push(request.senderTabId);
+  }
+  debug.log('pageState.finishedDiscordTabIds:', context.pageState.finishedDiscordTabIds);
+
+  const normalizedUrl = normalizePendingLink(request.url);
+  const prevLength = context.pageState.pendingRequests.length;
+
+  debug.log('finish; url:', request.url);
+  debug.log('finish; normalizedUrl:', normalizedUrl);
+
+  debug.log('finish; pendingRequests A:', context.pageState.pendingRequests.length, context.pageState.pendingRequests);
+  context.pageState.pendingRequests = context.pageState.pendingRequests.filter((item) => item !== normalizedUrl);
+  debug.log('finish; pendingRequests B:', context.pageState.pendingRequests.length, context.pageState.pendingRequests);
+
+  if (request.twitter) {
+    console.log('Add url to history:', request.url);
+    await context.pageState.history.add(context.pageState.twitterUser, request.url);
+    await context.pageState.history.save();
+  }
+
+  if (context.pageState.pendingRequests.length === 0 && prevLength > 0) {
+    const sleepMs = request.delay ?? 500;
+    console.info('Finished all required links, register raffle after sleep:', sleepMs);
+    await sleep(sleepMs);
+    debug.log('pageState:', context.pageState);
+
+    let tabsToClose = [...context.pageState.finishedTabsIds];
+
+    if (context.pageState.haveRoleDiscordLink && context.options.RAFFLE_KEEP_ROLED_DISCORD_TASK_OPEN) {
+      // if having role discord link we often times need to do some verification task to get role.
+      // we save time by keeping those tabs open!
+      debug.log('focus roled discord tabs');
+      context.pageState.finishedDiscordTabIds.forEach((id) => {
+        tabsToClose = tabsToClose.filter((tabId) => tabId !== id);
+        chrome.runtime.sendMessage({ cmd: 'focusTab', id });
+      });
+    }
+
+    if (context.options.RAFFLE_CLOSE_TASKS_BEFORE_JOIN) {
+      debug.log('Close finishedTabsIds');
+      chrome.runtime.sendMessage({ cmd: 'closeTabs', tabIds: tabsToClose });
+    }
+
+    const focusTabWhenRegister = context.pageState.haveRoleDiscordLink ? false : true;
+    return context.registerRaffle(focusTabWhenRegister);
+  }
+
+  console.info('Not all required links finished yet!');
+
+  if (context.options.TWITTER_OPEN_LINKS_IN_SEQUENCE & request.twitter) {
+    const nextLink = context.pageState.pendingRequests.find((x) => isTwitterURL(x));
+    if (nextLink) {
+      const nextLinkUrl = 'https://' + nextLink + context.pageState.twitterLinkSuffix;
+      console.log('Open next twitter link:', nextLinkUrl);
+
+      await sleep(context.options.RAFFLE_OPEN_TWITTER_LINK_DELAY, null, 0.1);
+
+      if (context.options.ALPHABOT_OPEN_IN_FOREGROUND) {
+        window.open(nextLinkUrl, '_blank');
+      } else {
+        chrome.runtime.sendMessage({ cmd: 'openTab', url: nextLinkUrl });
+      }
+    } else {
+      console.log('No more twitter links');
+    }
+  }
+
+  if (context.pageState.hasDiscordCaptcha) {
+    context.handleDiscordCaptcha();
+  }
 }

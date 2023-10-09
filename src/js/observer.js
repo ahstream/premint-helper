@@ -12,6 +12,7 @@ import {
   setStorageData,
   createLogger,
   createLogLevelArg,
+  isTwitterURL,
 } from 'hx-lib';
 
 const debug = createLogger();
@@ -84,7 +85,7 @@ export async function createObserver({
       }
 
       if (pageState.autoFollowers) {
-        if (mutation.target.nodeName === 'A' && mutation.target.href?.startsWith('https://twitter.com/')) {
+        if (mutation.target.nodeName === 'A' && isTwitterURL(mutation.target.href)) {
           debug.trace('handle mutation:', mutation);
           handleTwitterLink(mutation.target);
           return;

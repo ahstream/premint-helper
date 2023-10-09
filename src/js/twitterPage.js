@@ -56,7 +56,7 @@ function onLoad() {
 async function runPage() {
   debug.log('runPage');
 
-  if (window.location.href === 'https://twitter.com/account/access') {
+  if (window.location.href.endsWith('/account/access')) {
     return await handleLockedTwitterAccount();
   }
 

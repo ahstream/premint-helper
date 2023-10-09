@@ -27,6 +27,7 @@ export const defaultOptions = {
   PREMINT_MUST_LIKE_AND_RETWEET_SEL: 'must like & retweet',
   PREMINT_MUST_FOLLOW_SEL: 'follow',
   PREMINT_JOIN_DISCORD_SEL: ['div', 'join the', 'discord', 'a'],
+  PREMINT_JOIN_DISCORD_WITH_ROLE_SEL: ['div', 'join the', 'discord and have', 'a'],
   PREMINT_RETWEET_RE: '(retweet|rt )',
   PREMINT_EMAIL_RE: '(email|e-mail)',
   PREMINT_TWITTER_RE: '',
@@ -57,6 +58,8 @@ export const defaultOptions = {
   TWITTER_FOLLOWING_SEL: 'div[data-testid$="-unfollow"]',
   TWITTER_REPLY_SEL: '[data-testid="reply"]',
   TWITTER_PROFILE_SEL: '[data-testid="UserJoinDate"]',
+
+  TWITTER_OPEN_LINKS_IN_SEQUENCE: true,
 
   DISCORD_SKIP_JOINED: true,
 
@@ -92,7 +95,6 @@ export const defaultOptions = {
   // Close tab/page settings
 
   TWITTER_CLOSE_TASK_PAGE: true,
-  TWITTER_CLOSE_TASK_PAGE_DELAY: 200,
   RAFFLE_KEEP_ROLED_DISCORD_TASK_OPEN: true,
   RAFFLE_CLOSE_TASKS_BEFORE_JOIN: true,
   RAFFLE_CLOSE_TASKS_WHEN_FINISHED: true,
@@ -108,11 +110,9 @@ export const defaultOptions = {
 
   TWITTER_RETWEETED_SEL: 'div[aria-label$="Reposted"]',
   TWITTER_LIKED_SEL: 'div[aria-label$="Liked"]',
-  TWITTER_PARENT_SUGGESTED_DELAY: 2500,
 
   PREMINT_BTC_WALLET_RE: '(taproot)',
 
-  RAFFLE_OPEN_TWITTER_LINK_DELAY: 2000,
   RAFFLE_ODDS_CACHE_MINS: 120,
 
   RAFFLE_ODDS_COLOR: 'black',
@@ -151,6 +151,10 @@ export const defaultOptions = {
 };
 
 export const overrideOptions = {
+  RAFFLE_OPEN_TWITTER_LINK_DELAY: 400,
+  TWITTER_CLOSE_TASK_PAGE_DELAY: 1500,
+  TWITTER_PARENT_SUGGESTED_DELAY: 500,
+
   CLOUD_SAVE_URL: 'https://data.mongodb-api.com/app/application-0-pqnjz/endpoint/update_alphabot_winners',
   CLOUD_LOAD_URL: 'https://data.mongodb-api.com/app/application-0-pqnjz/endpoint/get_alphabot_winners',
   CLOUD_HAS_URL: 'https://data.mongodb-api.com/app/application-0-pqnjz/endpoint/count_alphabot_winners',

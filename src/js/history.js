@@ -112,6 +112,8 @@ function sluggifyUrl(url) {
   return url
     .replace('https://twitter.com/user/status/', '')
     .replace('https://twitter.com/', '')
+    .replace('https://x.com/user/status/', '')
+    .replace('https://x.com/', '')
     .replace('https://discord.gg/', '')
     .replace('https://discord.com/invite/', '');
 }
