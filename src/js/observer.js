@@ -434,12 +434,10 @@ export async function createObserver({
     debug.trace('parent1', parent1);
     debug.trace('parent2', parent2);
 
-    const targetElem = parent1;
-
-    const twitterLink = targetElem.querySelector('a[data-action="option-twitter"]');
+    const twitterLink = parent1.querySelector('a[data-action="option-twitter"]');
     debug.trace('twitterLink', twitterLink);
 
-    if (targetElem?.querySelector('.hx-already-won')) {
+    if (parent2?.querySelector('.hx-already-won')) {
       debug.log('alreadyWon info already shown, ignore!');
       return;
     }
@@ -458,7 +456,7 @@ export async function createObserver({
     const div = createPreviousWonSection(twitterHandle, false, pageState.permissions);
     debug.trace('div', div);
     if (div) {
-      raffleBox.after(div);
+      raffleBox.append(div);
       document.documentElement.style.setProperty('--raffle-wins-background-color', storage.options.RAFFLE_WINS_BACKGROUND_COLOR);
       document.documentElement.style.setProperty('--raffle-wins-color', storage.options.RAFFLE_WINS_COLOR);
     }
