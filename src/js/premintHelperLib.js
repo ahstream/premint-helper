@@ -413,6 +413,30 @@ export async function removeDoneLinks(user, links, pageState) {
   return validLinks;
 }
 
+export async function finishUnlockedTwitterAccount(request, sender, context) {
+  debug.log('finishUnlockedTwitterAccount; request, sender:', request, sender);
+  const twitterLinks = [...context.pageState.pendingRequests.filter((x) => isTwitterURL(x))];
+
+  if (context.pageState.handledUnlockedTwitterAccount) {
+    return context.exitAction('twitterLocked');
+  }
+  context.pageState.handledUnlockedTwitterAccount = true;
+
+  // eslint-disable-next-line no-constant-condition
+  while (twitterLinks?.length) {
+    const nextLink = twitterLinks.shift();
+    const nextLinkUrl = 'https://' + nextLink + context.pageState.twitterLinkSuffix;
+    console.log('Open next twitter link:', nextLinkUrl);
+    await sleep(context.options.RAFFLE_OPEN_TWITTER_LINK_DELAY, null, 0.1);
+
+    if (context.options.ALPHABOT_OPEN_IN_FOREGROUND) {
+      window.open(nextLinkUrl, '_blank');
+    } else {
+      chrome.runtime.sendMessage({ cmd: 'openTab', url: nextLinkUrl });
+    }
+  }
+}
+
 export async function finishTask(request, sender, context) {
   debug.log('finishTask; request, sender:', request, sender);
 

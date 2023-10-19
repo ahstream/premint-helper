@@ -1,5 +1,6 @@
 import {
   ONE_DAY,
+  ONE_SECOND,
   sleep,
   waitForSelector,
   waitForEitherSelector,
@@ -178,5 +179,14 @@ export async function isEmptyPage(maxWait, interval) {
 
 export async function handleLockedTwitterAccount() {
   debug.log('handleLockedTwitterAccount');
+
   await chrome.runtime.sendMessage({ cmd: 'broadcast', request: { cmd: 'lockedTwitterAccount' } });
+
+  const btn = await waitForSelector('input[type="submit"]', ONE_SECOND * 30, 250);
+  if (btn) {
+    await sleep(2000);
+    await addPendingRequest('https://twitter.com/', { action: 'unlocked' });
+    btn.click();
+    return;
+  }
 }

@@ -69,6 +69,8 @@ export async function createObserver({
   pageState.autoOdds = typeof autoOdds === 'undefined' ? storage.options.RAFLE_AUTO_SHOW_ODDS : autoOdds;
   pageState.autoWins = typeof autoWins === 'undefined' ? storage.options.RAFLE_AUTO_SHOW_WINS : autoWins;
 
+  debug.log('pageState', pageState);
+
   if (!pageState.autoFollowers && !pageState.autoOdds && !pageState.autoWins) {
     debug.log('No mutations needed');
     return;
@@ -101,6 +103,7 @@ export async function createObserver({
 
       if (pageState.autoOdds || pageState.autoWins) {
         const links = getProjectLinkElems(mutation.addedNodes);
+        console.log('links', links);
         for (const link of links) {
           handleProjectLink(link);
         }
@@ -424,27 +427,36 @@ export async function createObserver({
   }
 
   function handleWins(link) {
+    debug.trace('handleWins', link);
+
     const parent1 = link?.parentElement;
     const parent2 = parent1?.parentElement;
-    const parent3 = parent2?.parentElement;
+    debug.trace('parent1', parent1);
+    debug.trace('parent2', parent2);
 
-    const twitterLink = parent3.querySelector('a[data-action="option-twitter"]');
+    const targetElem = parent1;
+
+    const twitterLink = targetElem.querySelector('a[data-action="option-twitter"]');
     debug.trace('twitterLink', twitterLink);
 
-    const twitterHandle = extractTwitterHandle(twitterLink?.href);
-    const raffleBox = parent2; //  parent2.querySelector('.MuiCardContent-root');
-
-    if (parent3?.querySelector('.hx-already-won')) {
+    if (targetElem?.querySelector('.hx-already-won')) {
       debug.log('alreadyWon info already shown, ignore!');
       return;
     }
+
+    const raffleBox = parent1; //  parent2.querySelector('.MuiCardContent-root');
+    debug.trace('raffleBox', raffleBox);
 
     if (!raffleBox) {
       debug.log('Parent elem is null, skip prev won section!');
       return;
     }
 
+    const twitterHandle = extractTwitterHandle(twitterLink?.href);
+    debug.trace('twitterHandle', twitterHandle);
+
     const div = createPreviousWonSection(twitterHandle, false, pageState.permissions);
+    debug.trace('div', div);
     if (div) {
       raffleBox.after(div);
       document.documentElement.style.setProperty('--raffle-wins-background-color', storage.options.RAFFLE_WINS_BACKGROUND_COLOR);

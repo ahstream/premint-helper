@@ -57,7 +57,7 @@ async function runPage() {
   debug.log('runPage');
 
   if (window.location.href.endsWith('/account/access')) {
-    return await handleLockedTwitterAccount();
+    return await handleLockedTwitterAccount({ pageState });
   }
 
   if (pageState.hashArgs.getOne('switchToUser')) {
@@ -113,7 +113,8 @@ async function runSwitchToUser() {
 async function runHomePage() {
   debug.log('runHomePage');
 
-  const request = await dispatch(window.location.href, 60);
+  const request = await dispatch(window.location.href, 60, true);
+
   debug.log('request:', request);
   if (request?.action === 'switchedUser') {
     if (request.redirectTo) {
@@ -126,6 +127,11 @@ async function runHomePage() {
       to: request.parentTabId,
       request: { cmd: 'switchedToTwitterUser', user: request.user, ok: true },
     });
+    window.close();
+    return;
+  }
+  if (request?.action === 'unlocked') {
+    await chrome.runtime.sendMessage({ cmd: 'broadcast', request: { cmd: 'unlockedTwitterAccount' } });
     window.close();
     return;
   }

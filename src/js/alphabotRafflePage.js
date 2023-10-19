@@ -9,6 +9,7 @@ import {
   showNoSubscriptionStatusbar,
   removeDoneLinks,
   finishTask,
+  finishUnlockedTwitterAccount,
   JOIN_BUTTON_TEXT,
   JOIN_BUTTON_IN_PROGRESS_TEXT,
   JOIN_BUTTON_TITLE,
@@ -134,7 +135,6 @@ chrome.runtime.onMessage.addListener(async (request, sender, sendResponse) => {
       exitAction,
       handleDiscordCaptcha,
       registerRaffle,
-      normalizePendingLink,
       options: storage.options,
     });
   }
@@ -150,6 +150,16 @@ chrome.runtime.onMessage.addListener(async (request, sender, sendResponse) => {
   if (request.cmd === 'lockedTwitterAccount') {
     pageState.abort = true;
     exitAction('twitterLocked');
+  }
+
+  if (request.cmd === 'unlockedTwitterAccount') {
+    return finishUnlockedTwitterAccount(request, sender, {
+      pageState,
+      exitAction,
+      handleDiscordCaptcha,
+      registerRaffle,
+      options: storage.options,
+    });
   }
 
   if (request.cmd === 'onHistoryStateUpdated') {
@@ -597,7 +607,7 @@ function getDiscordUser() {
 
 function forceRegister() {
   debug.log('forceRegister');
-  const regBtn = getRegisterButtonSync();
+  const regBtn = getRegisterButtonSync(true);
   debug.log('forceRegister; regBtn:', regBtn, storage.options.ALPHABOT_REG_BTN_SEL);
   if (!regBtn) {
     debug.log('!regBtn');
@@ -879,9 +889,13 @@ async function getRegisterButton() {
   return await waitForSelector(storage.options.ALPHABOT_REG_BTN_SEL, 60 * ONE_SECOND, 100);
 }
 
-function getRegisterButtonSync() {
+function getRegisterButtonSync(mustHaveAllBtns = false) {
+  debug.log('getRegisterButtonSync; mustHaveAllBtns:', mustHaveAllBtns);
   const regPlus1Btn = getTextContains(storage.options.ALPHABOT_REG_PLUS_1_BTN_SEL, 'button');
   if (regPlus1Btn) {
+    if (mustHaveAllBtns) {
+      return document.querySelector(storage.options.ALPHABOT_REG_BTN_SEL) ? regPlus1Btn : null;
+    }
     return regPlus1Btn;
   }
   return document.querySelector(storage.options.ALPHABOT_REG_BTN_SEL);
