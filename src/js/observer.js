@@ -103,7 +103,6 @@ export async function createObserver({
 
       if (pageState.autoOdds || pageState.autoWins) {
         const links = getProjectLinkElems(mutation.addedNodes);
-        console.log('links', links);
         for (const link of links) {
           handleProjectLink(link);
         }

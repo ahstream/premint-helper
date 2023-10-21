@@ -23,6 +23,7 @@ import {
   createLogger,
   createLogLevelArg,
   getStorageItems,
+  getStorageData,
   setStorageData,
   sleep,
   createHashArgs,
@@ -188,7 +189,7 @@ chrome.runtime.onMessage.addListener(async (request, sender, sendResponse) => {
 async function runPage(runRaffle = false) {
   debug.log('runPage; runRaffle, pageState:', runRaffle, pageState);
 
-  debug.log('pageState:', JSON.stringify(pageState));
+  // debug.log('pageState:', JSON.stringify(pageState));
 
   pageState.statusbar.buttons(
     createStatusbarButtons({
@@ -203,6 +204,9 @@ async function runPage(runRaffle = false) {
     await sleep(100);
     const request = await dispatch(window.location.href, 5 * 60);
     debug.log('dispatched request:', request);
+    if (!request) {
+      console.log('full storage when !dispatched:', await getStorageData());
+    }
     pageState.request = request;
     pageState.action = request?.action;
   }
@@ -227,6 +231,8 @@ async function runPage(runRaffle = false) {
     runRaffle = false;
     pageState.isAutoStarted = false;
   }
+
+  debug.log('runPage new state:', runRaffle, pageState);
 
   await showRafflePage(runRaffle);
 }
