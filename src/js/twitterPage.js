@@ -72,6 +72,10 @@ async function runPage() {
     return runHomePage();
   }
 
+  if (window.location.pathname === '/') {
+    return runHomePage();
+  }
+
   await runMainLoop();
 
   debug.log('Exit runPage!');
@@ -114,8 +118,11 @@ async function runHomePage() {
   debug.log('runHomePage');
 
   const request = await dispatch(window.location.href, 60, true);
+  //const request2 = await dispatch(urlWithoutArgs(window.location.href), 60, true);
+  //const request = request1?.action ? request1 : request2;
 
   debug.log('request:', request);
+
   if (request?.action === 'switchedUser') {
     if (request.redirectTo) {
       debug.log('Redirect to:', request.redirectTo);
@@ -130,6 +137,7 @@ async function runHomePage() {
     window.close();
     return;
   }
+
   if (request?.action === 'unlocked') {
     await chrome.runtime.sendMessage({ cmd: 'broadcast', request: { cmd: 'unlockedTwitterAccount' } });
     window.close();

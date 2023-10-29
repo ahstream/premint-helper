@@ -72,7 +72,7 @@ export function accountToAlias(account, options) {
 }
 
 export function walletToAlias(wallet, options) {
-  console.log('wallet', wallet);
+  debug.trace('wallet', wallet);
   const walletLow = wallet.toLowerCase();
   debug.trace('walletToAlias:', wallet, options.WALLET_ALIAS);
   const items = options.WALLET_ALIAS.filter((x) => x.toLowerCase().endsWith(walletLow));
@@ -94,9 +94,9 @@ export function trimMintAddresses(texts) {
 }
 
 export function sortMintAddresses(addrList, options) {
-  console.log('addrList', addrList);
+  debug.trace('addrList', addrList);
   const sortData = addrList.map((x) => {
-    console.log('x', x);
+    debug.trace('x', x);
     const alias = walletToAlias(x, options);
     const tokens = alias.split('-');
     const sortParamNumber =
@@ -421,6 +421,8 @@ export async function finishUnlockedTwitterAccount(request, sender, context) {
     return context.exitAction('twitterLocked');
   }
   context.pageState.handledUnlockedTwitterAccount = true;
+
+  context.updateStatusbar('Retry after unlocking Twitter account...');
 
   // eslint-disable-next-line no-constant-condition
   while (twitterLinks?.length) {

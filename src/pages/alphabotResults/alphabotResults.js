@@ -244,7 +244,7 @@ async function showPage() {
   const minMintDate = millisecondsAhead(-storage.options.ALPHABOT_RESULTS_DAYS_TO_KEEP_MINTED_WINS * ONE_DAY);
   debug.log('minMintDate', minMintDate);
 
-  const projectWinnersMin = projectWinners.filter((x) => !x.mintDate || x.mintDate >= minMintDate);
+  const projectWinnersMin = projectWinners.filter((x) => isWinnerToShow(x, minMintDate));
   debug.log('projectWinnersMin', projectWinnersMin);
 
   createProjectsTable(projectWinnersMin, 'main-table');
@@ -291,6 +291,10 @@ async function updateMyWinners(accountName) {
 
   const validWinners = filterValidWinners(alphabotWinners, oldWinners, now);
   debug.log('validWinners', validWinners);
+  debug.log(
+    'validWinners',
+    validWinners.map((x) => x.name)
+  );
 
   const newMyWinners = noDuplicatesByKey([...validWinners, ...oldWinners], 'id').sort(dynamicSort('-hxSortKey'));
   debug.log('newMyWinners', newMyWinners);
@@ -369,6 +373,8 @@ async function updateCloudWinners() {
 async function getWinnersFromAlphabot(accountName, lastPickedDate) {
   debug.log('getMyWinners; accountName, lastPickedDate:', accountName, timestampToLocaleString(new Date(lastPickedDate)));
 
+  // lastPickedDate = 0; //  todo
+
   if (DEBUG_MODE && storage.alphabot.myWinnersCache) {
     debug.log('return storage.alphabot.myWinnersCache');
     return storage.alphabot.myWinnersCache;
@@ -438,8 +444,10 @@ function isWinnerDeleted(winner) {
 }
 
 function filterValidWinners(winners, oldWinners, updateDate) {
+  console.log('filterValidWinners; winners', winners);
   const minMintDate = millisecondsAhead(-storage.options.ALPHABOT_RESULTS_DAYS_TO_KEEP_MINTED_WINS * ONE_DAY);
-  const filteredWinners = winners.filter((x) => !x.mintDate || x.mintDate >= minMintDate).filter((x) => !isWinnerDeleted(x));
+  // const filteredWinners = winners.filter((x) => !x.mintDate || x.mintDate >= minMintDate).filter((x) => !isWinnerDeleted(x));
+  const filteredWinners = winners.filter((x) => isWinnerToShow(x)).filter((x) => !isWinnerDeleted(x));
 
   debug.log(
     'filterValidWinners; minMintDate::',
@@ -460,6 +468,30 @@ function filterValidWinners(winners, oldWinners, updateDate) {
   return filteredWinners;
 }
 
+function isWinnerToShow(project, minMintDate) {
+  console.log('isWinnerToShow', project, minMintDate);
+  if (!project) {
+    console.log('!project');
+    return false;
+  }
+  if (!project.mintDate) {
+    // no mint date set -> include in result set!
+    console.log('!project.mintDate');
+    return true;
+  }
+  if (project.mintDate >= minMintDate) {
+    console.log('project.mintDate >= minMintDate');
+    return true;
+  }
+  if (project.startDate && project.mintDate && project.startDate >= project.mintDate) {
+    console.log('already minted but new raffle');
+    // already minted but new raffle, probably restarted drop -> include in result set!
+    return true;
+  }
+  console.log('do not show winner');
+  return false;
+}
+
 async function createProjectWinners(winners) {
   const twitterHandles = noDuplicates(
     winners
@@ -473,6 +505,7 @@ async function createProjectWinners(winners) {
   twitterHandles.forEach((handle) => {
     const subWinners = winners.filter((x) => x.twitterHandle === handle);
     const dateKey = maxOrNull(...subWinners.map((x) => x.hxSortKey).filter((x) => x));
+    const startDate = maxOrNull(...subWinners.map((x) => x.startDate).filter((x) => x));
     const mintDate = maxOrNull(...subWinners.map((x) => x.mintDate).filter((x) => x));
     const picked = maxOrNull(...subWinners.map((x) => x.picked).filter((x) => x));
     const wallets = noDuplicates(subWinners.map((x) => x.mintAddress.toLowerCase()));
@@ -482,6 +515,7 @@ async function createProjectWinners(winners) {
       dateKey,
       mintDate,
       picked,
+      startDate,
       wallets,
       winners: subWinners,
     });
@@ -558,12 +592,15 @@ function convertWinners(accountName, winners) {
       slug: x.slug,
       updated: x.updated,
       picked: x.picked,
+      startDate: x.startDate,
+      endDate: x.endDate,
       mintDate: x.mintDate,
       mintDateHasTime: x.mintDateHasTime,
       twitterHandle: extractTwitterHandle(x.twitterUrl),
       discordUrl: x.discordUrl,
       mintAddress: x.entry.mintAddress,
       teamName: x.alphaTeam.name,
+      teamId: x.teamId,
       blockchain: x.blockchain,
       dtc: x.dtc,
       entryCount: x.entryCount,
@@ -571,6 +608,8 @@ function convertWinners(accountName, winners) {
       supply: x.supply,
       pubPrice: x.pubPrice,
       wlPrice: x.wlPrice,
+      dataId: x.dataId,
+      type: x.type,
     };
   });
 }
@@ -1037,7 +1076,6 @@ function createProjectsTable(projects, mountOnElementId) {
     // const sortedMintAddresses = p.winners.map((x) => x.mintAddress);
     const mintAddresses = noDuplicates(
       sortedMintAddresses.map((addr) => {
-        console.log('x', addr);
         const walletAlias = walletToAlias(addr, storage.options);
         const suffix = walletAlias; // ? ` (${walletAlias})` : '';
         return { addr: trimMintAddress(addr.toLowerCase()), alias: suffix };

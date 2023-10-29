@@ -203,6 +203,9 @@ async function runMainLoop() {
     await runWhatsNew();
     await runMaybeLater();
     await runComplete();
+    if (await tryToVerify()) {
+      break;
+    }
     await runContinue();
     if (await runAccept()) {
       break;
@@ -252,6 +255,16 @@ async function runMaybeLater() {
 }
 
 async function runComplete() {
+  const submitBtns = [...document.querySelectorAll('button[type="submit"]')].filter(
+    (el) => el.textContent.trim().toLowerCase() === 'submit'
+  );
+  if (submitBtns.length) {
+    console.log('submitBtns:', submitBtns);
+    await sleep(storage.options.DISCORD_COMPLETE_DELAY, null, 1.0);
+    await clickDiscordElement(submitBtns[submitBtns.length - 1], 10, 3, true);
+    return;
+  }
+
   const completeBtns = [...document.querySelectorAll('div')].filter(
     (el) => el.textContent.trim().toLowerCase() === storage.options.DISCORD_COMPLETE_BTN_SEL.toLowerCase()
   );
@@ -259,7 +272,48 @@ async function runComplete() {
     console.log('completeButtons:', completeBtns);
     await sleep(storage.options.DISCORD_COMPLETE_DELAY, null, 1.0);
     await clickDiscordElement(completeBtns[completeBtns.length - 1], 10, 3, true);
+    return;
   }
+}
+
+async function tryToVerify(isEnabled = false) {
+  if (!isEnabled) {
+    return false;
+  }
+  const channelNames = ['verify-here'];
+  const emojiDataNames = ['✅'];
+  for (const channelName of channelNames) {
+    if (tryToVerifyChannel(channelName)) {
+      for (const emojiDataName of emojiDataNames) {
+        if (tryToVerifyMessage(emojiDataName)) {
+          return true;
+        }
+      }
+    }
+  }
+  return false;
+}
+
+async function tryToVerifyChannel(channelName) {
+  const elem = document.querySelector(`a[aria-label*="${channelName}"]`);
+  if (elem) {
+    await sleep(1000, 2000);
+    console.log('tryToVerifyChannel, elem:', elem);
+    elem.click();
+    return true;
+  }
+  return false;
+}
+
+async function tryToVerifyMessage(emojiDataName) {
+  const elem = document.querySelector(`img[data-name="${emojiDataName}"]`);
+  if (elem) {
+    await sleep(1500, 3000);
+    console.log('tryToVerifyMessage, elem:', elem);
+    elem.click();
+    return true;
+  }
+  return false;
 }
 
 async function runContinue() {
@@ -378,9 +432,8 @@ function isPendingDiscordJoin() {
 
 function hasCaptcha() {
   const elems = [...document.getElementsByTagName('iframe')].map((x) => x.src).filter((x) => x.includes('captcha'));
-  console.log('hasCaptcha, elems:', elems);
   if (elems.length) {
-    console.log('DETECTED CAPTCHA!');
+    console.log('DETECTED CAPTCHA:', elems);
     return true;
   }
   return false;

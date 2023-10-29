@@ -170,9 +170,11 @@ chrome.runtime.onMessage.addListener(async (request, sender, sendResponse) => {
     pageState.lastURL = currentURL;
     if (currentURL.includes('?') && lastURL.includes('?')) {
       debug.log('Only search args changed, do not rerun page!');
-    } else if (currentURL !== lastURL) {
+    } else if (lastURL && currentURL !== lastURL) {
       debug.log('Page navigation, reload page!');
       window.location.reload();
+    } else {
+      debug.log('No new navigation, skip reload');
     }
   }
 
