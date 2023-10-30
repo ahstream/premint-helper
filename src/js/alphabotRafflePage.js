@@ -15,7 +15,7 @@ import {
   JOIN_BUTTON_TITLE,
   STATUSBAR_DEFAULT_TEXT,
 } from './premintHelperLib';
-import { createObserver } from './observer';
+import { createObserver, getPreviousWalletsWon } from './observer';
 import { createHistory } from './history';
 import { getPermissions } from './permissions';
 
@@ -1232,7 +1232,7 @@ function checkForJoinWithWonWallet() {
     return false;
   }
 
-  if (wonWallets.includes(selectedWallet)) {
+  if (wonWallets.includes(selectedWallet.shortWallet) || wonWallets.includes(selectedWallet.longWallet)) {
     return true;
   }
 
@@ -1240,6 +1240,30 @@ function checkForJoinWithWonWallet() {
 }
 
 function getWonWallets() {
+  const w1 = getWonWalletsByThisAccount();
+  const w2 = getWonWalletsByAllAccounts();
+  const wonWallets = noDuplicates([...w1, ...w2].map((x) => x.toLowerCase()));
+  console.log('xxxxx:', w1, w2, wonWallets);
+  return wonWallets;
+}
+
+function getWonWalletsByAllAccounts() {
+  const twitterLink = document.querySelector('a[data-action="option-twitter"]');
+  if (!twitterLink) {
+    return [];
+  }
+  debug.log('twitterLink', twitterLink);
+
+  const twitterHandle = extractTwitterHandle(twitterLink?.href);
+  if (!twitterHandle) {
+    return [];
+  }
+  debug.log('twitterHandle', twitterHandle);
+
+  return getPreviousWalletsWon(twitterHandle);
+}
+
+function getWonWalletsByThisAccount() {
   try {
     const elems = [...[...document.querySelectorAll('div.MuiBox-root')].filter((x) => x.innerText.toLowerCase() === 'you won')];
     if (!elems?.length) {
@@ -1263,7 +1287,14 @@ function getSelectedWallet() {
       return null;
     }
     const elem = elems[0].querySelector('div[role="button"]');
-    return elem?.innerText || null;
+    if (!elem) {
+      return null;
+    }
+
+    const shortWallet = elem?.innerText || '';
+    const longWallet = elem.nextSibling?.value || '';
+
+    return { shortWallet, longWallet };
     /*
     console.log('elem', elem);
     console.log('elem?.nextSibling', elem?.nextSibling);

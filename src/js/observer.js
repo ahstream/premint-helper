@@ -545,7 +545,7 @@ export async function createObserver({
 
 // HELPERS FUNCS ----------------------------------------------------------------------------------
 
-function getPreviousWalletsWon(twitterHandle) {
+export function getPreviousWalletsWon(twitterHandle) {
   const elem = storage?.alphabotProjectWinners?.length ? storage.alphabotProjectWinners.find((x) => x.name === twitterHandle) : null;
   if (!elem) {
     return [];
