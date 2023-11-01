@@ -87,5 +87,5 @@
   --premint-btn-color: var(--base-theme-color);
   --premint-btn-background-color: var(--base-theme-background-color);
   --premint-btn-border-color: darkgray;
-  --premint-btn-hover-background-color: rgb(250, 219, 160);
+  --premint-btn-hover-background-color: #032557;
 }

@@ -1,6 +1,7 @@
 export const defaultOptions = {
   ALPHABOT_ENABLE: true,
-  ALPHABOT_OPEN_IN_FOREGROUND: true,
+  ALPHABOT_ENABLE_TWITTER_TASKS: true,
+  ALPHABOT_ENABLE_DISCORD_TASKS: true,
   ALPHABOT_PREV_WINS_LIFETIME_MINT_DAYS: 30,
   ALPHABOT_PREV_WINS_LIFETIME_PICKED_DAYS: 180,
   ALPHABOT_IGNORED_NAMES: [],
@@ -10,14 +11,16 @@ export const defaultOptions = {
   ALPHABOT_FETCH_RESULTS_DELAY: 1500,
   ALPHABOT_REG_BTN_SEL: '[data-action="view-project-register" i]',
   ALPHABOT_REG_PLUS_1_BTN_SEL: 'Register +1',
-  ALPHABOT_REVEAL_RAFFLES_URL: 'https://www.alphabot.app/?filters=unregistered&scope=community&sortDir=1&sortBy=ending',
+  ALPHABOT_REVEAL_RAFFLES_URL:
+    'https://www.alphabot.app/?filters=unregistered&scope=community&sortDir=1&sortBy=ending',
   ALPHABOT_OPEN_RAFFLE_LINKS_IN_NEW_TAB: true,
   ALPHABOT_WAIT_FOR_RAFFLE_PAGE_LOADED: 30000,
 
+  // PREMINT
   PREMINT_ENABLE: true,
-  PREMINT_OPEN_IN_FOREGROUND: true,
+  PREMINT_ENABLE_TWITTER_TASKS: true,
+  PREMINT_ENABLE_DISCORD_TASKS: true,
   PREMINT_PENDING_REG_FOR_SECS: 30,
-
   PREMINT_MAIN_REGION_SEL: '[id="footer" i]',
   PREMINT_REG_BTN_SEL: '[id="register-submit" i]',
   PREMINT_CUSTOM_FIELD_LABEL_SEL: 'label[for="id_custom_field" i]',
@@ -35,34 +38,56 @@ export const defaultOptions = {
   PREMINT_SOL_WALLET_RE: '(solana wallet|solana address|sol address|solana address)',
   PREMINT_ETH_WALLET_RE: '(metamask)',
   PREMINT_TEZ_WALLET_RE: '',
+  PREMINT_BTC_WALLET_RE: '(taproot)',
 
+  // RAFFLE
   RAFFLE_SKIP_DONE_TASKS: true,
+  RAFFLE_OPEN_LINKS_IN_FOREGROUND: true,
   RAFFLE_SWITCH_TWITTER_USER: false,
+  RAFFLE_FORCE_REGISTER: true,
+  RAFFLE_OPEN_TWITTER_LINK_DELAY: 1500,
+  RAFFLE_OPEN_DISCORD_LINK_DELAY: 1500,
   RAFLE_AUTO_SHOW_FOLLOWERS: true,
   RAFLE_AUTO_SHOW_ODDS: true,
   RAFLE_AUTO_SHOW_WINS: true,
   RAFFLE_TRIM_WHITESPACE: true,
-  RAFFLE_FORCE_REGISTER: true,
   RAFFLE_RETRY_SECS: 12,
   RAFFLE_RETRY_TIMES: 3,
+  RAFFLE_KEEP_ROLED_DISCORD_TASK_OPEN: true,
+  // Close tab/page settings
+  RAFFLE_CLOSE_TASKS_BEFORE_JOIN: true,
+  RAFFLE_CLOSE_TASKS_WHEN_FINISHED: true,
+  // for autostarted only:
+  RAFFLE_MINIMIZE_WHEN_FINISHED: false,
+  RAFFLE_CLEANUP_WHEN_FINISHED: false,
+  RAFFLE_CLOSE_WHEN_FINISHED: false,
+  RAFFLE_ODDS_CACHE_MINS: 120,
+  RAFFLE_ODDS_COLOR: 'black',
+  RAFFLE_ODDS_BACKGROUND_COLOR: 'cyan',
+  RAFFLE_FOLLOWERS_COLOR: 'black',
+  RAFFLE_FOLLOWERS_BACKGROUND_COLOR: 'cyan',
+  RAFFLE_WINS_COLOR: 'black',
+  RAFFLE_WINS_BACKGROUND_COLOR: 'yellow',
+  RAFFLE_EXPIRED_ODDS_COLOR: 'white',
+  RAFFLE_EXPIRED_ODDS_BACKGROUND_COLOR: '#850404',
+  RAFFLE_EXPIRED_FOLLOWERS_COLOR: 'white',
+  RAFFLE_EXPIRED_FOLLOWERS_BACKGROUND_COLOR: '#850404',
 
+  // TWITTER
   TWITTER_ENABLE: true,
+  TWITTER_ENABLE_MANUAL: false,
+  TWITTER_OPEN_LINKS_IN_SEQUENCE: true,
+  TWITTER_CLOSE_TASK_PAGE: true,
   TWITTER_FOLLOWERS_CACHE_HOURS: 72,
   TWITTER_FETCH_FOLLOWERS_USER: '',
   TWITTER_AUTO_UPDATE_FOLLOWERS: true,
-
   TWITTER_MAIN_LOOP_RUN_FOR: 60 * 60 * 1000,
   TWITTER_MAIN_LOOP_SLEEP: 100,
-  TWITTER_INTENT_BTN_SEL: '[data-testid="confirmationSheetConfirm"]',
-  TWITTER_CANCEL_BTN_SEL: '[data-testid="confirmationSheetCancel"]',
-  TWITTER_FOLLOWING_SEL: 'div[data-testid$="-unfollow"]',
-  TWITTER_REPLY_SEL: '[data-testid="reply"]',
-  TWITTER_PROFILE_SEL: '[data-testid="UserJoinDate"]',
 
-  TWITTER_OPEN_LINKS_IN_SEQUENCE: true,
-
+  // DISCORD
+  DISCORD_ENABLE: false,
+  DISCORD_ENABLE_MANUAL: false,
   DISCORD_SKIP_JOINED: true,
-
   DISCORD_MAX_PENDING_JOIN: 30000,
   DISCORD_MAIN_LOOP_RUN_FOR: 60 * 1000,
   DISCORD_MAIN_LOOP_SLEEP: 200,
@@ -79,9 +104,11 @@ export const defaultOptions = {
   DISCORD_ACCEPT_CHECKBOX_SEL: 'I have read and agree to the rules',
   DISCORD_ACCEPT_RULES_SEL: 'Submit',
 
+  // CLOUD
   CLOUD_MODE: 'save',
   CLOUD_TAG: 'hxdev1234',
 
+  // USER INFO
   USER_INFO_EMAIL_ADDRESS: '',
   USER_INFO_TWITTER_ALIAS: '',
   USER_INFO_DISCORD_ALIAS: '',
@@ -90,42 +117,10 @@ export const defaultOptions = {
   USER_INFO_BTC_WALLET: '',
   USER_INFO_TEZ_WALLET: '',
 
+  // MISC
   CLOSE_BUT_ONE_URL: 'chrome://extensions/',
 
-  // Close tab/page settings
-
-  TWITTER_CLOSE_TASK_PAGE: true,
-  RAFFLE_KEEP_ROLED_DISCORD_TASK_OPEN: true,
-  RAFFLE_CLOSE_TASKS_BEFORE_JOIN: true,
-  RAFFLE_CLOSE_TASKS_WHEN_FINISHED: true,
-  // for autostarted only:
-  RAFFLE_MINIMIZE_WHEN_FINISHED: false,
-  RAFFLE_CLEANUP_WHEN_FINISHED: false,
-  RAFFLE_CLOSE_WHEN_FINISHED: false,
-
-  TWITTER_ENABLE_MANUAL: false,
-
-  DISCORD_ENABLE: false,
-  DISCORD_ENABLE_MANUAL: false,
-
-  TWITTER_RETWEETED_SEL: 'div[aria-label$="Reposted"]',
-  TWITTER_LIKED_SEL: 'div[aria-label$="Liked"]',
-
-  PREMINT_BTC_WALLET_RE: '(taproot)',
-
-  RAFFLE_ODDS_CACHE_MINS: 120,
-
-  RAFFLE_ODDS_COLOR: 'black',
-  RAFFLE_ODDS_BACKGROUND_COLOR: 'cyan',
-  RAFFLE_FOLLOWERS_COLOR: 'black',
-  RAFFLE_FOLLOWERS_BACKGROUND_COLOR: 'cyan',
-  RAFFLE_WINS_COLOR: 'black',
-  RAFFLE_WINS_BACKGROUND_COLOR: 'yellow',
-  RAFFLE_EXPIRED_ODDS_COLOR: 'white',
-  RAFFLE_EXPIRED_ODDS_BACKGROUND_COLOR: '#850404',
-  RAFFLE_EXPIRED_FOLLOWERS_COLOR: 'white',
-  RAFFLE_EXPIRED_FOLLOWERS_BACKGROUND_COLOR: '#850404',
-
+  // ALIASES
   WALLET_ALIAS: [
     'hot-1: ETH_ADDRESS',
     'hot-2: ETH_ADDRESS',
@@ -134,9 +129,7 @@ export const defaultOptions = {
     'btc-1: BTC_ADDRESS',
     'btc-2: BTC_ADDRESS',
   ],
-
   ACCOUNT_ALIAS: ['Main: ETH_ADDRESS', 'Alt-1: ETH_ADDRESS', 'Alt-2: ETH_ADDRESS'],
-
   ALPHABOT_TRIM_NAMES: [
     'Vee Friends Alpha',
     'Alpha King',
@@ -151,9 +144,16 @@ export const defaultOptions = {
 };
 
 export const overrideOptions = {
-  RAFFLE_OPEN_TWITTER_LINK_DELAY: 400,
   TWITTER_CLOSE_TASK_PAGE_DELAY: 1500,
   TWITTER_PARENT_SUGGESTED_DELAY: 500,
+
+  TWITTER_INTENT_BTN_SEL: '[data-testid="confirmationSheetConfirm"]',
+  TWITTER_CANCEL_BTN_SEL: '[data-testid="confirmationSheetCancel"]',
+  TWITTER_FOLLOWING_SEL: 'div[data-testid$="-unfollow"]',
+  TWITTER_RETWEETED_SEL: 'div[aria-label$="Reposted"]',
+  TWITTER_LIKED_SEL: 'div[aria-label$="Liked"]',
+  TWITTER_REPLY_SEL: '[data-testid="reply"]',
+  TWITTER_PROFILE_SEL: '[data-testid="UserJoinDate"]',
 
   CLOUD_SAVE_URL: 'https://data.mongodb-api.com/app/application-0-pqnjz/endpoint/update_alphabot_winners',
   CLOUD_LOAD_URL: 'https://data.mongodb-api.com/app/application-0-pqnjz/endpoint/get_alphabot_winners',

@@ -112,10 +112,14 @@ async function runIntentAction() {
 
   await waitForNoIntentBtn();
 
+  debug.log('checkForAction...');
+
   if (await checkForAction()) {
+    debug.log('checkForAction true');
     await finishIntentAction();
     return true;
   } else {
+    debug.log('checkForAction false');
     return false;
   }
 }
@@ -177,11 +181,14 @@ async function checkForAction(maxWait = ONE_HOUR, interval = 100) {
   const intent = getIntent();
   debug.log('intent:', intent);
   if (intent.follow) {
+    debug.log('Wait for followed selector...', storage.options.TWITTER_FOLLOWING_SEL);
     elem = await waitForSelector(storage.options.TWITTER_FOLLOWING_SEL, maxWait, interval);
     isDone = !!elem;
   } else if (intent.like) {
+    debug.log('Wait for liked selector...', storage.options.TWITTER_LIKED_SEL);
     isDone = !!(await waitForSelector(storage.options.TWITTER_LIKED_SEL, maxWait, interval));
   } else if (intent.retweet) {
+    debug.log('Wait for retweeted selector...', storage.options.TWITTER_RETWEETED_SEL);
     isDone = !!(await waitForSelector(storage.options.TWITTER_RETWEETED_SEL, maxWait, interval));
   }
   debug.log('Exit checkForAction; isDone:', isDone);

@@ -8,6 +8,7 @@ import {
   dynamicSortMultiple,
   normalizePendingLink,
   isTwitterURL,
+  simulateClick,
 } from 'hx-lib';
 
 const debug = createLogger();
@@ -125,8 +126,21 @@ export async function addRevealAlphabotRafflesRequest() {
   return url;
 }
 
-export function createStatusbarButtons({ options = true, help = false, results = false, reveal = false, followers = false } = {}) {
-  console.log('createStatusbarButtons; options, help, results, reveal, followers:', options, help, results, reveal, followers);
+export function createStatusbarButtons({
+  options = true,
+  help = false,
+  results = false,
+  reveal = false,
+  followers = false,
+} = {}) {
+  console.log(
+    'createStatusbarButtons; options, help, results, reveal, followers:',
+    options,
+    help,
+    results,
+    reveal,
+    followers
+  );
 
   const buttons = [];
 
@@ -143,7 +157,8 @@ export function createStatusbarButtons({ options = true, help = false, results =
   };
 
   if (options) {
-    const callback = options === 'disabled' ? '' : () => chrome.runtime.sendMessage({ cmd: 'openOptionsPage' });
+    const callback =
+      options === 'disabled' ? '' : () => chrome.runtime.sendMessage({ cmd: 'openOptionsPage' });
     add('Options', 'Open Premint Helper Options page', callback);
   }
 
@@ -151,7 +166,12 @@ export function createStatusbarButtons({ options = true, help = false, results =
     const callback =
       help === 'disabled'
         ? ''
-        : () => chrome.runtime.sendMessage({ cmd: 'openTab', active: true, url: chrome.runtime.getURL('/help.html') });
+        : () =>
+            chrome.runtime.sendMessage({
+              cmd: 'openTab',
+              active: true,
+              url: chrome.runtime.getURL('/help.html'),
+            });
     add('Help', 'Open Premint Helper Help page', callback);
   }
 
@@ -159,7 +179,12 @@ export function createStatusbarButtons({ options = true, help = false, results =
     const callback =
       results === 'disabled'
         ? ''
-        : () => chrome.runtime.sendMessage({ cmd: 'openTab', active: true, url: chrome.runtime.getURL('alphabotResults.html') });
+        : () =>
+            chrome.runtime.sendMessage({
+              cmd: 'openTab',
+              active: true,
+              url: chrome.runtime.getURL('alphabotResults.html'),
+            });
     add('Results', 'Open Premint Helper Alphabot Results page', callback);
   }
 
@@ -186,7 +211,9 @@ export function exitActionMain(result, context, options) {
   setPageBodyClass(result);
 
   if (result === 'joinWithWonWallet') {
-    context.updateStatusbarError('Selected wallet has already won a raffle! Change wallet before joining raffle.');
+    context.updateStatusbarError(
+      'Selected wallet has already won a raffle! Change wallet before joining raffle.'
+    );
     context.pageState.pause = true;
   }
   if (result === 'raffleCaptcha') {
@@ -194,7 +221,9 @@ export function exitActionMain(result, context, options) {
     context.pageState.pause = true;
   }
   if (result === 'invalidContext') {
-    context.updateStatusbarError('Chrome Extension is not recognized by web page. Reload extension and webpage and try again.');
+    context.updateStatusbarError(
+      'Chrome Extension is not recognized by web page. Reload extension and webpage and try again.'
+    );
     context.pageState.pause = true;
   }
   if (result === 'raffleUnknownError') {
@@ -205,7 +234,7 @@ export function exitActionMain(result, context, options) {
   }
   if (result === 'raffleUnknownErrorWillRetry') {
     console.log('context.forceRegister', context.forceRegister);
-    if (context.forceRegister && context.forceRegister()) {
+    if (context.forceRegister && context.forceRegister(context.storage)) {
       console.log('forceRegister success!');
       // successful register, do nothing
     } else {
@@ -235,6 +264,7 @@ export function exitActionMain(result, context, options) {
     context.pageState.done = true;
     context.updateStatusbarOk('You are registered');
     context.removeQuickRegBtn();
+    context.pageState.pause = true;
     minimizeVerifiedRaffle(context);
     minimizeRaffleWhenFinished(context);
     closeRaffleWhenFinished(context);
@@ -250,8 +280,8 @@ export function exitActionMain(result, context, options) {
     // context.pageState.abort = true;
     context.pageState.pause = true;
   }
-  if (result === 'premintDisabled') {
-    context.updateStatusbar('Premint automation disabled, do nothing');
+  if (result === 'providerDisabled') {
+    context.updateStatusbar('Premint Helper automation disabled for this raffle provider');
     context.pageState.pause = true;
   }
   if (result === 'twitterLocked') {
@@ -262,17 +292,6 @@ export function exitActionMain(result, context, options) {
     context.updateStatusbar('Alphabot automation disabled, do nothing');
     context.removeQuickRegBtn();
     context.pageState.pause = true;
-  }
-  if (result === 'alreadyRegistered') {
-    context.pageState.done = true;
-    context.updateStatusbarOk('You are registered');
-    context.removeQuickRegBtn();
-    context.pageState.pause = true;
-    minimizeVerifiedRaffle(context);
-    minimizeRaffleWhenFinished(context);
-    closeRaffleWhenFinished(context);
-    cleanupRaffleWhenFinished(context);
-    closeTasksWhenFinished(context);
   }
   if (result === 'noRaffleTrigger') {
     context.updateStatusbarError('Cannot recognize raffle elements');
@@ -361,7 +380,11 @@ function handleRetries(context, retries, retrySecs) {
     return;
   }
   context.updateStatusbar(
-    `Raffle error! Will auto retry ${retries} ${pluralize(retries, 'time', 'times')} in ${retrySecs} seconds...`,
+    `Raffle error! Will auto retry ${retries} ${pluralize(
+      retries,
+      'time',
+      'times'
+    )} in ${retrySecs} seconds...`,
     'retry'
   );
   if (retrySecs >= 1) {
@@ -431,7 +454,7 @@ export async function finishUnlockedTwitterAccount(request, sender, context) {
     console.log('Open next twitter link:', nextLinkUrl);
     await sleep(context.options.RAFFLE_OPEN_TWITTER_LINK_DELAY, null, 0.1);
 
-    if (context.options.ALPHABOT_OPEN_IN_FOREGROUND) {
+    if (context.options.RAFFLE_OPEN_LINKS_IN_FOREGROUND) {
       window.open(nextLinkUrl, '_blank');
     } else {
       chrome.runtime.sendMessage({ cmd: 'openTab', url: nextLinkUrl });
@@ -466,9 +489,19 @@ export async function finishTask(request, sender, context) {
   debug.log('finish; url:', request.url);
   debug.log('finish; normalizedUrl:', normalizedUrl);
 
-  debug.log('finish; pendingRequests A:', context.pageState.pendingRequests.length, context.pageState.pendingRequests);
-  context.pageState.pendingRequests = context.pageState.pendingRequests.filter((item) => item !== normalizedUrl);
-  debug.log('finish; pendingRequests B:', context.pageState.pendingRequests.length, context.pageState.pendingRequests);
+  debug.log(
+    'finish; pendingRequests A:',
+    context.pageState.pendingRequests.length,
+    context.pageState.pendingRequests
+  );
+  context.pageState.pendingRequests = context.pageState.pendingRequests.filter(
+    (item) => item !== normalizedUrl
+  );
+  debug.log(
+    'finish; pendingRequests B:',
+    context.pageState.pendingRequests.length,
+    context.pageState.pendingRequests
+  );
 
   if (request.twitter) {
     console.log('Add url to history:', request.url);
@@ -513,7 +546,7 @@ export async function finishTask(request, sender, context) {
 
       await sleep(context.options.RAFFLE_OPEN_TWITTER_LINK_DELAY, null, 0.1);
 
-      if (context.options.ALPHABOT_OPEN_IN_FOREGROUND) {
+      if (context.options.RAFFLE_OPEN_LINKS_IN_FOREGROUND) {
         window.open(nextLinkUrl, '_blank');
       } else {
         chrome.runtime.sendMessage({ cmd: 'openTab', url: nextLinkUrl });
@@ -525,5 +558,14 @@ export async function finishTask(request, sender, context) {
 
   if (context.pageState.hasDiscordCaptcha) {
     context.handleDiscordCaptcha();
+  }
+}
+
+export function clickElement(elem) {
+  console.log('clickElement:', elem);
+  if (elem.click) {
+    elem.click();
+  } else {
+    simulateClick(elem);
   }
 }

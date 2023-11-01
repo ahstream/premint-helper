@@ -68,10 +68,6 @@ body.registered {
   background-color: var(--raffle-info-registered) !important;
 }
 
-body.alreadyRegistered {
-  background-color: var(--raffle-info-already-registered) !important;
-}
-
 body.ignoredRaffle {
   background-color: var(--raffle-info-ignored-raffle) !important;
 }
