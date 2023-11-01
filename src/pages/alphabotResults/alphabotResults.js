@@ -447,7 +447,7 @@ function filterValidWinners(winners, oldWinners, updateDate) {
   console.log('filterValidWinners; winners', winners);
   const minMintDate = millisecondsAhead(-storage.options.ALPHABOT_RESULTS_DAYS_TO_KEEP_MINTED_WINS * ONE_DAY);
   // const filteredWinners = winners.filter((x) => !x.mintDate || x.mintDate >= minMintDate).filter((x) => !isWinnerDeleted(x));
-  const filteredWinners = winners.filter((x) => isWinnerToShow(x)).filter((x) => !isWinnerDeleted(x));
+  const filteredWinners = winners.filter((x) => isWinnerToShow(x, minMintDate)).filter((x) => !isWinnerDeleted(x));
 
   debug.log(
     'filterValidWinners; minMintDate::',
@@ -469,7 +469,7 @@ function filterValidWinners(winners, oldWinners, updateDate) {
 }
 
 function isWinnerToShow(project, minMintDate) {
-  console.log('isWinnerToShow', project, minMintDate);
+  console.log('isWinnerToShow', project.name, project, minMintDate);
   if (!project) {
     console.log('!project');
     return false;
