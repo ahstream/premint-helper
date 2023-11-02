@@ -53,6 +53,7 @@
     "crypto-js": "^4.1.1",
     "hx-chrome-lib": "file:../hx-chrome-lib",
     "hx-lib": "file:../hx-lib",
-    "hx-statusbar": "file:../hx-statusbar"
+    "hx-statusbar": "file:../hx-statusbar",
+    "json-html-table": "^2.0.1"
   }
 }

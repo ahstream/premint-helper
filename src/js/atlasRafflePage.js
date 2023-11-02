@@ -3,7 +3,10 @@ console.info('atlasPage.js begin', window?.location?.href);
 import '../styles/atlasPage.css';
 
 import { JOIN_BUTTON_TEXT, JOIN_BUTTON_IN_PROGRESS_TEXT, JOIN_BUTTON_TITLE } from './premintHelperLib';
+
 import { initRafflePage } from './rafflePage';
+
+import { getWinners } from './atlasLib';
 
 import {
   ONE_SECOND,
@@ -72,7 +75,9 @@ const config = {
 
 runNow();
 
-function runNow() {
+async function runNow() {
+  const winners = await getWinners();
+  console.log('winners', winners);
   initRafflePage(config);
 }
 

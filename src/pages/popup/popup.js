@@ -19,7 +19,22 @@ mountPopupPage([
     id: 'hx-show-alphabot-results',
     callback: () => {
       console.log('callback');
-      chrome.runtime.sendMessage({ cmd: 'openTab', url: chrome.runtime.getURL('/alphabotResults.html'), active: true });
+      chrome.runtime.sendMessage({
+        cmd: 'openTab',
+        url: chrome.runtime.getURL('/alphabotResults.html'),
+        active: true,
+      });
+    },
+  },
+  {
+    id: 'hx-show-raffle-results',
+    callback: () => {
+      console.log('callback');
+      chrome.runtime.sendMessage({
+        cmd: 'openTab',
+        url: chrome.runtime.getURL('/raffleResults.html'),
+        active: true,
+      });
     },
   },
 ]);

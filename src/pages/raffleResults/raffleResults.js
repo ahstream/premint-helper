@@ -1,6 +1,9 @@
-console.info('alphabotResults.js begin', window?.location?.href);
+console.info('raffleResults.js begin', window?.location?.href);
 
-import './alphabotResults.scss';
+import './raffleResults.scss';
+
+import { getWinners as getAtlasWinners } from '../../js/atlasLib';
+
 import {
   trimMintAddress,
   accountToAlias,
@@ -10,7 +13,7 @@ import {
   checkIfSubscriptionEnabled,
   STATUSBAR_DEFAULT_TEXT,
 } from '../../js/premintHelperLib.js';
-import { createObserver } from '../../js/observer';
+
 import {
   winnersSortedByNewestURL,
   winnersSortedByMintingURL,
@@ -21,6 +24,7 @@ import {
   trimText,
   trimTextNum,
 } from '../../js/alphabotLib.js';
+
 import {
   noDuplicatesByKey,
   sleep,
@@ -51,21 +55,21 @@ import {
   rateLimitHandler,
   getStorageItems,
   setStorageData,
-  removeStorageItem,
   createLogger,
 } from 'hx-lib';
+
 import { getPermissions } from '../../js/permissions';
 
 import { createStatusbar } from 'hx-statusbar';
+
+const jht = require('json-html-table');
 
 const debug = createLogger();
 
 // DATA ----------------------------------------------------------------------------
 
 let storage;
-let pageState = {
-  statusbar: null,
-};
+let pageState = {};
 
 const DEBUG_MODE = false;
 
@@ -83,25 +87,17 @@ async function runNow() {
 async function runPage() {
   debug.log('runPage');
 
-  storage = await getStorageItems(['options', 'alphabot', 'alphabotProjectWinners']);
+  storage = await getStorageItems(['options', 'alphabot', 'atlas', 'premint', 'projectWinners']);
   debug.log('storage:', storage);
 
   if (!storage?.options) {
     return debug.log('Options missing, exit!');
   }
 
-  if (!storage?.alphabot) {
-    debug.log('!storage.alphabot');
-    storage.alphabot = {};
-  }
-
-  if (!storage?.alphabot.deleted) {
-    storage.alphabot.deleted = {};
-  }
-
-  if (!storage?.alphabotProjectWinners) {
-    storage.alphabotProjectWinners = [];
-  }
+  storage.alphabot = storage.alphabot || {};
+  storage.atlas = storage.atlas || {};
+  storage.premint = storage.premint || {};
+  storage.projectWinners = storage.projectWinners || [];
 
   debug.log('storage after checks:', storage);
 
@@ -109,7 +105,6 @@ async function runPage() {
 
   pageState = {
     hashArgs,
-    twitterObserver: await createObserver({ autoFollowers: true }),
     statusbar: createStatusbar(STATUSBAR_DEFAULT_TEXT),
     permissions: await getPermissions(),
   };
@@ -126,20 +121,20 @@ async function runPage() {
 
   checkIfSubscriptionEnabled(pageState.permissions, false, pageState.statusbar.warn);
 
-  document.getElementById('hx-update-cloud').addEventListener('click', () => updatePage({ cloud: true }));
-  document.getElementById('hx-reset').addEventListener('click', () => resetWinners());
+  document.getElementById('hx-update-atlas').addEventListener('click', () => updateAtlas({ cloud: true }));
+  document.getElementById('hx-reset-atlas').addEventListener('click', () => resetAtlas());
 
-  if (pageState.hashArgs.has('action', 'update')) {
-    return updatePage({ cloud: true });
+  if (pageState.hashArgs.has('action', 'update-atlas')) {
+    return updateAtlas({ cloud: true });
   }
 
-  await showPage();
+  await showAtlas();
 }
 
-// PAGE FUNCTIONS ---------------------------------------------------
+// ATLAS FUNCS ---------------------------------------------------
 
-async function updatePage({ cloud = false } = {}) {
-  debug.log('updatePage; cloud:', cloud);
+async function updateAtlas({ cloud = false } = {}) {
+  debug.log('updateAtlas; cloud:', cloud);
 
   await reloadOptions();
   resetStatus();
@@ -176,6 +171,48 @@ async function updatePage({ cloud = false } = {}) {
   }
 
   showPage();
+}
+
+async function resetAtlas() {
+  if (!window.confirm('Do you want to reset Atlas results?')) {
+    return debug.log('no');
+  }
+
+  storage.atlas = {};
+
+  /*
+  removeStorageItem('alphabotSiteRaffles');
+  removeStorageItem('alphabotLastAccount');
+  removeStorageItem('alphabotLastAccountName');
+  removeStorageItem('alphabotLastFetchedEndDate');
+  removeStorageItem('alphabotLastSiteUpdate');
+  removeStorageItem('alphabotLastCloudUpdate');
+  removeStorageItem('alphabotCloudAccounts');
+  removeStorageItem('alphabotCloudRaffles');
+  */
+
+  await setStorageData(storage);
+  debug.log('storage', storage);
+
+  //resetStatus();
+  //resetPage();
+  updateStatus('Atlas raffle results reset');
+
+  showAtlas();
+}
+
+async function showAtlas() {
+  debug.log('showAtlas:');
+
+  const winners = await getAtlasWinners();
+  console.log('winners', winners);
+
+  const keys = Object.keys(winners[0]);
+
+  const div = document.createElement('div');
+  div.innerHTML = jht(winners, keys);
+
+  document.body.appendChild(div);
 }
 
 function getAllWinners() {
@@ -424,33 +461,6 @@ async function getWinnersFromAlphabot(accountName, lastPickedDate) {
   }
 
   return winners;
-}
-
-async function resetWinners() {
-  if (!window.confirm('Do you want to reset Alphabot results?')) {
-    debug.log('no');
-    return;
-  }
-
-  storage.alphabot = {};
-  storage.alphabotProjectWinners = [];
-
-  removeStorageItem('alphabotSiteRaffles');
-  removeStorageItem('alphabotLastAccount');
-  removeStorageItem('alphabotLastAccountName');
-  removeStorageItem('alphabotLastFetchedEndDate');
-  removeStorageItem('alphabotLastSiteUpdate');
-  removeStorageItem('alphabotLastCloudUpdate');
-  removeStorageItem('alphabotCloudAccounts');
-  removeStorageItem('alphabotCloudRaffles');
-
-  await setStorageData(storage);
-  debug.log('storage', storage);
-
-  resetStatus();
-  resetPage();
-  updateStatus('Alphabot raffle results reset');
-  showPage();
 }
 
 function isWinnerDeleted(winner) {
@@ -1205,7 +1215,7 @@ async function getTwitterFollowerCount(username) {
 
 async function getTwitterObserver() {
   if (!pageState.twitterObserver) {
-    pageState.twitterObserver = await createObserver({ autoFollowers: true });
+    pageState.twitterObserver = null; //  await createObserver({ autoFollowers: true });
   }
   return pageState.twitterObserver;
 }
