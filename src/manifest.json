@@ -43,7 +43,12 @@
       "run_at": "document_start"
     },
     {
-      "matches": ["https://discord.gg/*", "https://discord.com/invite/*", "https://discord.com/app/*", "https://discord.com/channels/*"],
+      "matches": [
+        "https://discord.gg/*",
+        "https://discord.com/invite/*",
+        "https://discord.com/app/*",
+        "https://discord.com/channels/*"
+      ],
       "exclude_matches": [],
       "css": [],
       "js": ["discordPage.js"],
@@ -66,8 +71,15 @@
     {
       "matches": ["https://www.premint.xyz/*"],
       "exclude_matches": ["https://www.premint.xyz/collectors/entries/*"],
-      "css": ["styles/premintPage.css"],
-      "js": ["premintPage.js"],
+      "css": ["styles/premintRafflePage.css"],
+      "js": ["premintRafflePage.js"],
+      "run_at": "document_start"
+    },
+    {
+      "matches": ["https://atlas3.io/project/*/giveaway/*"],
+      "exclude_matches": [],
+      "css": ["styles/atlasRafflePage.css"],
+      "js": ["atlasRafflePage.js"],
       "run_at": "document_start"
     }
   ]

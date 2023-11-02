@@ -30,10 +30,13 @@ const debug = createLogger();
 
 // DATA ----------------------------------------------------------------------------
 
+let storage = null;
+
 const config = {
   name: 'ALPHABOT',
   enableForceRegister: true,
   storageKeys: ['runtime', 'options'],
+  setStorage,
   createObserver,
   waitForRafflePageLoaded,
   forceRegister,
@@ -80,6 +83,12 @@ function runNow() {
   initRafflePage(config);
 }
 
+// STORAGE ----------------------------------------------------------------------------
+
+function setStorage(newStorage) {
+  storage = newStorage;
+}
+
 // OBSERVER ----------------------------------------------
 
 async function createObserver() {
@@ -88,7 +97,7 @@ async function createObserver() {
 
 // WAIT FOR LOADED ----------------------------------------------
 
-async function waitForRafflePageLoaded(storage) {
+async function waitForRafflePageLoaded() {
   debug.log('waitForRafflePageLoaded');
 
   const stopTime = millisecondsAhead(storage.options.ALPHABOT_WAIT_FOR_RAFFLE_PAGE_LOADED);
@@ -110,8 +119,8 @@ async function waitForRafflePageLoaded(storage) {
 
 // REGISTER
 
-function forceRegister(storage) {
-  const regBtn = getRegisterButtonSync(storage, true);
+function forceRegister() {
+  const regBtn = getRegisterButtonSync(true);
   debug.log('forceRegister; regBtn:', regBtn);
   if (!regBtn) {
     debug.log('!regBtn');
@@ -134,7 +143,7 @@ function forceRegister(storage) {
     return null;
   }
 
-  if (!isAllRegBtnsEnabled(storage)) {
+  if (!isAllRegBtnsEnabled()) {
     debug.log('!isAllRegBtnsEnabled');
     return null;
   }
@@ -146,7 +155,7 @@ function forceRegister(storage) {
 
 // REGISTER BTN FUNCS ----------------------------------------------
 
-async function getRegisterButton(storage, maxWait = 1000, interval = 10) {
+async function getRegisterButton(maxWait = 1000, interval = 10) {
   const regPlus1Btn = await waitForTextContains(
     storage.options.ALPHABOT_REG_PLUS_1_BTN_SEL,
     'button',
@@ -159,7 +168,7 @@ async function getRegisterButton(storage, maxWait = 1000, interval = 10) {
   return await waitForSelector(storage.options.ALPHABOT_REG_BTN_SEL, 60 * ONE_SECOND, 100);
 }
 
-function getRegisterButtonSync(storage, mustHaveAllBtns = false) {
+function getRegisterButtonSync(mustHaveAllBtns = false) {
   debug.log('getRegisterButtonSync; mustHaveAllBtns:', mustHaveAllBtns);
   const regPlus1Btn = getTextContains(storage.options.ALPHABOT_REG_PLUS_1_BTN_SEL, 'button');
   if (regPlus1Btn) {
@@ -171,7 +180,7 @@ function getRegisterButtonSync(storage, mustHaveAllBtns = false) {
   return document.querySelector(storage.options.ALPHABOT_REG_BTN_SEL);
 }
 
-function isAllRegBtnsEnabled(storage) {
+function isAllRegBtnsEnabled() {
   const regBtn = document.querySelector(storage.options.ALPHABOT_REG_BTN_SEL);
   const regPlus1Btn = getTextContains(storage.options.ALPHABOT_REG_PLUS_1_BTN_SEL, 'button');
   console.log('regBtn', regBtn);
@@ -188,7 +197,7 @@ function isAllRegBtnsEnabled(storage) {
   return false;
 }
 
-async function addQuickRegButton(storage, clickHandler) {
+async function addQuickRegButton(clickHandler) {
   const regBtnContainer = await waitForSelector(
     '[data-action="view-project-register"]',
     60 * ONE_SECOND,
@@ -282,13 +291,13 @@ async function hasRaffleTrigger() {
   return !!elem;
 }
 
-async function hasRaffleTrigger2(storage) {
+async function hasRaffleTrigger2() {
   const elem = await waitForSelector(storage.options.ALPHABOT_REG_BTN_SEL, 60 * ONE_SECOND, 100);
   debug.log('hasRaffleTrigger2:', elem);
   return !!elem;
 }
 
-function isIgnored(pageState, storage) {
+function isIgnored(pageState) {
   const teamName = getAlphaName();
   let ignored =
     pageState.isAutoStarted && // only ignore auto started raffles!
@@ -302,11 +311,11 @@ function isIgnored(pageState, storage) {
 // PENDING REG --------------------------------
 
 function isPendingReg() {
-  return false; // do nothing
+  return false;
 }
 
 async function setPendingReg() {
-  return false; // do nothing
+  return false;
 }
 
 // PAGE GETTERS -------------------------------------
@@ -386,7 +395,7 @@ function parseTwitterLinks(prefix) {
   return val;
 }
 
-function parseMustJoinLinks(storage, mustHaveRole = false) {
+function parseMustJoinLinks(mustHaveRole = false) {
   let elems;
   if (mustHaveRole) {
     elems = [...document.querySelectorAll('p.MuiTypography-root')].filter(
@@ -509,10 +518,10 @@ function getErrors() {
 }
 
 async function handleSimpleErrors() {
-  return false; // do nothing
+  return false;
 }
 
-async function handleComplexErrors(pageState, storage, context) {
+async function handleComplexErrors(pageState, context) {
   const errors = getErrors();
 
   if (errors.texts.length) {
@@ -575,5 +584,5 @@ async function handleComplexErrors(pageState, storage, context) {
 // CUSTOM CONTENT ----------------------------------------------------------------------------------
 
 function loadRafflePageWithCustomContent() {
-  return false; // do nothing
+  return false;
 }

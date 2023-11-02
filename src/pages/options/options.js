@@ -44,6 +44,16 @@ const options = [
   },
 
   {
+    header: 'Atlas3.io Settings',
+    hiddenKey: '',
+    options: [
+      ['property', 'ATLAS_ENABLE', 'Enable raffle automation'],
+      ['property', 'ATLAS_ENABLE_TWITTER_TASKS', 'Enable Twitter tasks'],
+      ['property', 'ATLAS_ENABLE_DISCORD_TASKS', 'Enable Discord tasks'],
+    ],
+  },
+
+  {
     header: 'Raffle Settings',
     hiddenKey: '',
     options: [
@@ -102,7 +112,13 @@ const options = [
         'If Twitter is rate limiting you for opening too many pages too fast, it might be better to disable this one.',
       ],
       ['property', 'RAFFLE_CLOSE_TASKS_BEFORE_JOIN', 'Close all task pages before joining raffle', null, ''],
-      ['property', 'RAFFLE_CLOSE_TASKS_WHEN_FINISHED', 'Close all task pages when raffle is joined', null, ''],
+      [
+        'property',
+        'RAFFLE_CLOSE_TASKS_WHEN_FINISHED',
+        'Close all task pages when raffle is joined',
+        null,
+        '',
+      ],
       [
         'property',
         'RAFFLE_KEEP_ROLED_DISCORD_TASK_OPEN',
@@ -122,7 +138,13 @@ const options = [
         'These are only applicable when using Shortcuts to automate raffle joins. Minimize options makes it much easier to see which raffles need manual operation (captchas etc). See help page for more info.',
       ],
       ['property', 'RAFFLE_MINIMIZE_WHEN_FINISHED', 'Minimize raffle window when finished', null, ''],
-      ['property', 'RAFFLE_CLEANUP_WHEN_FINISHED', 'Close all tabs except raffle tab + minimize window when finished', null, ''],
+      [
+        'property',
+        'RAFFLE_CLEANUP_WHEN_FINISHED',
+        'Close all tabs except raffle tab + minimize window when finished',
+        null,
+        '',
+      ],
       ['space', 10],
       [
         'property',

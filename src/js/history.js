@@ -12,7 +12,7 @@ export async function createHistory() {
   };
 
   const _add = async (user, target, intent, key, val) => {
-    // console.log('add history:', user, target, intent, key, val);
+    console.log('add history:', user, target, intent, key, val);
 
     if (!user || !target || !intent || !key) {
       // console.log('missing input!');

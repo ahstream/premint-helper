@@ -533,7 +533,7 @@ export async function finishTask(request, sender, context) {
     }
 
     const focusTabWhenRegister = context.pageState.haveRoleDiscordLink ? false : true;
-    return context.registerRaffle(focusTabWhenRegister);
+    return context.registerRaffle(focusTabWhenRegister, false);
   }
 
   console.info('Not all required links finished yet!');

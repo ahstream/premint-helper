@@ -244,17 +244,17 @@ async function showRafflePage(runPage) {
     return exitAction('providerDisabled');
   }
 
-  await provider.waitForRafflePageLoaded(storage);
+  await provider.waitForRafflePageLoaded();
 
   provider.addPreviouslyWonWallets(pageState);
 
-  provider.loadRafflePageWithCustomContent(storage);
+  provider.loadRafflePageWithCustomContent();
 
   if (provider.hasRegistered()) {
     return exitAction('registered');
   }
 
-  if (provider.isPendingReg(storage)) {
+  if (provider.isPendingReg()) {
     await waitForRegistered();
   }
 
@@ -264,7 +264,7 @@ async function showRafflePage(runPage) {
     return;
   }
 
-  if (provider.isIgnored(pageState, storage)) {
+  if (provider.isIgnored(pageState)) {
     console.log('ignored 2');
     return exitAction('ignoredRaffle');
   }
@@ -287,24 +287,24 @@ async function runRafflePage() {
     return exitAction('providerDisabled');
   }
 
-  await provider.waitForRafflePageLoaded(storage);
+  await provider.waitForRafflePageLoaded();
 
   if (provider.hasRegistered()) {
     return exitAction('registered');
   }
 
-  if (!provider.hasRaffleTrigger(storage)) {
+  if (!provider.hasRaffleTrigger()) {
     return exitAction('noRaffleTrigger');
   }
 
   await sleep(100);
 
-  if (provider.isIgnored(pageState, storage)) {
+  if (provider.isIgnored(pageState)) {
     console.log('ignored 1');
     return exitAction('ignoredRaffle');
   }
 
-  if (!provider.hasRaffleTrigger2(storage)) {
+  if (!provider.hasRaffleTrigger2()) {
     return exitAction('noRaffleTrigger');
   }
 
@@ -426,10 +426,14 @@ async function joinRaffle() {
 
 // REGISTER ----------------------------------------------------------------------------------
 
-async function registerRaffle(focusTab = true) {
+async function registerRaffle(focusTab = true, checkIfReady = true) {
   console.info('Register raffle; focusTab:', focusTab);
 
   pageState.pause = false;
+
+  if (!pageState.pause) {
+    // return; // todo
+  }
 
   if (checkForJoinWithWonWallet()) {
     return exitAction('joinWithWonWallet');
@@ -441,7 +445,7 @@ async function registerRaffle(focusTab = true) {
     chrome.runtime.sendMessage({ cmd: 'focusMyTab' });
   }
 
-  const regBtn = await provider.getRegisterButton(storage);
+  const regBtn = await provider.getRegisterButton();
   if (!regBtn) {
     return exitAction('noRaffleRegisterBtn');
   }
@@ -451,8 +455,13 @@ async function registerRaffle(focusTab = true) {
     return handleRaffleCaptcha();
   }
 
+  while (checkIfReady && provider.readyToRegister && !provider.readyToRegister()) {
+    console.log('wait until ready to register');
+    await sleep(500);
+  }
+
   if (regBtn && !regBtn.disabled) {
-    await provider.setPendingReg(storage);
+    await provider.setPendingReg();
     if (pageState.request?.retries) {
       debug.log('Wait some time before clicking reg button when retrying');
       await sleep(1500);
@@ -478,7 +487,7 @@ async function waitForRegistered(maxWait = 1 * ONE_MINUTE, interval = 100) {
 
   while (Date.now() <= stopTime) {
     if (
-      await provider.handleComplexErrors(pageState, storage, {
+      await provider.handleComplexErrors(pageState, {
         handleRaffleCaptcha,
         handleDiscordCaptcha,
         exitAction,
@@ -520,6 +529,10 @@ async function waitForRegistered(maxWait = 1 * ONE_MINUTE, interval = 100) {
     return handleDiscordCaptcha();
   }
 
+  if (provider.hasRegistered()) {
+    return exitAction('registered');
+  }
+
   if (!pageState.pause) {
     return waitAndTryRegisterOneLastTime();
   }
@@ -544,7 +557,7 @@ async function waitAndTryRegisterOneLastTime() {
   const stopTime = millisecondsAhead(waitSecs * 1000);
   while (Date.now() <= stopTime && storage.options.RAFFLE_FORCE_REGISTER) {
     debug.log('try to forceRegister');
-    const regBtn = provider.forceRegister(storage);
+    const regBtn = provider.forceRegister();
     if (regBtn) {
       debug.log('forceRegister ok!');
       return waitForRegisteredMainLoop(regBtn);
@@ -569,7 +582,7 @@ async function waitAndTryRegisterBeforeRetry(retries) {
   while (Date.now() <= stopTime) {
     if (storage.options.RAFFLE_FORCE_REGISTER) {
       debug.log('try to forceRegister');
-      const regBtn = provider.forceRegister(storage);
+      const regBtn = provider.forceRegister();
       if (regBtn) {
         debug.log('forceRegister ok!');
         return waitForRegisteredMainLoop(regBtn);
@@ -600,7 +613,7 @@ async function waitForRegisteredMainLoop(regBtn = null, maxWait = 300 * ONE_MINU
       if (provider.hasDoingItTooOften()) {
         return debug.log('hasDoingItTooOften');
       }
-      if (provider.isAllRegBtnsEnabled(storage)) {
+      if (provider.isAllRegBtnsEnabled()) {
         clickElement(regBtn);
       } else {
         console.log('Not isAllRegBtnsEnabled');
@@ -657,7 +670,7 @@ async function addQuickRegButton() {
     return debug.log('quickRegBtn already present, do nothing');
   }
 
-  provider.addQuickRegButton(storage, quickRegClickHandler);
+  provider.addQuickRegButton(quickRegClickHandler);
 }
 
 function getQuickRegBtn() {
@@ -741,18 +754,18 @@ function getRequirements() {
 // GET -----------------
 
 function getMustFollowLinks() {
-  return provider.parseMustFollowLinks(storage).map((x) => makeTwitterFollowIntentUrl(x));
+  return provider.parseMustFollowLinks().map((x) => makeTwitterFollowIntentUrl(x));
 }
 
 function getMustLikeAndRetweetLinks() {
-  return [...new Set([...provider.parseMustRetweetLinks(storage)])];
+  return [...new Set([...provider.parseMustRetweetLinks()])];
 }
 
 function getMustRetweetLinks() {
   const links = [
     ...new Set(
-      [...provider.parseMustRetweetLinks(storage), ...provider.parseMustLikeAndRetweetLinks(storage)].map(
-        (x) => makeTwitterRetweetIntentUrl(x)
+      [...provider.parseMustRetweetLinks(), ...provider.parseMustLikeAndRetweetLinks()].map((x) =>
+        makeTwitterRetweetIntentUrl(x)
       )
     ),
   ];
@@ -762,7 +775,7 @@ function getMustRetweetLinks() {
 function getMustLikeLinks() {
   const links = [
     ...new Set(
-      [...provider.parseMustLikeLinks(storage), ...provider.parseMustLikeAndRetweetLinks(storage)].map((x) =>
+      [...provider.parseMustLikeLinks(), ...provider.parseMustLikeAndRetweetLinks()].map((x) =>
         makeTwitterLikeIntentUrl(x)
       )
     ),
@@ -771,11 +784,11 @@ function getMustLikeLinks() {
 }
 
 function getMustJoinLinks() {
-  return provider.parseMustJoinLinks(storage, false);
+  return provider.parseMustJoinLinks(false);
 }
 
 function getMustJoinWithRoleLinks() {
-  return provider.parseMustJoinLinks(storage, true);
+  return provider.parseMustJoinLinks(true);
 }
 
 // STATUSBAR FUNCS ----------------------------------------------------------------------------------
@@ -852,7 +865,7 @@ async function handleRaffleCaptcha() {
   const stopTime = millisecondsAhead(60 * 1000);
   while (Date.now() <= stopTime) {
     debug.log('try to handleRaffleCaptcha with forceRegister');
-    if (provider.forceRegister(storage)) {
+    if (provider.forceRegister()) {
       debug.log('forceRegister ok!');
       return waitForRegisteredMainLoop();
     } else {
@@ -878,5 +891,6 @@ async function loadStorage(key = null) {
     const storageTemp = await getStorageItems([key]);
     storage[key] = storageTemp[key];
   }
+  provider.setStorage(storage);
   debug.log('loadStorage:', key, storage);
 }

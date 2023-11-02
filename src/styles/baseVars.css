@@ -67,7 +67,6 @@
   --raffle-info-generic-error: rgb(245, 64, 8);
   --raffle-info-already-won: yellow;
   --raffle-info-registered: #47dd47;
-  --raffle-info-already-registered: #47dd47;
   --raffle-info-ignored-raffle: gray;
 
   /* popup */
@@ -88,4 +87,11 @@
   --premint-btn-background-color: var(--base-theme-background-color);
   --premint-btn-border-color: darkgray;
   --premint-btn-hover-background-color: #032557;
+
+  /* atlas */
+
+  --atlas-btn-color: var(--base-theme-color);
+  --atlas-btn-background-color: var(--base-theme-background-color);
+  --atlas-btn-border-color: darkgray;
+  --atlas-btn-hover-background-color: #032557;
 }

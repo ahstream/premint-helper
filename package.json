@@ -2,7 +2,7 @@
   "name": "premint-helper",
   "version": "1.0.0",
   "description": "Premint Helper",
-  "license": "COPYRIGHT",
+  "license": "UNLICENSED",
   "main": "dist/index.js",
   "browserslist": "> 0.25%, not dead",
   "browser": {

@@ -1,4 +1,4 @@
-console.info('premintPage.js begin', window?.location?.href);
+console.info('premintRafflePage.js begin', window?.location?.href);
 
 import '../styles/premintPage.css';
 
@@ -20,10 +20,13 @@ const debug = createLogger();
 
 // DATA ----------------------------------------------------------------------------
 
+let storage = null;
+
 const config = {
   name: 'PREMINT',
   enableForceRegister: false,
   storageKeys: ['runtime', 'options', 'pendingPremintReg'],
+  setStorage,
   createObserver,
   waitForRafflePageLoaded,
   forceRegister,
@@ -70,10 +73,16 @@ function runNow() {
   initRafflePage(config);
 }
 
+// STORAGE ----------------------------------------------------------------------------
+
+function setStorage(newStorage) {
+  storage = newStorage;
+}
+
 // OBSERVER ----------------------------------------------
 
 async function createObserver() {
-  return null; // do nothing
+  return null;
 }
 
 // WAIT FOR LOADED ----------------------------------------------
@@ -91,16 +100,16 @@ function forceRegister() {
 
 // REGISTER BTN FUNCS ----------------------------------------------
 
-async function getRegisterButton(storage, maxWait = 1000, interval = 10) {
+async function getRegisterButton(maxWait = 1000, interval = 10) {
   return await waitForSelector(storage.options.PREMINT_REG_BTN_SEL, maxWait, interval);
 }
 
-async function getRegisterButtonSync(storage) {
+function getRegisterButtonSync() {
   return document.querySelector(storage.options.PREMINT_REG_BTN_SEL);
 }
 
-function isAllRegBtnsEnabled(storage) {
-  const regBtn = getRegisterButtonSync(storage);
+function isAllRegBtnsEnabled() {
+  const regBtn = getRegisterButtonSync();
   console.log('regBtn', regBtn);
   if (regBtn?.disabled) {
     return false;
@@ -108,8 +117,8 @@ function isAllRegBtnsEnabled(storage) {
   return !!regBtn;
 }
 
-async function addQuickRegButton(storage, clickHandler) {
-  const regBtnContainer = await getRegisterButton(storage);
+async function addQuickRegButton(clickHandler) {
+  const regBtnContainer = await getRegisterButton();
   debug.log('regBtn', regBtnContainer);
   if (!regBtnContainer) {
     return;
@@ -151,14 +160,14 @@ function hasDoingItTooOften() {
   return false;
 }
 
-async function hasRaffleTrigger(storage) {
+async function hasRaffleTrigger() {
   const elem = await waitForSelector(storage.options.PREMINT_MAIN_REGION_SEL, 10 * ONE_SECOND, 50);
   debug.log('hasRaffleTrigger:', elem);
   return !!elem;
 }
 
-async function hasRaffleTrigger2(storage) {
-  return hasRaffleTrigger(storage);
+async function hasRaffleTrigger2() {
+  return hasRaffleTrigger();
 }
 
 function isIgnored() {
@@ -167,7 +176,7 @@ function isIgnored() {
 
 // PENDING REG --------------------------------
 
-function isPendingReg(storage) {
+function isPendingReg() {
   debug.log('isPendingReg');
   const url = normalizePendingLink(window.location.href);
   if (!storage.pendingPremintReg[url]) {
@@ -189,7 +198,7 @@ function isPendingReg(storage) {
   return isPending;
 }
 
-async function setPendingReg(storage) {
+async function setPendingReg() {
   const url = normalizePendingLink(window.location.href);
   storage.pendingPremintReg[url] = JSON.stringify(new Date());
   debug.log('storage.pendingPremintReg set:', storage.pendingPremintReg, url);
@@ -226,19 +235,19 @@ function getRaffleTwitterHandle() {
 
 // PARSE TASK LINKS -------------------------------------
 
-function parseMustLikeLinks(storage) {
+function parseMustLikeLinks() {
   return parseTwitterLinks(storage.options.PREMINT_MUST_LIKE_SEL);
 }
 
-function parseMustRetweetLinks(storage) {
+function parseMustRetweetLinks() {
   return parseTwitterLinks(storage.options.PREMINT_MUST_RETWEET_SEL);
 }
 
-function parseMustLikeAndRetweetLinks(storage) {
+function parseMustLikeAndRetweetLinks() {
   return parseTwitterLinks(storage.options.PREMINT_MUST_LIKE_AND_RETWEET_SEL);
 }
 
-function parseMustFollowLinks(storage) {
+function parseMustFollowLinks() {
   return parseTwitterLinks(storage.options.PREMINT_MUST_FOLLOW_SEL);
 }
 
@@ -265,7 +274,7 @@ function parseTwitterLinks(prefix) {
   }
 }
 
-function parseMustJoinLinks(storage, mustHaveRole = false) {
+function parseMustJoinLinks(mustHaveRole = false) {
   /*
   return [...document.querySelectorAll('p.MuiTypography-root')]
     .filter((e) => e.innerText.toLowerCase().includes('join') && e.innerText.toLowerCase().includes('discord'))
@@ -343,18 +352,18 @@ async function handleComplexErrors() {
 
 // CUSTOM CONTENT ----------------------------------------------------------------------------------
 
-function loadRafflePageWithCustomContent(storage) {
+function loadRafflePageWithCustomContent() {
   debug.log('loadRafflePageWithCustomContent...');
   if (!storage.options.PREMINT_ENABLE) {
     return debug.log('Premint automation disabled, do nothing!');
   }
-  fillPremintCustomField(storage);
+  fillPremintCustomField();
 }
 
-function fillPremintCustomField(storage) {
+function fillPremintCustomField() {
   debug.log('fillPremintCustomField');
 
-  const premintData = getPremintData(storage);
+  const premintData = getPremintData();
 
   if (premintData.customFieldText) {
     // This one need to be first since it should override all others!
@@ -362,46 +371,46 @@ function fillPremintCustomField(storage) {
   }
 
   if (premintData.customFieldIsEmail && storage.options.USER_INFO_EMAIL_ADDRESS) {
-    return setPremintCustomField(storage.options.USER_INFO_EMAIL_ADDRESS, storage);
+    return setPremintCustomField(storage.options.USER_INFO_EMAIL_ADDRESS);
   }
 
   if (premintData.customFieldIsTwitter && storage.options.USER_INFO_TWITTER_ALIAS) {
-    return setPremintCustomField(storage.options.USER_INFO_TWITTER_ALIAS, storage);
+    return setPremintCustomField(storage.options.USER_INFO_TWITTER_ALIAS);
   }
 
   if (premintData.customFieldIsDiscord && storage.options.USER_INFO_DISCORD_ALIAS) {
-    return setPremintCustomField(storage.options.USER_INFO_DISCORD_ALIAS, storage);
+    return setPremintCustomField(storage.options.USER_INFO_DISCORD_ALIAS);
   }
 
   if (premintData.customFieldIsEthWallet && storage.options.USER_INFO_ETH_WALLET) {
-    return setPremintCustomField(storage.options.USER_INFO_ETH_WALLET, storage);
+    return setPremintCustomField(storage.options.USER_INFO_ETH_WALLET);
   }
 
   if (premintData.customFieldIsSolWallet && storage.options.USER_INFO_SOL_WALLET) {
-    return setPremintCustomField(storage.options.USER_INFO_SOL_WALLET, storage);
+    return setPremintCustomField(storage.options.USER_INFO_SOL_WALLET);
   }
 
   if (premintData.customFieldIsTezWallet && storage.options.USER_INFO_TEZ_WALLET) {
-    return setPremintCustomField(storage.options.USER_INFO_TEZ_WALLET, storage);
+    return setPremintCustomField(storage.options.USER_INFO_TEZ_WALLET);
   }
 
   if (premintData.customFieldIsBtcWallet && storage.options.USER_INFO_BTC_WALLET) {
-    return setPremintCustomField(storage.options.USER_INFO_BTC_WALLET, storage);
+    return setPremintCustomField(storage.options.USER_INFO_BTC_WALLET);
   }
 }
 
-function getPremintData(storage) {
+function getPremintData() {
   let customFieldText = storage.runtime?.customFieldText;
   if (!customFieldText) {
     // If custom field value is not already set, use value found on premint page!
     customFieldText = document.querySelector(storage.options.PREMINT_CUSTOM_FIELD_SEL)?.value ?? '';
   }
-  const customFieldProperties = getPremintCustomFieldProperties(storage);
+  const customFieldProperties = getPremintCustomFieldProperties();
   debug.log('customFieldProperties', customFieldProperties);
   return { customFieldText, ...customFieldProperties };
 }
 
-function getPremintCustomFieldProperties(storage) {
+function getPremintCustomFieldProperties() {
   const customFieldLabel = document
     .querySelector(storage.options.PREMINT_CUSTOM_FIELD_LABEL_SEL)
     ?.textContent.trim();
@@ -427,7 +436,7 @@ function getPremintCustomFieldProperties(storage) {
   return {};
 }
 
-function setPremintCustomField(text, storage) {
+function setPremintCustomField(text) {
   debug.log('setPremintCustomField', text);
   if (typeof text !== 'string') {
     debug.log('Custom field value not a string!');

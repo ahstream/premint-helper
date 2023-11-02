@@ -1,4 +1,5 @@
 export const defaultOptions = {
+  // ALPHABOT
   ALPHABOT_ENABLE: true,
   ALPHABOT_ENABLE_TWITTER_TASKS: true,
   ALPHABOT_ENABLE_DISCORD_TASKS: true,
@@ -144,6 +145,22 @@ export const defaultOptions = {
 };
 
 export const overrideOptions = {
+  // ATLAS
+  ATLAS_ENABLE: true,
+  ATLAS_ENABLE_TWITTER_TASKS: true,
+  ATLAS_ENABLE_DISCORD_TASKS: true,
+  ATLAS_MAIN_REGION_SEL: 'Entry Requirements',
+  ATLAS_REG_BTN_SEL: 'Enter Giveaway',
+  ATLAS_MUST_LIKE_SEL: 'like',
+  ATLAS_MUST_RETWEET_SEL: 'retweet',
+  ATLAS_MUST_LIKE_AND_RETWEET_SEL: 'like & retweet',
+  ATLAS_MUST_FOLLOW_SEL: 'follow',
+  ATLAS_JOIN_DISCORD_SEL: 'join the',
+  ATLAS_JOIN_DISCORD_WITH_ROLE_SEL: ['div', 'join the', 'discord and have', 'a'],
+  ATLAS_TWITTER_USER_SEL: 'Twitter Account',
+  ATLAS_DISCORD_USER_SEL: 'Discord Account',
+  ATLAS_WAIT_FOR_RAFFLE_PAGE_LOADED: 30000,
+
   TWITTER_CLOSE_TASK_PAGE_DELAY: 1500,
   TWITTER_PARENT_SUGGESTED_DELAY: 500,
 
