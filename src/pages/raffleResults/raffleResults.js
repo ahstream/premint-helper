@@ -73,7 +73,7 @@ let pageState = {};
 
 const DEBUG_MODE = false;
 
-const DEFAULT_LOCALE = undefined; // 'SV-se'; // string() | undefined
+const DEFAULT_LOCALE = 'SV-se'; // undefined; // 'SV-se'; // string() | undefined
 const SORT_ORDER_LOCALE = 'sv-SE';
 
 // STARTUP ----------------------------------------------------------------------------
@@ -207,12 +207,83 @@ async function showAtlas() {
   const winners = await getAtlasWinners();
   console.log('winners', winners);
 
-  const keys = Object.keys(winners[0]);
+  document.body.appendChild(createWinnersTable(winners));
 
+  const keys = Object.keys(winners[0]);
   const div = document.createElement('div');
   div.innerHTML = jht(winners, keys);
-
   document.body.appendChild(div);
+
+  const keys2 = [
+    'hxSortKey',
+    'name',
+    'endDate',
+    'twitterHandleGuess',
+    'wallets',
+    'teamName',
+    'blockchain',
+    'winnerCount',
+    'entryCount',
+  ];
+  const div2 = document.createElement('div');
+  div2.innerHTML = jht(winners, keys2);
+  document.body.appendChild(div2);
+}
+
+function toDateHTML(timestamp, defaultVal = '') {
+  try {
+    if (typeof timestamp !== 'number') {
+      return defaultVal;
+    }
+    return new Date(timestamp).toLocaleDateString(DEFAULT_LOCALE || null);
+  } catch (e) {
+    console.error(e);
+    return defaultVal;
+  }
+}
+
+function toWalletsHTML(wallets, defaultVal = '') {
+  try {
+    if (!wallets?.length) {
+      return defaultVal;
+    }
+    return wallets
+      .map((x) => {
+        const alias = walletToAlias(x, storage.options);
+        const aliasText = alias ? ` (${alias})` : '';
+        return `<span title="${x}">${trimMintAddress(x)}${aliasText}</span>`;
+      })
+      .join('<br>');
+  } catch (e) {
+    console.error(e);
+    return defaultVal;
+  }
+}
+
+function createWinnersTable(winners) {
+  console.log('winners', winners);
+
+  const sortedWinners = [...winners].sort(dynamicSortMultiple('-hxSortKey'));
+  console.log('sortedWinners', sortedWinners);
+
+  const data = sortedWinners.map((x) => {
+    return {
+      Name: x.name,
+      MintDate: toDateHTML(x.mintDate),
+      EndDate: toDateHTML(x.endDate),
+      Twitter: x.twitterHandleGuess,
+      Chain: x.blockchain,
+      W: x.winnerCount,
+      E: x.entryCount,
+      Wallets: toWalletsHTML(x.wallets),
+      Team: x.teamName,
+    };
+  });
+
+  const keys = Object.keys(data[0]);
+  const div = document.createElement('div');
+  div.innerHTML = jht(data, keys);
+  return div;
 }
 
 function getAllWinners() {

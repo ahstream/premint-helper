@@ -4,7 +4,7 @@ const debug = createLogger();
 
 // DATA ----------------------------------------------------------------------------------
 
-const BASE_URL = 'https://atlas3.io/api/me/won-giveaways?&page={PAGE}&pageLength={PAGE_LENGTH}';
+const WINNERS_BASE_URL = 'https://atlas3.io/api/me/won-giveaways?&page={PAGE}&pageLength={PAGE_LENGTH}';
 
 // FUNCTIONS ----------------------------------------------------------------------------------
 
@@ -22,7 +22,7 @@ async function fetchWinners({ pageLength = 12, interval = 1500 } = {}, checkIfCo
   while (pageNum >= 0) {
     pageNum++;
 
-    const url = BASE_URL.replace('{PAGE}', pageNum).replace('{PAGE_LENGTH}', pageLength);
+    const url = WINNERS_BASE_URL.replace('{PAGE}', pageNum).replace('{PAGE_LENGTH}', pageLength);
     debug.log(`fetchWinners page: ${pageNum}, ${url}`);
     const result = await fetchHelper(url, { method: 'GET' }, rateLimitHandler);
     debug.log('result', result);
