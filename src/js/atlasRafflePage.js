@@ -6,8 +6,6 @@ import { JOIN_BUTTON_TEXT, JOIN_BUTTON_IN_PROGRESS_TEXT, JOIN_BUTTON_TITLE } fro
 
 import { initRafflePage } from './rafflePage';
 
-import { getWinners } from './atlasLib';
-
 import {
   ONE_SECOND,
   sleep,
@@ -76,8 +74,6 @@ const config = {
 runNow();
 
 async function runNow() {
-  const winners = await getWinners();
-  console.log('winners', winners);
   initRafflePage(config);
 }
 

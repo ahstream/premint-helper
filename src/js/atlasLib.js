@@ -8,37 +8,37 @@ const BASE_URL = 'https://atlas3.io/api/me/won-giveaways?&page={PAGE}&pageLength
 
 // FUNCTIONS ----------------------------------------------------------------------------------
 
-export async function getWinners() {
-  const result = await fetchWinners();
-  return result.error ? [] : convertWinners(result);
+export async function getWins() {
+  const result = await fetchWins();
+  return result.error ? [] : convertWins(result);
 }
 
-async function fetchWinners({ pageLength = 12, interval = 1500 } = {}, checkIfContinueFn = null) {
-  debug.log('fetchWinners; pageLength:', pageLength);
+async function fetchWins({ pageLength = 12, interval = 1500 } = {}, checkIfContinueFn = null) {
+  debug.log('fetchWins; pageLength:', pageLength);
 
-  const winners = [];
+  const wins = [];
   let pageNum = 0;
 
   while (pageNum >= 0) {
     pageNum++;
 
     const url = BASE_URL.replace('{PAGE}', pageNum).replace('{PAGE_LENGTH}', pageLength);
-    debug.log(`fetchWinners page: ${pageNum}, ${url}`);
+    debug.log(`fetchWins page: ${pageNum}, ${url}`);
     const result = await fetchHelper(url, { method: 'GET' }, rateLimitHandler);
     debug.log('result', result);
 
     if (result.error) {
-      return { error: true, result, winners };
+      return { error: true, result, wins };
     }
 
     if (result?.ok && !result.data?.giveaways?.length) {
-      return winners;
+      return wins;
     }
 
-    winners.push(...result.data.giveaways);
+    wins.push(...result.data.giveaways);
 
     if (result.data.giveaways.length < pageLength) {
-      return winners;
+      return wins;
     }
 
     if (checkIfContinueFn && !checkIfContinueFn(result)) {
@@ -50,11 +50,11 @@ async function fetchWinners({ pageLength = 12, interval = 1500 } = {}, checkIfCo
     await sleep(interval);
   }
 
-  return winners;
+  return wins;
 }
 
-function convertWinners(winners) {
-  return winners.map((x) => {
+function convertWins(wins) {
+  return wins.map((x) => {
     const provider = 'atlas3';
 
     const raffleId = x.id;

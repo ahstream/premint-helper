@@ -175,4 +175,8 @@ export const overrideOptions = {
   CLOUD_SAVE_URL: 'https://data.mongodb-api.com/app/application-0-pqnjz/endpoint/update_alphabot_winners',
   CLOUD_LOAD_URL: 'https://data.mongodb-api.com/app/application-0-pqnjz/endpoint/get_alphabot_winners',
   CLOUD_HAS_URL: 'https://data.mongodb-api.com/app/application-0-pqnjz/endpoint/count_alphabot_winners',
+
+  CLOUD_READ_WINS_URL: 'https://data.mongodb-api.com/app/application-0-pqnjz/endpoint/read_wins',
+  CLOUD_WRITE_WINS_URL: 'https://data.mongodb-api.com/app/application-0-pqnjz/endpoint/write_wins',
+  CLOUD_COUNT_WINS_URL: 'https://data.mongodb-api.com/app/application-0-pqnjz/endpoint/count_wins',
 };
