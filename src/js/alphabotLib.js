@@ -1,19 +1,18 @@
-import { createLogger, sleep, fetchHelper } from 'hx-lib';
+import { createLogger, sleep, fetchHelper, rateLimitHandler, extractTwitterHandle } from 'hx-lib';
 
 const debug = createLogger();
 
 // DATA ----------------------------------------------------------------------------------
 
+const ACCOUNT_URL = 'https://www.alphabot.app/api/auth/session';
+
+const WINS_BASE_URL =
+  'https://www.alphabot.app/api/projects?sort={SORT_BY}&scope=all&sortDir=-1&showHidden=true&pageSize={PAGE_SIZE}&pageNum={PAGE_NUM}&filter=winners';
+
 export const winnersSortedByNewestURL = `https://www.alphabot.app/api/projects?sort=newest&scope=all&sortDir=-1&showHidden=true&pageSize=16&filter=winners`;
 export const winnersSortedByMintingURL = `https://www.alphabot.app/api/projects?sort=minting&scope=all&sortDir=-1&showHidden=true&pageSize=16&filter=winners`;
 
 // FUNCTIONS ----------------------------------------------------------------------------------
-
-export async function fetchAccountAddress() {
-  const result = await fetchHelper('https://www.alphabot.app/api/auth/session', {});
-  debug.log('fetchAccountAddress:', result);
-  return result?.data?.address;
-}
 
 export function makeRaffleURL(slug) {
   return `https://www.alphabot.app/${slug}`;
@@ -155,6 +154,208 @@ function getAlphabotFilterParams() {
   return params;
 }
 
-// RESULTS -----------------------
+// ACCOUNT -----------------------
 
-// FUNCTIONS ----------------------------------------------------------------------------------
+export async function getAccount() {
+  const result = await fetchHelper(ACCOUNT_URL, {});
+  debug.log('getAccount:', result);
+  return {
+    userId: result?.data?._id,
+    userName:
+      result?.data?.user?.name ||
+      result?.data?.connections?.find((x) => x.provider === 'discord')?.name ||
+      result?.data?.ensName ||
+      '',
+  };
+}
+
+export async function getUserId() {
+  const result = await fetchHelper(ACCOUNT_URL, {});
+  debug.log('fetchAccountAddress:', result);
+  return result?.data?._id;
+}
+
+// obsolete, replace with getAccount()
+export async function fetchAccountAddress() {
+  const result = await fetchHelper(ACCOUNT_URL, {});
+  debug.log('fetchAccountAddress:', result);
+  return result?.data?.address;
+}
+
+// WINS -----------------------
+
+export async function getWinsByNewest(account, { interval = 1500, max = null, lastPickedDate = null } = {}) {
+  return getWins(account, { interval, max, lastPickedDate, sortBy: 'newest' });
+}
+
+export async function getWinsByMinting(account, { interval = 1500, max = null, lastPickedDate = null } = {}) {
+  return getWins(account, { interval, max, lastPickedDate, sortBy: 'minting' });
+}
+
+async function getWins(account, { interval, max, lastPickedDate, sortBy }) {
+  const checkIfContinueFn = !lastPickedDate
+    ? null
+    : (partResult) => {
+        if (!partResult?.data?.length) {
+          console.log('do not continue (!length)');
+          return false;
+        }
+        const picked = partResult.data[0].picked;
+        console.log('picked, lastPickedDate:', picked, lastPickedDate);
+        if (!picked && picked < lastPickedDate) {
+          console.log('do not continue (picked < lastPickedDate)');
+          return false;
+        }
+        return true;
+      };
+  const result = await fetchWins({ interval, max, lastPickedDate, sortBy, checkIfContinueFn });
+  return result.error ? [] : convertWins(result, account);
+}
+
+async function fetchWins({ interval, max, sortBy, pageLength = 16, checkIfContinueFn = null }) {
+  debug.log('fetchWins; pageLength:', pageLength);
+
+  const wins = [];
+  let pageNum = 0;
+  let count = 0;
+
+  while (pageNum >= 0) {
+    const url = WINS_BASE_URL.replace('{PAGE_NUM}', pageNum)
+      .replace('{PAGE_SIZE}', pageLength)
+      .replace('{SORT_BY}', sortBy);
+    debug.log(`fetchWins page: ${pageNum}, ${url}`);
+    const result = await fetchHelper(url, { method: 'GET' }, rateLimitHandler);
+    debug.log('result', result);
+
+    if (result.error) {
+      return { error: true, result, wins };
+    }
+
+    if (result?.ok && !result.data?.length) {
+      return wins;
+    }
+
+    wins.push(...result.data);
+
+    count += result.data.length;
+    if (max && count > max) {
+      debug.log('Max wins fetched:', count, '>=', max);
+      return wins;
+    }
+
+    if (checkIfContinueFn && !checkIfContinueFn(result)) {
+      debug.log('checkIfContinueFn() says to stop');
+      return wins;
+    }
+
+    debug.log(`sleep ${interval} ms before next fetch`);
+    await sleep(interval);
+
+    pageNum++;
+  }
+
+  return wins;
+}
+
+function convertWins(wins, account) {
+  debug.log('wins', wins);
+  return wins.map((x) => {
+    debug.log('win', x);
+    const provider = 'alphabot';
+
+    const raffleId = x._id;
+    const userId = account?.userId;
+    const userName = account?.userName;
+
+    const startDate = x.startDate;
+    const endDate = x.endDate;
+    const pickedDate = x.picked;
+    const modifyDate = x.updated;
+
+    const mintDate = x.mintDate;
+    const mintTime = x.mintDateHasTime ? mintDate : null;
+
+    const twitterHandle = extractTwitterHandle(x.twitterUrl);
+    const twitterHandleGuess = twitterHandle;
+    const discordUrl = x.discordUrl;
+    const websiteUrl = 'todo';
+
+    const wallets = x.entry?.mintAddress ? [x.entry.mintAddress] : [];
+
+    const hxId = `${provider}-${userId}-${raffleId}`;
+    const hxSortKey = mintDate || pickedDate;
+    const hxUpdated = null;
+
+    const id = raffleId;
+    const name = x.name;
+    const slug = x.slug;
+
+    const teamName = x.alphaTeam?.name;
+    const teamId = x.teamId;
+    const blockchain = x.blockchain;
+    const dtc = x.dtc;
+    const entryCount = x.entryCount;
+    const winnerCount = x.winnerCount;
+    const maxWinners = null;
+
+    const supply = x.supply;
+    const mintPrice = null;
+    const pubPrice = x.pubPrice;
+    const wlPrice = x.wlPrice;
+
+    const dataId = x.dataId;
+    const type = x.type;
+
+    const status = x.status;
+    const collabId = null;
+    const collabName = null;
+
+    return {
+      hxId,
+      hxSortKey,
+      hxUpdated,
+
+      provider,
+      userId,
+      userName,
+
+      id,
+      name,
+      slug,
+
+      startDate,
+      endDate,
+      pickedDate,
+      modifyDate,
+      mintDate,
+      mintTime,
+
+      twitterHandle,
+      twitterHandleGuess,
+      discordUrl,
+      websiteUrl,
+
+      wallets,
+
+      teamName,
+      teamId,
+      blockchain,
+      dtc,
+      entryCount,
+      winnerCount,
+      maxWinners,
+
+      supply,
+      pubPrice,
+      wlPrice,
+      mintPrice,
+
+      dataId,
+      type,
+
+      status,
+      collabId,
+      collabName,
+    };
+  });
+}

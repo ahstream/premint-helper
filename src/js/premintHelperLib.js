@@ -87,7 +87,21 @@ export function trimMintAddress(text) {
   if (text.length < 20) {
     return text;
   }
-  return text.substr(0, 2) + '...' + text.substr(text.length - 4, 4);
+  return text.substring(0, 1) + '...' + text.substring(text.length - 4, text.length - 1);
+}
+
+export function toShortWallet(addr) {
+  if (typeof addr !== 'string') {
+    debug.log('invalid wallet:', addr);
+    return '';
+  }
+  const text = addr.toLowerCase();
+  const r = text.length < 10 ? text : `${text.substring(0, 2)}...${text.substring(text.length - 4)}`;
+  //debug.log('toShortWallet; in, out:', text, r);
+  //debug.log('text.length', text.length);
+  //debug.log('text.substring(text.length - 4)', text.substring(text.length - 4));
+
+  return r;
 }
 
 export function trimMintAddresses(texts) {

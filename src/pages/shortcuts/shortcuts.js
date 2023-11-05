@@ -27,7 +27,10 @@ getStorageItems(['options']).then((storage) => {
     {
       cmd: 'close-tabs-minimize-window',
       callback: () => {
-        chrome.runtime.sendMessage({ cmd: 'closeTabsButOneMinimizeWindow', url: storage.options.CLOSE_BUT_ONE_URL });
+        chrome.runtime.sendMessage({
+          cmd: 'closeTabsButOneMinimizeWindow',
+          url: storage.options.CLOSE_BUT_ONE_URL,
+        });
       },
     },
     {
@@ -56,13 +59,28 @@ getStorageItems(['options']).then((storage) => {
     {
       cmd: 'show-alphabot-results',
       callback: () => {
-        return chrome.runtime.sendMessage({ cmd: 'openInSameTab', url: chrome.runtime.getURL('/alphabotResults.html') });
+        return chrome.runtime.sendMessage({
+          cmd: 'openInSameTab',
+          url: chrome.runtime.getURL('/alphabotResults.html'),
+        });
       },
     },
     {
       cmd: 'update-alphabot-results',
       callback: () => {
-        return chrome.runtime.sendMessage({ cmd: 'openInSameTab', url: chrome.runtime.getURL('/alphabotResults.html#action=update') });
+        return chrome.runtime.sendMessage({
+          cmd: 'openInSameTab',
+          url: chrome.runtime.getURL('/alphabotResults.html#action=update'),
+        });
+      },
+    },
+    {
+      cmd: 'update-raffle-results',
+      callback: () => {
+        return chrome.runtime.sendMessage({
+          cmd: 'openInSameTab',
+          url: chrome.runtime.getURL('/raffleResults.html#action=update'),
+        });
       },
     },
   ]);
