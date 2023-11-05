@@ -4,15 +4,19 @@ import './raffleResults.scss';
 
 import { getWins as getAtlasWins } from '../../js/atlasLib';
 
+import { writeWins } from '../../js/cloudLib';
+
 import {
   createStatusbarButtons,
   checkIfSubscriptionEnabled,
   STATUSBAR_DEFAULT_TEXT,
+  trimMintAddress,
+  walletToAlias,
 } from '../../js/premintHelperLib.js';
 
 import {} from '../../js/alphabotLib.js';
 
-import { createHashArgs, getStorageItems, setStorageData, createLogger } from 'hx-lib';
+import { createHashArgs, getStorageItems, setStorageData, createLogger, dynamicSortMultiple } from 'hx-lib';
 
 import { getPermissions } from '../../js/permissions';
 
@@ -27,10 +31,8 @@ const debug = createLogger();
 let storage;
 let pageState = {};
 
-const DEBUG_MODE = false;
-
 const DEFAULT_LOCALE = 'SV-se'; // undefined; // 'SV-se'; // string() | undefined
-const SORT_ORDER_LOCALE = 'sv-SE';
+// const SORT_ORDER_LOCALE = 'sv-SE';
 
 // STARTUP ----------------------------------------------------------------------------
 
@@ -98,6 +100,10 @@ async function updateAtlas({ cloud = false } = {}) {
   console.log('wins', wins);
   storage.atlas.wins = wins;
 
+  if (storage.options.ATLAS_ENABLE_CLOUD && storage.options.CLOUD_MODE === 'load') {
+    await writeWins(wins, storage.options);
+  }
+
   showAtlas();
 }
 
@@ -130,16 +136,16 @@ async function resetAtlas() {
 }
 
 async function showAtlas() {
-  debug.log('showAtlas:');
+  debug.log('showAtlas');
 
   const wins = storage.atlas.wins || [];
-  console.log('wins', wins);
+  console.log('showAtlas wins', wins);
 
-  document.body.appendChild(createWinnersTable(winners));
+  document.body.appendChild(createWinsTable(wins));
 
-  const keys = Object.keys(winners[0]);
+  const keys = wins?.length ? Object.keys(wins[0]) : [];
   const div = document.createElement('div');
-  div.innerHTML = jht(winners, keys);
+  div.innerHTML = wins.length ? jht(wins, keys) : 'NO DATA';
   document.body.appendChild(div);
 
   const keys2 = [
@@ -154,7 +160,7 @@ async function showAtlas() {
     'entryCount',
   ];
   const div2 = document.createElement('div');
-  div2.innerHTML = jht(winners, keys2);
+  div2.innerHTML = wins.length ? jht(wins, keys2) : 'NO DATA';
   document.body.appendChild(div2);
 }
 
@@ -188,13 +194,13 @@ function toWalletsHTML(wallets, defaultVal = '') {
   }
 }
 
-function createWinnersTable(winners) {
-  console.log('winners', winners);
+function createWinsTable(wins) {
+  console.log('createWinsTable wins', wins);
 
-  const sortedWinners = [...winners].sort(dynamicSortMultiple('-hxSortKey'));
-  console.log('sortedWinners', sortedWinners);
+  const sortedWins = [...wins].sort(dynamicSortMultiple('-hxSortKey'));
+  console.log('sortedWins', sortedWins);
 
-  const data = sortedWinners.map((x) => {
+  const data = sortedWins.map((x) => {
     return {
       Name: x.name,
       MintDate: toDateHTML(x.mintDate),
@@ -208,15 +214,15 @@ function createWinnersTable(winners) {
     };
   });
 
-  const keys = Object.keys(data[0]);
+  const keys = data?.length ? Object.keys(data[0]) : [];
   const div = document.createElement('div');
-  div.innerHTML = jht(data, keys);
+  div.innerHTML = data.length ? jht(data, keys) : 'NO DATA';
   return div;
 }
 
 // UPDATE FUNCS -----------------------------------------------------
 
-// WINNERS FUNCS -----------------------------------------------------
+// WINS FUNCS -----------------------------------------------------
 
 // MISC HELPERS -----------------------------------------------------
 

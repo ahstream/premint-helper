@@ -6,7 +6,10 @@ const debug = createLogger();
 
 // FUNCTIONS ----------------------------------------------------------------------------------
 
-export async function read(url, tag, fromTimestamp = 0) {
+export async function readWins(fromTimestamp, options) {
+  const url = options.CLOUD_READ_WINS_URL;
+  const tag = options.CLOUD_TAG;
+
   if (!url) {
     return { error: true, msg: 'Missing CLOUD_WRITE_WINS_URL' };
   }
@@ -30,7 +33,10 @@ export async function read(url, tag, fromTimestamp = 0) {
   return result.data;
 }
 
-export async function write(wins, url, tag) {
+export async function writeWins(wins, options) {
+  const url = options.CLOUD_WRITE_WINS_URL;
+  const tag = options.CLOUD_TAG;
+
   if (!wins?.length) {
     return { ok: true, count: 0 };
   }
@@ -66,7 +72,10 @@ export async function write(wins, url, tag) {
   return { ...data, count: data.length };
 }
 
-export async function count(url, tag, provider, userId) {
+export async function countWins(provider, userId, options) {
+  const url = options.CLOUD_COUNT_WINS_URL;
+  const tag = options.CLOUD_TAG;
+
   if (!url) {
     return { error: true, msg: 'Missing CLOUD_COUNT_WINS_URL' };
   }

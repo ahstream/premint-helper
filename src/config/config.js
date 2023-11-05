@@ -147,6 +147,7 @@ export const defaultOptions = {
 export const overrideOptions = {
   // ATLAS
   ATLAS_ENABLE: true,
+  ATLAS_ENABLE_CLOUD: true,
   ATLAS_ENABLE_TWITTER_TASKS: true,
   ATLAS_ENABLE_DISCORD_TASKS: true,
   ATLAS_MAIN_REGION_SEL: 'Entry Requirements',

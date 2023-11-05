@@ -66,7 +66,6 @@ function convertWinners(winners) {
       hxId: `${provider}-${userId}-${raffleId}`,
       hxSortKey: endsAt,
       hxUpdated: null,
-      hxAccount: userId,
 
       provider,
       userId,
