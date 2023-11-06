@@ -21,12 +21,12 @@ export async function getAccount() {
 
 // WINS ----------------------------------------------------------------------------------
 
-export async function getWins(account, { interval = 1500, max = null } = {}) {
-  const result = await fetchWins({ interval, max });
+export async function getWins(account, { interval = 1500, max = null, statusFn } = {}) {
+  const result = await fetchWins({ interval, max, statusFn });
   return result.error ? [] : convertWins(result, account);
 }
 
-async function fetchWins({ pageLength = 12, interval, max }, checkIfContinueFn = null) {
+async function fetchWins({ pageLength = 12, interval, max, statusFn }, checkIfContinueFn = null) {
   debug.log('fetchWins; pageLength:', pageLength);
 
   const wins = [];
@@ -35,6 +35,10 @@ async function fetchWins({ pageLength = 12, interval, max }, checkIfContinueFn =
 
   while (pageNum >= 0) {
     pageNum++;
+
+    if (statusFn) {
+      statusFn(`Get Atlas results page ${count}`);
+    }
 
     const url = WINS_BASE_URL.replace('{PAGE}', pageNum).replace('{PAGE_LENGTH}', pageLength);
     debug.log(`fetchWins page: ${pageNum}, ${url}`);
@@ -99,7 +103,7 @@ function convertWins(wins, account) {
 
     const hxId = `${provider}-${userId}-${raffleId}`;
     const hxSortKey = endDate;
-    const hxUpdated = null;
+    //const hxUpdated = null;
 
     const id = raffleId;
     const name = x.name;
@@ -128,7 +132,7 @@ function convertWins(wins, account) {
     return {
       hxId,
       hxSortKey,
-      hxUpdated,
+      //hxUpdated,
 
       provider,
       userId,

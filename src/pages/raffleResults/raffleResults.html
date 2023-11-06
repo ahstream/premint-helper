@@ -4,21 +4,35 @@
   <head>
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1" />
-    <link rel="stylesheet" href="styles/alphabotResults.css" />
+    <link rel="stylesheet" href="styles/raffleResults.css" />
     <title>Premint Helper > Raffle Results</title>
   </head>
   <body>
     <div class="hx-container">
       <h2 class="hx-page-title-with-statusbar">Raffle Results</h2>
       <div id="main">
-        <div>
-          <a name="Alphabot">Alphabot</a>
-          | <a name="Atlas3">Atlas3</a> | <a name="Premint">Premint</a> | <a name="All">All</a>
-        </div>
         <div class="button-row">
           <button id="hx-update" title="">Update</button>
           <button id="hx-reset" title="">Reset</button>
+          <span>
+            <a class="show-provider" id="show-all">Show All</a> &nbsp;|&nbsp;
+            <a class="show-provider" id="show-alphabot">Alphabot</a> &nbsp;|&nbsp;
+            <a class="show-provider" id="show-premint">Premint</a> &nbsp;|&nbsp;
+            <a class="show-provider" id="show-atlas">Atlas</a> &nbsp;|&nbsp;
+            <a class="show-provider" id="show-debug">Debug</a>
+          </span>
         </div>
+        <!--
+        <div id="show-providers">
+          Show:
+          <a class="show-provider" id="show-all">All</a> &nbsp;|&nbsp;
+          <a class="show-provider" id="show-alphabot">Alphabot</a> &nbsp;|&nbsp;
+          <a class="show-provider" id="show-premint">Premint</a> &nbsp;|&nbsp;
+          <a class="show-provider" id="show-atlas">Atlas</a> &nbsp;|&nbsp;
+          <a class="show-provider" id="show-debug">Debug</a>
+        </div>
+        -->
+        <div id="hx-status-main">Showing raffle results below</div>
         <div id="status-row">
           <ul id="hx-status" class="status"></ul>
         </div>

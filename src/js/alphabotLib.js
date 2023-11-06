@@ -184,15 +184,10 @@ export async function fetchAccountAddress() {
 
 // WINS -----------------------
 
-export async function getWinsByNewest(account, { interval = 1500, max = null, lastPickedDate = null } = {}) {
-  return getWins(account, { interval, max, lastPickedDate, sortBy: 'newest' });
-}
-
-export async function getWinsByMinting(account, { interval = 1500, max = null, lastPickedDate = null } = {}) {
-  return getWins(account, { interval, max, lastPickedDate, sortBy: 'minting' });
-}
-
-async function getWins(account, { interval, max, lastPickedDate, sortBy }) {
+export async function getWinsByNewest(
+  account,
+  { interval = 1500, max = null, lastPickedDate = null, statusFn = null } = {}
+) {
   const checkIfContinueFn = !lastPickedDate
     ? null
     : (partResult) => {
@@ -208,11 +203,19 @@ async function getWins(account, { interval, max, lastPickedDate, sortBy }) {
         }
         return true;
       };
-  const result = await fetchWins({ interval, max, lastPickedDate, sortBy, checkIfContinueFn });
+  return getWins(account, { interval, max, lastPickedDate, sortBy: 'newest', checkIfContinueFn, statusFn });
+}
+
+export async function getWinsByMinting(account, { interval = 1500, max = null, lastPickedDate = null } = {}) {
+  return getWins(account, { interval, max, lastPickedDate, sortBy: 'minting' });
+}
+
+async function getWins(account, { interval, max, lastPickedDate, sortBy, checkIfContinueFn, statusFn }) {
+  const result = await fetchWins({ interval, max, lastPickedDate, sortBy, checkIfContinueFn, statusFn });
   return result.error ? [] : convertWins(result, account);
 }
 
-async function fetchWins({ interval, max, sortBy, pageLength = 16, checkIfContinueFn = null }) {
+async function fetchWins({ interval, max, sortBy, pageLength = 16, checkIfContinueFn = null, statusFn }) {
   debug.log('fetchWins; pageLength:', pageLength);
 
   const wins = [];
@@ -220,6 +223,9 @@ async function fetchWins({ interval, max, sortBy, pageLength = 16, checkIfContin
   let count = 0;
 
   while (pageNum >= 0) {
+    if (statusFn) {
+      statusFn(`Get Alphabot results page ${count + 1}`);
+    }
     const url = WINS_BASE_URL.replace('{PAGE_NUM}', pageNum)
       .replace('{PAGE_SIZE}', pageLength)
       .replace('{SORT_BY}', sortBy);
@@ -284,7 +290,7 @@ function convertWins(wins, account) {
 
     const hxId = `${provider}-${userId}-${raffleId}`;
     const hxSortKey = mintDate || pickedDate;
-    const hxUpdated = null;
+    //const hxUpdated = null;
 
     const id = raffleId;
     const name = x.name;
@@ -313,7 +319,7 @@ function convertWins(wins, account) {
     return {
       hxId,
       hxSortKey,
-      hxUpdated,
+      //hxUpdated,
 
       provider,
       userId,

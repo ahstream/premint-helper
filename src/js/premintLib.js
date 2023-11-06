@@ -26,9 +26,9 @@ export async function getAccount() {
 
 // WINS ----------------------------------------------------------------------------------
 
-export async function getWins(account, { interval = 1500, max = null, skip = [] } = {}) {
+export async function getWins(account, { interval = 1500, max = null, skip = [], statusFn = null } = {}) {
   debug.log('getWins', account, interval, max, skip);
-  const { wins, lost } = await fetchWins({ interval, max, skip });
+  const { wins, lost } = await fetchWins({ interval, max, skip, statusFn });
   const lastSortKey = skip.length;
   return {
     wins: convertWins(wins, account, lastSortKey),
@@ -36,17 +36,25 @@ export async function getWins(account, { interval = 1500, max = null, skip = [] 
   };
 }
 
-async function fetchWins({ interval, max, skip }) {
+async function fetchWins({ interval, max, skip, statusFn }) {
   debug.log('fetchWins; max, interval, skip:', max, interval, skip);
 
   const wins = [];
   const lost = [];
   let count = 0;
 
+  if (statusFn) {
+    statusFn(`Get Premint entries`);
+  }
+
   const entries = await fetchEntries();
   await sleep(interval);
 
   for (const entryMetadata of entries) {
+    if (statusFn) {
+      statusFn(`Get Premint results for raffle ${count + 1} of ${entries.length}`);
+    }
+
     if (max && count > max) {
       debug.log('Max entries fetched:', count, '>=', max);
       return { wins, lost };
@@ -228,7 +236,7 @@ function convertWins(wins, account, lastSortKey) {
 
     const hxId = `${provider}-${userId}-${raffleId}`;
     const hxSortKey = count + lastSortKey;
-    const hxUpdated = null;
+    //const hxUpdated = null;
 
     const id = raffleId;
     const name = x.name;
@@ -261,7 +269,7 @@ function convertWins(wins, account, lastSortKey) {
     return {
       hxId,
       hxSortKey,
-      hxUpdated,
+      //hxUpdated,
 
       provider,
       userId,
