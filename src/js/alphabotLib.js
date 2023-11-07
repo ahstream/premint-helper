@@ -295,6 +295,7 @@ function convertWins(wins, account) {
     const id = raffleId;
     const name = x.name;
     const slug = x.slug;
+    const url = 'https://www.alphabot.app/' + slug;
 
     const teamName = x.alphaTeam?.name;
     const teamId = x.teamId;
@@ -328,6 +329,7 @@ function convertWins(wins, account) {
       id,
       name,
       slug,
+      url,
 
       startDate,
       endDate,

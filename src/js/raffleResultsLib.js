@@ -55,7 +55,7 @@ async function fetchWinners({ pageLength = 12, interval = 1500 } = {}, checkIfCo
 
 function convertWinners(winners) {
   return winners.map((x) => {
-    const provider = 'atlas3';
+    const provider = 'atlas';
 
     const raffleId = x.id;
     const userId = x.entries[0].userId;

@@ -50,9 +50,11 @@ async function fetchWins({ interval, max, skip, statusFn }) {
   const entries = await fetchEntries();
   await sleep(interval);
 
+  const maxText = max ? ` (max ${max})` : '';
+
   for (const entryMetadata of entries) {
     if (statusFn) {
-      statusFn(`Get Premint results for raffle ${count + 1} of ${entries.length}`);
+      statusFn(`Get Premint results for raffle ${count + 1} of ${entries.length}${maxText}`);
     }
 
     if (max && count > max) {
@@ -232,7 +234,7 @@ function convertWins(wins, account, lastSortKey) {
     const discordUrl = null;
     const websiteUrl = null;
 
-    const wallets = x.wallets;
+    const wallets = x.wallets || [];
 
     const hxId = `${provider}-${userId}-${raffleId}`;
     const hxSortKey = count + lastSortKey;
@@ -241,6 +243,7 @@ function convertWins(wins, account, lastSortKey) {
     const id = raffleId;
     const name = x.name;
     const slug = x.slug;
+    const url = 'https://www.premint.xyz' + slug;
 
     const teamName = null;
     const teamId = null;
@@ -263,8 +266,6 @@ function convertWins(wins, account, lastSortKey) {
     const collabName = null;
 
     const comment = 'join date: ' + x.joinDate;
-
-    const url = 'https://www.premint.xyz/' + slug;
 
     return {
       hxId,

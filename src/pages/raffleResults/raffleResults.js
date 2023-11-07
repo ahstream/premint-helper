@@ -30,13 +30,20 @@ import {
   dynamicSortMultiple,
   noDuplicatesByKey,
   noDuplicates,
+  isToday,
+  isTomorrow,
+  addClassName,
+  addTarget,
+  textAsClass,
+  makeTwitterURL,
+  timestampToLocaleString,
+  timestampToLocaleDateString,
+  timestampToLocaleTimeString,
 } from 'hx-lib';
 
 import { getPermissions } from '../../js/permissions';
 
 import { createStatusbar } from 'hx-statusbar';
-
-const jht = require('json-html-table');
 
 const debug = createLogger();
 
@@ -56,7 +63,7 @@ let pageState = {
 };
 
 const DEFAULT_LOCALE = 'SV-se'; // undefined; // 'SV-se'; // string() | undefined
-// const SORT_ORDER_LOCALE = 'sv-SE';
+const SORT_ORDER_LOCALE = 'sv-SE';
 
 // STARTUP ------------------------------
 
@@ -148,9 +155,16 @@ async function updateWins() {
   document.getElementById('main-table').innerHTML = 'Waiting for results...';
 
   const checkTime = Date.now();
-  const premint = await updatePremintWins(checkTime);
-  const atlas = await updateAtlasWins(checkTime);
-  const alphabot = await updateAlphabotWins(checkTime);
+
+  let cloudWins = [];
+  if (storage.options.CLOUD_MODE === 'load') {
+    cloudWins = await readWins(0, storage.options);
+    console.log('cloudWins', cloudWins);
+  }
+
+  const premint = await updatePremintWins(checkTime, cloudWins);
+  const atlas = await updateAtlasWins(checkTime, cloudWins);
+  const alphabot = await updateAlphabotWins(checkTime, cloudWins);
 
   const mergedWins = mergeAllWins({ atlas, alphabot, premint });
   debug.log('mergedWins:', mergedWins);
@@ -234,7 +248,7 @@ function mergeAllWins({ atlas = null, alphabot = null, premint = null } = {}) {
 
 // ALPHABOT ------------------------------
 
-async function updateAlphabotWins(checkTime) {
+async function updateAlphabotWins(checkTime, allCloudWins) {
   debug.log('updateAlphabotWins', checkTime);
 
   await reloadOptions(); // options may have changed, reload them!
@@ -276,7 +290,7 @@ async function updateAlphabotWins(checkTime) {
 
   let cloudWins = [];
   if (storage.options.ALPHABOT_ENABLE_CLOUD && storage.options.CLOUD_MODE === 'load') {
-    cloudWins = await readWins(0, storage.options).filter((x) => x.provider === 'alphabot');
+    cloudWins = allCloudWins.filter((x) => x.provider === 'alphabot');
     console.log('cloudWins', cloudWins);
     storage.alphabot.cloudWins = mergeWins(cloudWins, storage.alphabot.cloudWins, checkTime);
   }
@@ -291,7 +305,7 @@ async function updateAlphabotWins(checkTime) {
 
 // ATLAS ------------------------------
 
-async function updateAtlasWins(checkTime) {
+async function updateAtlasWins(checkTime, allCloudWins) {
   debug.log('updateAtlasWins', checkTime);
 
   await reloadOptions(); // options may have changed, reload them!
@@ -317,7 +331,7 @@ async function updateAtlasWins(checkTime) {
 
   let cloudWins = [];
   if (storage.options.ATLAS_ENABLE_CLOUD && storage.options.CLOUD_MODE === 'load') {
-    cloudWins = await readWins(0, storage.options).filter((x) => x.provider === 'atlas');
+    cloudWins = allCloudWins.filter((x) => x.provider === 'atlas');
     console.log('cloudWins', cloudWins);
     storage.atlas.cloudWins = mergeWins(cloudWins, storage.atlas.cloudWins, checkTime);
   }
@@ -332,7 +346,7 @@ async function updateAtlasWins(checkTime) {
 
 // PREMINT ------------------------------
 
-async function updatePremintWins(checkTime) {
+async function updatePremintWins(checkTime, allCloudWins) {
   debug.log('updatePremintWins', checkTime);
 
   await reloadOptions(); // options may have changed, reload them!
@@ -363,7 +377,7 @@ async function updatePremintWins(checkTime) {
 
   let cloudWins = [];
   if (storage.options.PREMINT_ENABLE_CLOUD && storage.options.CLOUD_MODE === 'load') {
-    cloudWins = await readWins(0, storage.options).filter((x) => x.provider === 'premint');
+    cloudWins = allCloudWins.filter((x) => x.provider === 'premint');
     console.log('cloudWins', cloudWins);
     storage.premint.cloudWins = mergeWins(cloudWins, storage.premint.cloudWins, checkTime);
   }
@@ -427,25 +441,74 @@ function toWalletsHTML(wallets, defaultVal = '') {
       })
       .join('<br>');
   } catch (e) {
-    console.error(e);
+    console.error(e, wallets, defaultVal);
     return defaultVal;
   }
 }
 
-function createWinsTable(wins, header, id, allColumns = false) {
+function packWins(wins) {
+  console.log('sortWins', wins);
+  const winsToSort = [...(wins?.length ? wins : [])];
+  const sortedWins = winsToSort.sort(dynamicSortMultiple('twitterHandleGuess', '-hxSortKey'));
+
+  const winsWithTwitter = [];
+  const winsWithoutTwitterRaw = [];
+  sortedWins.forEach((win) => {
+    const handle = win.twitterHandleGuess;
+    if (!handle) {
+      return winsWithoutTwitterRaw.push(win);
+    }
+    let baseWin = winsWithTwitter.find((x) => x.twitterHandle === handle);
+    if (!baseWin) {
+      baseWin = {
+        twitterHandle: handle,
+        wins: [],
+      };
+      winsWithTwitter.push(baseWin);
+    }
+    baseWin.wins.push(win);
+  });
+
+  winsWithTwitter.forEach((x) => {
+    x.hxSortKey = Math.max(...x.wins.map((w) => w.hxSortKey || 0));
+  });
+
+  const winsWithoutTwitter = winsWithoutTwitterRaw.map((x) => {
+    return {
+      twitterHandle: '',
+      wins: [x],
+      hxSortKey: x.hxSortKey,
+    };
+  });
+
+  const allWins = [...winsWithTwitter, ...winsWithoutTwitter];
+  allWins.sort(dynamicSortMultiple('-hxSortKey'));
+
+  console.log('winsWithTwitter', winsWithTwitter);
+  console.log('winsWithoutTwitter', winsWithoutTwitterRaw);
+
+  return allWins;
+}
+
+/*
+function createWinsTableOrg(wins, header, id, allColumns = false) {
   console.log('createWinsTable wins', header, wins);
 
-  const sortedWins = [...(wins?.length ? wins : [])].sort(dynamicSortMultiple('-hxSortKey'));
-  console.log('sortedWins', sortedWins);
+  const packedWins = packWins(wins);
+  console.log('packedWins', packedWins);
+
+  const sortedWins = packedWins.map((x) => x.wins).flat();
 
   const lastUpdate = storage.winsLastUpdateTime;
 
   const data = allColumns
     ? sortedWins
     : sortedWins.map((x) => {
+        console.log('x', x);
         return {
           Name: x.name,
           Provider: x.provider,
+          Pwd: x.isPasswordProtected,
           IsNew: x.hxCreated && lastUpdate && x.hxCreated >= lastUpdate,
           IsUpdated: x.hxUpdated && lastUpdate && x.hxUpdated >= lastUpdate,
           SortKey: toDateHTML(x.hxSortKey, x.hxSortKey),
@@ -456,8 +519,9 @@ function createWinsTable(wins, header, id, allColumns = false) {
           W: x.winnerCount,
           E: x.entryCount,
           Wallets: toWalletsHTML(x.wallets),
-          UserName: x.userName,
-          UserId: x.userId,
+          User: x.userName || x.userId,
+          //UserName: x.userName,
+          //UserId: x.userId,
           Team: x.teamName,
         };
       });
@@ -470,6 +534,244 @@ function createWinsTable(wins, header, id, allColumns = false) {
     (header ? `<h3>${header} (${data.length})</h3>` : '') + (data.length ? jht(data, keys) : 'No results');
   return div;
 }
+*/
+
+function createWinsTable(wins, header, id, allColumns = false) {
+  console.log('createWinsTable wins', header, allColumns, wins);
+
+  const packedWins = packWins(wins);
+  console.log('packedWins', packedWins);
+
+  //const sortedWins = packedWins.map((x) => x.wins).flat();
+  // const lastUpdate = storage.winsLastUpdateTime;
+
+  /*
+  const data = allColumns
+    ? sortedWins
+    : sortedWins.map((x) => {
+        console.log('x', x);
+        return {
+          Name: x.name,
+          Provider: x.provider,
+          Pwd: x.isPasswordProtected,
+          IsNew: x.hxCreated && lastUpdate && x.hxCreated >= lastUpdate,
+          IsUpdated: x.hxUpdated && lastUpdate && x.hxUpdated >= lastUpdate,
+          SortKey: toDateHTML(x.hxSortKey, x.hxSortKey),
+          MintDate: toDateHTML(x.mintDate),
+          EndDate: toDateHTML(x.endDate),
+          Twitter: x.twitterHandleGuess,
+          Chain: x.blockchain,
+          W: x.winnerCount,
+          E: x.entryCount,
+          Wallets: toWalletsHTML(x.wallets),
+          User: x.userName || x.userId,
+          //UserName: x.userName,
+          //UserId: x.userId,
+          Team: x.teamName,
+        };
+      });
+      */
+
+  const table = document.createElement('TABLE');
+  //table.appendChild(createTableHeaderRow());
+
+  for (const pwin of packedWins) {
+    const wins = pwin.wins;
+    const firstWin = pwin.wins[0];
+    const allWallets = wins.map((x) => x.wallets).flat();
+
+    debug.log('pwin', pwin);
+    debug.log('wins', wins);
+    debug.log('firstWin', firstWin);
+    debug.log('allWallets', allWallets);
+
+    const row = document.createElement('TR');
+
+    // ROW: Row relative day class
+    if (firstWin.mintDate && isToday(new Date(firstWin.mintDate))) {
+      row.classList.toggle('is-today', true);
+    }
+    if (firstWin.mintDate && isTomorrow(new Date(firstWin.mintDate))) {
+      row.classList.toggle('is-today', true);
+    }
+    if (firstWin.isTomorrowish) {
+      row.classList.toggle('is-tomorrowish', true);
+    }
+    if (firstWin.isYesterdayish) {
+      row.classList.toggle('is-yesterdayish', true);
+    }
+
+    // CELL: Num wallets
+    //row.appendChild(createCell(firstWin.wallets.length.toString()));
+    row.appendChild(createCell(noDuplicates(allWallets).length.toString()));
+
+    // CELL: raffle links
+    const raffleLinks = wins.map((x) => {
+      const isNew = x.hxCreated && x.hxCreated >= storage.winsLastUpdateTime;
+      const isUpdated = x.hxUpdated && x.hxUpdated >= storage.winsLastUpdateTime;
+      return { url: x.url, text: x.name, isNew, isUpdated };
+    });
+    row.appendChild(
+      createCell(createMultiLinks(raffleLinks, { className: 'raffle-link', target: '_blank' }))
+    );
+
+    // CELL: dtc
+    const dtcTexts = wins.map((x) => `${typeof x.dtc === 'undefined' ? ' ' : x.dtc ? 'Yes' : 'No'}`);
+    row.appendChild(createCell(createMultiTexts(dtcTexts, { className: 'dtc', useTextAsClass: true })));
+
+    // CELL: twitterHandleGuess
+    const twitterHandle = pageState.permissions?.enabled ? firstWin.twitterHandleGuess : 'hidden';
+    row.appendChild(
+      createCell(
+        createLink(makeTwitterURL(twitterHandle), twitterHandle, {
+          dataset: [{ key: 'username', val: firstWin.twitterHandleGuess }],
+          className: 'twitter-link',
+          target: '_blank',
+        })
+      )
+    );
+
+    // CELL: mintDate
+    const mintDates = wins.map((x) => {
+      return { date: x.mintDate, hasTime: false };
+    });
+    row.appendChild(createCell(createMultiDates(mintDates, '', { className: 'mint-date' })));
+
+    console.log('row', row);
+    table.appendChild(row);
+  }
+
+  console.log('table', table);
+
+  console.log(toDateHTML(null));
+  console.log(toWalletsHTML(null));
+
+  const numWins = packedWins.reduce((sum, obj) => sum + obj.wins.length, 0);
+
+  const div = document.createElement('div');
+  div.id = id;
+  div.className = 'provider-wins';
+  div.innerHTML =
+    (header ? `<h3>${header} (${numWins})</h3>` : '') + (numWins ? table.outerHTML : 'No results');
+
+  return div;
+}
+
+function createCell(childOrText, title = '') {
+  const elem = document.createElement('TD');
+  if (typeof childOrText === 'string') {
+    elem.innerText = childOrText;
+  } else {
+    elem.appendChild(childOrText);
+  }
+  if (title) {
+    elem.title = title;
+  }
+  return elem;
+}
+
+function createLink(url, text, { dataset, target, className } = {}) {
+  const elem = document.createElement('A');
+  elem.href = url;
+  elem.target = target || undefined;
+  addTarget(elem, target);
+  addClassName(elem, className);
+  elem.innerText = text.trim();
+  if (dataset?.length) {
+    dataset.forEach((x) => {
+      elem.dataset[x.key] = x.val;
+    });
+  }
+  return elem;
+}
+
+function createMultiLinks(links, { target, className } = {}) {
+  const elem = document.createElement('SPAN');
+  elem.style.whiteSpace = 'nowrap';
+  let isFirst = true;
+  for (const link of links) {
+    if (!isFirst) {
+      elem.appendChild(document.createElement('BR'));
+    }
+    const thisClass = `${className || ''} ${isFirst ? 'first' : ''} ${link.isNew ? 'is-new' : ''} ${
+      link.isUpdated ? 'is-updated' : ''
+    }`.trim();
+    const thisUrl = pageState.permissions?.enabled ? link.url : 'http://example.org/hidden-premium-feature';
+    const thisText = pageState.permissions?.enabled ? link.text : 'Hidden Raffle Name';
+    elem.appendChild(createLink(thisUrl, thisText, { target, className: thisClass }));
+    isFirst = false;
+  }
+  return elem;
+}
+
+function createMultiTexts(texts, { className, useTextAsClass, hideDups = true } = {}) {
+  const elem = document.createElement('SPAN');
+  elem.style.whiteSpace = 'nowrap';
+  let isFirst = true;
+  let lastText = null;
+  for (const text of texts) {
+    if (!isFirst) {
+      elem.appendChild(document.createElement('BR'));
+    }
+    let newElem = document.createElement('SPAN');
+    if (hideDups && text === lastText) {
+      newElem.innerText = ' ';
+    } else {
+      newElem.innerText = text;
+      lastText = text;
+    }
+    addClassName(newElem, className);
+    addClassName(newElem, isFirst ? 'first' : null);
+    addClassName(newElem, useTextAsClass ? textAsClass(text) : null);
+    elem.appendChild(newElem);
+    isFirst = false;
+  }
+  return elem;
+}
+
+function createMultiDates(dates, errStr, { className, timeOnly, hideDups = true } = {}) {
+  const elem = document.createElement('SPAN');
+  elem.style.whiteSpace = 'nowrap';
+  let isFirst = true;
+  let lastText = null;
+  for (const date of dates) {
+    if (!isFirst) {
+      elem.appendChild(document.createElement('BR'));
+    }
+    const thisClass = `${className || ''} ${isFirst ? 'first' : ''}`.trim();
+    let newElem = createDate(date.date, date.hasTime, errStr, { className: thisClass, timeOnly });
+    if (hideDups && newElem.innerText === lastText) {
+      newElem = document.createElement('SPAN');
+      newElem.innerText = ' ';
+    } else {
+      lastText = newElem.innerText;
+    }
+    elem.appendChild(newElem);
+    isFirst = false;
+  }
+  return elem;
+}
+
+function createDate(date, hasTime, errStr = '', { className, timeOnly } = {}) {
+  const elem = document.createElement('SPAN');
+  elem.style.whiteSpace = 'nowrap';
+  addClassName(elem, className);
+  let text;
+
+  const options = { hour: '2-digit', minute: '2-digit' };
+
+  if (timeOnly) {
+    text = timestampToLocaleTimeString(date, errStr, SORT_ORDER_LOCALE, options);
+  } else {
+    text = hasTime
+      ? timestampToLocaleString(date, errStr, SORT_ORDER_LOCALE)
+      : timestampToLocaleDateString(date, errStr, SORT_ORDER_LOCALE);
+  }
+  elem.innerText = text;
+  return elem;
+}
+
+// PROVIDER FUNCS -----------------------------------------------------
 
 function showProviderClickHandler(id) {
   pageState.shownProvider = id;

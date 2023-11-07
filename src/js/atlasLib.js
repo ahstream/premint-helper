@@ -79,7 +79,7 @@ async function fetchWins({ pageLength = 12, interval, max, statusFn }, checkIfCo
 
 function convertWins(wins, account) {
   return wins.map((x) => {
-    const provider = 'atlas3';
+    const provider = 'atlas';
 
     const raffleId = x.id;
     const userId = x.entries[0].userId;
@@ -108,6 +108,7 @@ function convertWins(wins, account) {
     const id = raffleId;
     const name = x.name;
     const slug = x.slug;
+    const url = `https://atlas3.io/project/${x.project?.slug}/giveaway/${slug}`;
 
     const teamName = x.project?.name;
     const teamId = x.projectId;
@@ -141,6 +142,7 @@ function convertWins(wins, account) {
       id,
       name,
       slug,
+      url,
 
       startDate,
       endDate,
