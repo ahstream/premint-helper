@@ -1,4 +1,5 @@
 import { sleep, fetchHelper, rateLimitHandler, createLogger } from 'hx-lib';
+import { removeBadStuffFromTwitterHandle } from './premintHelperLib.js';
 
 const debug = createLogger();
 
@@ -21,12 +22,18 @@ export async function getAccount() {
 
 // WINS ----------------------------------------------------------------------------------
 
-export async function getWins(account, { interval = 1500, max = null, statusFn } = {}) {
-  const result = await fetchWins({ interval, max, statusFn });
-  return result.error ? [] : convertWins(result, account);
+export async function getWins(account, { interval = 1500, max = null, statusLogger } = {}) {
+  const result = await fetchWins({ interval, max, statusLogger });
+  if (result.error) {
+    if (statusLogger) {
+      statusLogger.sub(`Error when getting Atlas results!`);
+    }
+    return [];
+  }
+  return convertWins(result, account);
 }
 
-async function fetchWins({ pageLength = 12, interval, max, statusFn }, checkIfContinueFn = null) {
+async function fetchWins({ pageLength = 12, interval, max, statusLogger }, checkIfContinueFn = null) {
   debug.log('fetchWins; pageLength:', pageLength);
 
   const wins = [];
@@ -36,8 +43,8 @@ async function fetchWins({ pageLength = 12, interval, max, statusFn }, checkIfCo
   while (pageNum >= 0) {
     pageNum++;
 
-    if (statusFn) {
-      statusFn(`Get Atlas results page ${count}`);
+    if (statusLogger) {
+      statusLogger.main(`Get Atlas results page ${count + 1}`);
     }
 
     const url = WINS_BASE_URL.replace('{PAGE}', pageNum).replace('{PAGE_LENGTH}', pageLength);
@@ -93,9 +100,10 @@ function convertWins(wins, account) {
     const mintDate = x.collabProject?.mintDate ? new Date(x.endsAt).getTime() : null;
     const mintTime = x.collabProject?.mintTime;
 
-    const twitterHandle = x.collabProject?.twitterUsername;
-    const twitterHandleGuess = x.rules.find((r) => r.type === 'TWITTER_FRIENDSHIP')?.twitterFriendshipRule
-      ?.username;
+    const twitterHandle = removeBadStuffFromTwitterHandle(x.collabProject?.twitterUsername);
+    const twitterHandleGuess = removeBadStuffFromTwitterHandle(
+      x.rules.find((r) => r.type === 'TWITTER_FRIENDSHIP')?.twitterFriendshipRule?.username
+    );
     const discordUrl = x.collabProject?.discordInviteUrl;
     const websiteUrl = x.collabProject?.websiteUrl;
 

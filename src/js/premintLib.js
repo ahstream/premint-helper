@@ -1,4 +1,13 @@
-import { sleep, fetchHelper, rateLimitHandler, createLogger, noDuplicates } from 'hx-lib';
+import {
+  sleep,
+  fetchHelper,
+  rateLimitHandler,
+  createLogger,
+  noDuplicates,
+  convertTextToMonthNum,
+} from 'hx-lib';
+
+import { removeBadStuffFromTwitterHandle } from './premintHelperLib.js';
 
 const debug = createLogger();
 
@@ -26,9 +35,9 @@ export async function getAccount() {
 
 // WINS ----------------------------------------------------------------------------------
 
-export async function getWins(account, { interval = 1500, max = null, skip = [], statusFn = null } = {}) {
+export async function getWins(account, { interval = 1500, max = null, skip = [], statusLogger = null } = {}) {
   debug.log('getWins', account, interval, max, skip);
-  const { wins, lost } = await fetchWins({ interval, max, skip, statusFn });
+  const { wins, lost } = await fetchWins({ interval, max, skip, statusLogger });
   const lastSortKey = skip.length;
   return {
     wins: convertWins(wins, account, lastSortKey),
@@ -36,25 +45,32 @@ export async function getWins(account, { interval = 1500, max = null, skip = [],
   };
 }
 
-async function fetchWins({ interval, max, skip, statusFn }) {
+async function fetchWins({ interval, max, skip, statusLogger }) {
   debug.log('fetchWins; max, interval, skip:', max, interval, skip);
 
   const wins = [];
   const lost = [];
   let count = 0;
 
-  if (statusFn) {
-    statusFn(`Get Premint entries`);
+  if (statusLogger) {
+    statusLogger.main(`Get Premint entries...`);
   }
 
   const entries = await fetchEntries();
   await sleep(interval);
 
+  if (entries?.error) {
+    console.error('Failed getting Premint entries. Error:', entries);
+    if (statusLogger) {
+      statusLogger.sub('Failed getting Premint entries. Error:' + entries.error.toString());
+    }
+  }
+
   const maxText = max ? ` (max ${max})` : '';
 
   for (const entryMetadata of entries) {
-    if (statusFn) {
-      statusFn(`Get Premint results for raffle ${count + 1} of ${entries.length}${maxText}`);
+    if (statusLogger) {
+      statusLogger.main(`Get Premint results for raffle ${count + 1} of ${entries.length}${maxText}`);
     }
 
     if (max && count > max) {
@@ -132,7 +148,7 @@ async function fetchEntries() {
       slug: entry[1],
       name: entry[2].replaceAll('\n', '').trim(),
       url: `https://www.premint.xyz${entry[1]}`,
-      joinDate: entry[3].trim(),
+      joinDate: parseJoinDate(entry[3].trim()),
       live: entry[4].toLowerCase() === 'unregister',
     });
   }
@@ -161,13 +177,65 @@ async function fetchEntry(entry) {
 
   const html = result.data;
 
+  const discordUrls = getDiscordUrls(html) || [];
+
   return {
     isWin: !!html.match(/<div class="heading heading-1">🏆<\/div>/gim),
     twitterHandles: getTwitterHandles(html) || null,
+    discordUrls,
+    discordUrl: discordUrls[0] || null,
     wallets: getWallets(html) || null,
     isPasswordProtected: !!html.match(/This page is password protected/im),
+    mintDate: getMintDate(html),
+    raffleDate: getRaffleDate(html),
+    joinDate: entry.joinDate,
+    mintPrice: getMintPrice(html),
     ...entry,
   };
+}
+
+function parseJoinDate(html) {
+  const m = html.match(/Joined ([a-z][a-z][a-z])\. ([0-9]+), ([0-9][0-9][0-9][0-9])/i);
+  console.log('m', m);
+  return createDateFromTextMatch(m);
+}
+
+function getMintDate(html) {
+  const m = html.match(
+    /<i class="fas fa-calendar-alt text-muted mr-1"><\/i>\s*([a-z][a-z][a-z])\. ([0-9]+), ([0-9][0-9][0-9][0-9])\s*<\/span>/i
+  );
+  console.log('m', m);
+  return createDateFromTextMatch(m);
+}
+
+function getMintPrice(html) {
+  const m = html.match(
+    /<div class="text-uppercase text-sm text-muted">Mint Price<\/div>\s*<span[^>]*>\s*<i class="fab fa-[^>]+><\/i>\s*([^<]*)<\/span>/i
+  );
+  return m?.trim ? m.trim() : null;
+}
+
+function getRaffleDate(html) {
+  const m = html.match(
+    /This is when the project has said they'd pick winners.">\s*([a-z][a-z][a-z])\. ([0-9]+), ([0-9][0-9][0-9][0-9])/i
+  );
+  console.log('m', m);
+  return createDateFromTextMatch(m);
+}
+
+function createDateFromTextMatch(matches) {
+  if (!matches || matches.length !== 4) {
+    return null;
+  }
+  const month = convertTextToMonthNum(matches[1]);
+  const day = matches[2];
+  const year = matches[3];
+  if (month >= 1 && month <= 12 && day >= 1 && day <= 31 && year >= 2020 && year <= 2099) {
+    const d = new Date(year, month - 1, day, 0, 0, 0, 0);
+    return d.getTime();
+  }
+
+  return null;
 }
 
 function getTwitterHandles(html) {
@@ -188,8 +256,36 @@ function getTwitterHandles(html) {
     }
   });
 
-  return data.length ? data : null;
+  // remove twitter.com/ etc from bad handles!
+  const trimmedData = data.map((x) => removeBadStuffFromTwitterHandle(x));
+
+  return trimmedData.length ? trimmedData : [];
 }
+
+function getDiscordUrls(html) {
+  const m1 = [
+    ...html.matchAll(
+      /<a href="https:\/\/discord.gg\/[^"]+" target="_blank" class="c-base-1">([^<]+)<\/a>/gim
+    ),
+  ];
+  const m2 = [];
+  console.log('m1', m1);
+  console.log('m2', m2);
+
+  const data = [];
+
+  noDuplicates([...m1, ...m2]).forEach((m) => {
+    if (m.length > 1) {
+      data.push(m[1]);
+    }
+  });
+
+  const trimmedData = data.map((x) => (x.startsWith('https://') ? x : 'https://' + x));
+
+  return trimmedData.length ? trimmedData : [];
+}
+
+//
 
 function getWallets(html) {
   const m1 = [
@@ -221,23 +317,23 @@ function convertWins(wins, account, lastSortKey) {
     const userId = account.userId;
     const userName = account.userName;
 
-    const startDate = null;
-    const endDate = null;
-    const pickedDate = null;
+    const startDate = x.joinDate;
+    const endDate = x.raffleDate;
+    const pickedDate = x.raffleDate;
     const modifyDate = null;
 
-    const mintDate = null;
+    const mintDate = x.mintDate;
     const mintTime = null;
 
     const twitterHandle = x.twitterHandles;
     const twitterHandleGuess = x.twitterHandles?.length ? x.twitterHandles[0] : '';
-    const discordUrl = null;
+    const discordUrl = x.discordUrl;
     const websiteUrl = null;
 
     const wallets = x.wallets || [];
 
     const hxId = `${provider}-${userId}-${raffleId}`;
-    const hxSortKey = count + lastSortKey;
+    const hxSortKey = mintDate || pickedDate || endDate || startDate || count + lastSortKey;
     //const hxUpdated = null;
 
     const id = raffleId;
@@ -256,7 +352,7 @@ function convertWins(wins, account, lastSortKey) {
     const supply = null;
     const mintPrice = null;
     const pubPrice = null;
-    const wlPrice = null;
+    const wlPrice = x.mintPrice;
 
     const dataId = null;
     const type = null;

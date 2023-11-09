@@ -87,7 +87,7 @@ export function trimMintAddress(text) {
   if (text.length < 20) {
     return text;
   }
-  return text.substring(0, 1) + '...' + text.substring(text.length - 4, text.length - 1);
+  return text.substring(0, 2) + '...' + text.substring(text.length - 4);
 }
 
 export function toShortWallet(addr) {
@@ -582,4 +582,17 @@ export function clickElement(elem) {
   } else {
     simulateClick(elem);
   }
+}
+
+export async function reloadOptions(storage) {
+  const { options } = await getStorageItems(['options']);
+  storage.options = options;
+}
+
+export function removeBadStuffFromTwitterHandle(s) {
+  if (typeof s !== 'string') {
+    return s;
+  }
+  const tokens = s.split('/');
+  return tokens.length <= 1 ? s : tokens[tokens.length - 1];
 }

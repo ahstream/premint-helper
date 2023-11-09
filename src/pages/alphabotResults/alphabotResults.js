@@ -8,9 +8,12 @@ import {
   sortMintAddresses,
   createStatusbarButtons,
   checkIfSubscriptionEnabled,
+  reloadOptions,
   STATUSBAR_DEFAULT_TEXT,
 } from '../../js/premintHelperLib.js';
+
 import { createObserver } from '../../js/observer';
+
 import {
   winnersSortedByNewestURL,
   winnersSortedByMintingURL,
@@ -21,6 +24,7 @@ import {
   trimText,
   trimTextNum,
 } from '../../js/alphabotLib.js';
+
 import {
   noDuplicatesByKey,
   sleep,
@@ -141,7 +145,7 @@ async function runPage() {
 async function updatePage({ cloud = false } = {}) {
   debug.log('updatePage; cloud:', cloud);
 
-  await reloadOptions();
+  await reloadOptions(storage);
   resetStatus();
   resetPage();
 
@@ -1222,11 +1226,6 @@ async function updateTwitterFollowers() {
 }
 
 // MISC HELPERS -----------------------------------------------------
-
-async function reloadOptions() {
-  const { options } = await getStorageItems(['options']);
-  storage.options = options;
-}
 
 function maxOrNull(...args) {
   if (!args.length) {

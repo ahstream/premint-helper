@@ -8,6 +8,7 @@ import {
   createStatusbarButtons,
   addRevealAlphabotRafflesRequest,
   getMyTabIdFromExtension,
+  reloadOptions,
   STATUSBAR_DEFAULT_TEXT,
 } from './premintHelperLib';
 
@@ -176,8 +177,13 @@ async function lookupTwitterEventHandler(event) {
   event.preventDefault();
   event.stopImmediatePropagation();
 
+  await reloadOptions(storage);
+  console.log('lookupTwitterEventHandler, storage:', storage);
+
   if (!storage.options.TWITTER_FETCH_FOLLOWERS_USER) {
-    window.alert('It is recommended to set TWITTER_FETCH_FOLLOWERS_USER property on Optins page before fetching follower counts!');
+    window.alert(
+      'It is recommended to set TWITTER_FETCH_FOLLOWERS_USER property on Optins page before fetching follower counts!'
+    );
   }
 
   const links = noDuplicates(getLookupTwitterLinks());
@@ -239,12 +245,20 @@ async function lookupTwitter() {
 
 async function switchTwitterUserBeforeFetchingFollowers() {
   if (storage.options.TWITTER_FETCH_FOLLOWERS_USER) {
-    updateStatusbar(`Switching to Twitter user @${storage.options.TWITTER_FETCH_FOLLOWERS_USER} on Twitter home page...`);
-    const result = await waitForUser(storage.options.TWITTER_FETCH_FOLLOWERS_USER, pageState.myTabId, pageState);
+    updateStatusbar(
+      `Switching to Twitter user @${storage.options.TWITTER_FETCH_FOLLOWERS_USER} on Twitter home page...`
+    );
+    const result = await waitForUser(
+      storage.options.TWITTER_FETCH_FOLLOWERS_USER,
+      pageState.myTabId,
+      pageState
+    );
 
     if (!result || !result.ok) {
       debug.log('Failed switching to Twitter user; result:', result);
-      updateStatusbarError(`Failed switching to Twitter user @${storage.options.TWITTER_FETCH_FOLLOWERS_USER}, aborting action`);
+      updateStatusbarError(
+        `Failed switching to Twitter user @${storage.options.TWITTER_FETCH_FOLLOWERS_USER}, aborting action`
+      );
       return false;
     }
     updateStatusbar(`Switched to Twitter user ${result.user}`);

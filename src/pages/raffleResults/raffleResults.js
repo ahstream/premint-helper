@@ -10,7 +10,7 @@ import {
 } from '../../js/alphabotLib';
 import { getAccount as getPremintAccount, getWins as getPremintWins } from '../../js/premintLib';
 
-import { readWins, writeWins } from '../../js/cloudLib';
+import { readWins, writeWins, countWins } from '../../js/cloudLib';
 
 import {
   createStatusbarButtons,
@@ -18,11 +18,16 @@ import {
   STATUSBAR_DEFAULT_TEXT,
   toShortWallet,
   walletToAlias,
+  sortMintAddresses,
+  trimMintAddress,
+  accountToAlias,
+  reloadOptions,
 } from '../../js/premintHelperLib.js';
 
-import {} from '../../js/alphabotLib.js';
+import { trimPrice, trimText, trimTextNum } from '../../js/raffleResultsLib.js';
 
 import {
+  ONE_DAY,
   createHashArgs,
   getStorageItems,
   setStorageData,
@@ -31,7 +36,6 @@ import {
   noDuplicatesByKey,
   noDuplicates,
   isToday,
-  isTomorrow,
   addClassName,
   addTarget,
   textAsClass,
@@ -39,28 +43,42 @@ import {
   timestampToLocaleString,
   timestampToLocaleDateString,
   timestampToLocaleTimeString,
+  extractDiscordHandle,
+  millisecondsAhead,
+  pluralize,
+  daysBetween,
+  hoursBetween,
+  minutesBetween,
+  secondsBetween,
 } from 'hx-lib';
 
 import { getPermissions } from '../../js/permissions';
 
 import { createStatusbar } from 'hx-statusbar';
 
+const jht = require('json-html-table');
+
 const debug = createLogger();
 
 // DATA ------------------------------
-
-const MAX_ALPHABOT_WINS = 30; // null; // 30; // null;
-const MAX_ATLAS_WINS = null;
-const MAX_PREMINT_WINS = 30; // 300; //  5; // 200;
 
 const ALPHABOT_INTERVAL = 1500;
 const ATLAS_INTERVAL = 1500;
 const PREMINT_INTERVAL = 520;
 
+const SHORTENED_TEXT_SUFFIX = '...';
+
+const MAX_LEN_RAFFLE_NAME = 32;
+const MAX_LEN_TWITTER_HANDLE = 24;
+const MAX_LEN_DISCORD_HANDLE = 15;
+const MAX_LEN_TEAM_NAME = 24;
+
 let storage;
 let pageState = {
   shownProvider: 'all',
 };
+
+const statusLogger = { main: updateMainStatus, sub: updateSubStatus };
 
 const DEFAULT_LOCALE = 'SV-se'; // undefined; // 'SV-se'; // string() | undefined
 const SORT_ORDER_LOCALE = 'sv-SE';
@@ -74,6 +92,8 @@ async function runNow() {
 }
 
 function initStorage() {
+  storage.results = storage.results || {};
+
   storage.alphabot = storage.alphabot || {};
   storage.alphabot.myWins = storage.alphabot.myWins || [];
   storage.alphabot.cloudWins = storage.alphabot.cloudWins || [];
@@ -97,7 +117,15 @@ function initStorage() {
 async function runPage() {
   debug.log('runPage');
 
-  storage = await getStorageItems(['options', 'wins', 'alphabot', 'atlas', 'premint', 'projectWins']);
+  storage = await getStorageItems([
+    'options',
+    'wins',
+    'projectWins',
+    'results',
+    'alphabot',
+    'atlas',
+    'premint',
+  ]);
   debug.log('storage:', storage);
 
   if (!storage?.options) {
@@ -151,15 +179,45 @@ async function runPage() {
 
 async function updateWins() {
   updateMainStatus('Updating results');
+  resetSubStatus();
 
-  document.getElementById('main-table').innerHTML = 'Waiting for results...';
+  document.getElementById('main-table').innerHTML = '';
 
   const checkTime = Date.now();
 
   let cloudWins = [];
+
   if (storage.options.CLOUD_MODE === 'load') {
-    cloudWins = await readWins(0, storage.options);
+    const fromTimestamp = (storage.results.lastReadTimestampFromCloud || -1) + 1;
+    console.log('storage.results.lastReadTimestampFromCloud', storage.results.lastReadTimestampFromCloud);
+    console.log('fromTimestamp', fromTimestamp);
+    cloudWins = await readWins(fromTimestamp, storage.options);
     console.log('cloudWins', cloudWins);
+    if (cloudWins.error) {
+      statusLogger.sub('Failed getting results from Cloud! Error:' + cloudWins.msg);
+    } else {
+      statusLogger.sub(`Fetched ${cloudWins.length} new or updated winners from Cloud`);
+      storage.results.lastReadTimestampFromCloud = checkTime;
+      console.log('storage.results.lastReadTimestampFromCloud', storage.results.lastReadTimestampFromCloud);
+      const lastUpdated = Math.max(...cloudWins.map((x) => x.hxUpdated));
+      console.log('lastUpdated', lastUpdated);
+      storage.results.lastReadTimestampFromCloud = lastUpdated;
+
+      cloudWins.forEach((x) => {
+        console.log(
+          x.name,
+          x.hxCreated,
+          storage.results.winsLastUpdateFromProvider,
+          x.hxCreated >= storage.results.winsLastUpdateFromProvider
+        );
+        console.log(
+          x.name,
+          x.hxUpdated,
+          storage.results.winsLastUpdateFromProvider,
+          x.hxUpdated >= storage.results.winsLastUpdateFromProvider
+        );
+      });
+    }
   }
 
   const premint = await updatePremintWins(checkTime, cloudWins);
@@ -169,7 +227,7 @@ async function updateWins() {
   const mergedWins = mergeAllWins({ atlas, alphabot, premint });
   debug.log('mergedWins:', mergedWins);
   storage.wins = mergedWins;
-  storage.winsLastUpdateTime = checkTime;
+  storage.results.winsLastUpdateFromProvider = checkTime;
   await setStorageData(storage);
 
   updateMainStatus('Raffle results updated!');
@@ -182,12 +240,14 @@ async function resetWins() {
     return debug.log('no');
   }
 
+  storage.results = {};
   storage.atlas = {};
   storage.alphabot = {};
   storage.premint = {};
   storage.wins = [];
-  // storage.projectWins = [];
-  storage.winsLastUpdateTime = null;
+  storage.projectWins = [];
+  storage.results.winsLastUpdateFromProvider = null;
+  storage.results.winsLastUpdateFromCloud = null;
   initStorage();
 
   /*
@@ -208,6 +268,7 @@ async function resetWins() {
   //resetPage();
   // updateStatus('Atlas raffle results reset');
 
+  resetSubStatus();
   showPage();
 }
 
@@ -217,6 +278,8 @@ async function showPage(customWins = null, customHeader = '') {
   debug.log('showPage');
 
   document.getElementById('main-table').innerHTML = '';
+
+  showLastUpdatedStatus();
 
   if (customWins) {
     appendWinsTable(createWinsTable(customWins, customHeader));
@@ -251,13 +314,13 @@ function mergeAllWins({ atlas = null, alphabot = null, premint = null } = {}) {
 async function updateAlphabotWins(checkTime, allCloudWins) {
   debug.log('updateAlphabotWins', checkTime);
 
-  await reloadOptions(); // options may have changed, reload them!
+  await reloadOptions(storage); // options may have changed, reload them!
 
-  updateMainStatus('Get Alphabot account info');
+  updateMainStatus('Get Alphabot account info...');
   const account = await getAlphabotAccount();
   console.log('account', account);
   if (!account?.userId) {
-    console.error('Failed getting alphabot account!', account);
+    statusLogger.sub('Failed getting Alphabot account. Check if logged in to website.');
     return [];
   }
 
@@ -269,36 +332,44 @@ async function updateAlphabotWins(checkTime, allCloudWins) {
 
   const myWinsByNewest = await getAlphabotWinsByNewest(account, {
     interval: ALPHABOT_INTERVAL,
-    max: MAX_ALPHABOT_WINS,
+    max: storage.options.RESULTS_FETCH_MAX_ALPHABOT_WINS,
     lastPickedDate,
-    statusFn: updateMainStatus,
+    statusLogger,
   });
   console.log('myWinsByNewest', myWinsByNewest);
 
-  updateMainStatus('Get updated mint dates from Alphabot');
+  updateMainStatus('Get updated mint dates from Alphabot...');
   const myWinsByMinting = await getAlphabotWinsByMinting(account, {
     interval: ALPHABOT_INTERVAL,
-    max: MAX_ALPHABOT_WINS,
+    max: storage.options.RESULTS_FETCH_MAX_ALPHABOT_WINS,
+    statusLogger,
   });
   console.log('myWinsByMinting', myWinsByMinting);
 
-  const myWins = mergeWins(myWinsByMinting, myWinsByNewest);
+  const myWins = mergeWins(myWinsByMinting, myWinsByNewest, 'id');
 
-  if (storage.options.ALPHABOT_ENABLE_CLOUD && storage.options.CLOUD_MODE === 'save') {
-    await writeWins(myWins, storage.options);
-  }
+  writeProviderNewOrUpdatedCount(myWins, storage.alphabot.myWins, 'Alphabot', checkTime);
 
   let cloudWins = [];
   if (storage.options.ALPHABOT_ENABLE_CLOUD && storage.options.CLOUD_MODE === 'load') {
     cloudWins = allCloudWins.filter((x) => x.provider === 'alphabot');
     console.log('cloudWins', cloudWins);
-    storage.alphabot.cloudWins = mergeWins(cloudWins, storage.alphabot.cloudWins, checkTime);
+    storage.alphabot.cloudWins = mergeWins(cloudWins, storage.alphabot.cloudWins, 'hxId', checkTime);
   }
 
-  storage.alphabot.myWins = mergeWins(myWins, storage.alphabot.myWins, checkTime);
-  storage.alphabot.wins = mergeWins([...myWins, ...cloudWins], storage.alphabot.wins, checkTime);
-
+  storage.alphabot.myWins = mergeWins(myWins, storage.alphabot.myWins, 'id', checkTime);
+  storage.alphabot.wins = mergeWins([...myWins, ...cloudWins], storage.alphabot.wins, 'hxId', checkTime);
   await setStorageData(storage);
+
+  if (storage.options.ALPHABOT_ENABLE_CLOUD && storage.options.CLOUD_MODE === 'save') {
+    const winsToUpload =
+      (await countWins('alphabot', account.userId, storage.options)) > 0 ? myWins : storage.alphabot.myWins; // if no wins in cloud, upload everything we got!
+    debug.log('winnersToUpload', winsToUpload);
+    const writeResult = await writeWins(winsToUpload, storage.options);
+    if (writeResult.error) {
+      statusLogger.sub('Failed uploading Alphabot results to cloud. Network problems?');
+    }
+  }
 
   return storage.alphabot.wins;
 }
@@ -308,38 +379,45 @@ async function updateAlphabotWins(checkTime, allCloudWins) {
 async function updateAtlasWins(checkTime, allCloudWins) {
   debug.log('updateAtlasWins', checkTime);
 
-  await reloadOptions(); // options may have changed, reload them!
+  await reloadOptions(storage); // options may have changed, reload them!
 
   updateMainStatus('Get Atlas account info');
   const account = await getAtlasAccount();
   console.log('account', account);
   if (!account?.userId) {
-    console.error('Failed getting atlas account!', account);
+    statusLogger.sub('Failed getting Atlas account. Check if logged in to website.');
     return [];
   }
 
   const myWins = await getAtlasWins(account, {
     interval: ATLAS_INTERVAL,
-    max: MAX_ATLAS_WINS,
-    statusFn: updateMainStatus,
+    max: storage.options.RESULTS_FETCH_MAX_ATLAS_WINS,
+    statusLogger,
   });
   console.log('myWins', myWins);
 
-  if (storage.options.ATLAS_ENABLE_CLOUD && storage.options.CLOUD_MODE === 'save') {
-    await writeWins(myWins, storage.options);
-  }
+  writeProviderNewOrUpdatedCount(myWins, storage.atlas.myWins, 'Atlas', checkTime);
 
   let cloudWins = [];
   if (storage.options.ATLAS_ENABLE_CLOUD && storage.options.CLOUD_MODE === 'load') {
     cloudWins = allCloudWins.filter((x) => x.provider === 'atlas');
     console.log('cloudWins', cloudWins);
-    storage.atlas.cloudWins = mergeWins(cloudWins, storage.atlas.cloudWins, checkTime);
+    storage.atlas.cloudWins = mergeWins(cloudWins, storage.atlas.cloudWins, 'hxId', checkTime);
   }
 
-  storage.atlas.myWins = mergeWins(myWins, storage.atlas.myWins, checkTime);
-  storage.atlas.wins = mergeWins([...myWins, ...cloudWins], storage.atlas.wins, checkTime);
-
+  storage.atlas.myWins = mergeWins(myWins, storage.atlas.myWins, 'id', checkTime);
+  storage.atlas.wins = mergeWins([...myWins, ...cloudWins], storage.atlas.wins, 'hxId', checkTime);
   await setStorageData(storage);
+
+  if (storage.options.ATLAS_ENABLE_CLOUD && storage.options.CLOUD_MODE === 'save') {
+    const winsToUpload =
+      (await countWins('atlas', account.userId, storage.options)) > 0 ? myWins : storage.atlas.myWins; // if no wins in cloud, upload everything we got!
+    debug.log('winnersToUpload', winsToUpload);
+    const writeResult = await writeWins(winsToUpload, storage.options);
+    if (writeResult.error) {
+      statusLogger.sub('Failed uploading Atlas results to cloud. Network problems?');
+    }
+  }
 
   return storage.atlas.wins;
 }
@@ -349,49 +427,56 @@ async function updateAtlasWins(checkTime, allCloudWins) {
 async function updatePremintWins(checkTime, allCloudWins) {
   debug.log('updatePremintWins', checkTime);
 
-  await reloadOptions(); // options may have changed, reload them!
+  await reloadOptions(storage); // options may have changed, reload them!
 
   updateMainStatus('Get Premint account info');
   const account = await getPremintAccount();
   console.log('account', account);
   if (!account?.userId) {
-    console.error('Failed getting premint account!', account);
+    statusLogger.sub('Failed getting Premint account. Check if logged in to website.');
     return [];
   }
 
   const skip = [...storage.premint.myWins.map((x) => x.id), ...storage.premint.myLost.map((id) => id)];
   const { wins, lost } = await getPremintWins(account, {
     interval: PREMINT_INTERVAL,
-    max: MAX_PREMINT_WINS,
+    max: storage.options.RESULTS_FETCH_MAX_PREMINT_WINS,
     skip,
-    statusFn: updateMainStatus,
+    statusLogger,
   });
   const myWins = wins;
   const myLost = lost;
   console.log('myWins', myWins);
   console.log('myLost', myLost);
 
-  if (storage.options.PREMINT_ENABLE_CLOUD && storage.options.CLOUD_MODE === 'save') {
-    await writeWins(myWins, storage.options);
-  }
+  writeProviderNewOrUpdatedCount(myWins, storage.premint.myWins, 'Premint', checkTime);
 
   let cloudWins = [];
   if (storage.options.PREMINT_ENABLE_CLOUD && storage.options.CLOUD_MODE === 'load') {
     cloudWins = allCloudWins.filter((x) => x.provider === 'premint');
     console.log('cloudWins', cloudWins);
-    storage.premint.cloudWins = mergeWins(cloudWins, storage.premint.cloudWins, checkTime);
+    storage.premint.cloudWins = mergeWins(cloudWins, storage.premint.cloudWins, 'hxId', checkTime);
   }
 
   storage.premint.myLost = noDuplicates(myLost, storage.premint.myLost);
-  storage.premint.myWins = mergeWins(myWins, storage.premint.myWins, checkTime);
-  storage.premint.wins = mergeWins([...myWins, ...cloudWins], storage.premint.wins, checkTime);
-
+  storage.premint.myWins = mergeWins(myWins, storage.premint.myWins, 'id', checkTime);
+  storage.premint.wins = mergeWins([...myWins, ...cloudWins], storage.premint.wins, 'hxId', checkTime);
   await setStorageData(storage);
+
+  if (storage.options.PREMINT_ENABLE_CLOUD && storage.options.CLOUD_MODE === 'save') {
+    const winsToUpload =
+      (await countWins('premint', account.userId, storage.options)) > 0 ? myWins : storage.premint.myWins; // if no wins in cloud, upload everything we got!
+    debug.log('winnersToUpload', winsToUpload);
+    const writeResult = await writeWins(winsToUpload, storage.options);
+    if (writeResult.error) {
+      statusLogger.sub('Failed uploading Premint results to cloud. Network problems?');
+    }
+  }
 
   return storage.premint.wins;
 }
 
-function mergeWins(newWins, oldWins, checkTime = null) {
+function mergeWins(newWins, oldWins, key, checkTime = null) {
   if (checkTime) {
     newWins.forEach((win) => {
       const oldWin = oldWins.find((x) => x.id === win.id);
@@ -403,7 +488,7 @@ function mergeWins(newWins, oldWins, checkTime = null) {
       }
     });
   }
-  return noDuplicatesByKey([...newWins, ...oldWins], 'id');
+  return noDuplicatesByKey([...newWins, ...oldWins], key);
 }
 
 function isWinModified(newWin, oldWin) {
@@ -458,7 +543,8 @@ function packWins(wins) {
     if (!handle) {
       return winsWithoutTwitterRaw.push(win);
     }
-    let baseWin = winsWithTwitter.find((x) => x.twitterHandle === handle);
+    const handleLow = handle.toLowerCase();
+    let baseWin = winsWithTwitter.find((x) => x.twitterHandle && x.twitterHandle.toLowerCase() === handleLow);
     if (!baseWin) {
       baseWin = {
         twitterHandle: handle,
@@ -499,7 +585,7 @@ function createWinsTableOrg(wins, header, id, allColumns = false) {
 
   const sortedWins = packedWins.map((x) => x.wins).flat();
 
-  const lastUpdate = storage.winsLastUpdateTime;
+  const lastUpdate = storage.winsLastUpdateFromProvider;
 
   const data = allColumns
     ? sortedWins
@@ -536,108 +622,259 @@ function createWinsTableOrg(wins, header, id, allColumns = false) {
 }
 */
 
+function createWinsTableHeadRow() {
+  const head = document.createElement('THEAD');
+  const row = document.createElement('TR');
+
+  row.appendChild(
+    createCell(
+      '#W',
+      'Num unique wallets that won (in all raffles connected to projects with given Twitter handle)'
+    )
+  );
+
+  row.appendChild(
+    createCell(
+      '#U',
+      'Num unique users that won (in all raffles connected to projects with given Twitter handle)'
+    )
+  );
+
+  row.appendChild(createCell('Provider'));
+
+  row.appendChild(createCell('Name'));
+  row.appendChild(
+    createCell(
+      'DTC',
+      'Wallet added Direct To Contract? This is set by Alphabot project, and cannot always be fully trusted, so do your own research!'
+    )
+  );
+
+  row.appendChild(createCell('Twitter'));
+  row.appendChild(createCell('Mint Date'));
+  row.appendChild(createCell('Time'));
+  row.appendChild(createCell('Raffle Date'));
+  row.appendChild(createCell('WL Price', 'Price at Whitelist Mint'));
+  row.appendChild(createCell('Price', 'Price at Public Mint'));
+  row.appendChild(createCell('Supply'));
+  row.appendChild(createCell('CHAIN'));
+  row.appendChild(createCell('#W', 'Num raffle winners'));
+  row.appendChild(createCell('#E', 'Num raffle entrants'));
+  row.appendChild(createCell('Wallets'));
+  row.appendChild(createCell('Alias'));
+  row.appendChild(createCell('Account'));
+  row.appendChild(createCell('Team'));
+  row.appendChild(createCell('Discord'));
+
+  head.appendChild(row);
+  return head;
+}
+
 function createWinsTable(wins, header, id, allColumns = false) {
   console.log('createWinsTable wins', header, allColumns, wins);
 
   const packedWins = packWins(wins);
+  setDateishOnPackedWins(packedWins);
   console.log('packedWins', packedWins);
 
-  //const sortedWins = packedWins.map((x) => x.wins).flat();
-  // const lastUpdate = storage.winsLastUpdateTime;
+  if (allColumns) {
+    const sortedWins = packedWins.map((x) => x.wins).flat();
+    const keys = sortedWins?.length ? Object.keys(sortedWins[0]) : [];
+    const div = document.createElement('div');
+    div.id = id;
+    div.className = 'provider-wins';
+    div.innerHTML =
+      (header ? `<h3>${header} (${sortedWins.length})</h3>` : '') +
+      (sortedWins.length ? jht(sortedWins, keys) : 'No results');
+    return div;
+  }
 
-  /*
-  const data = allColumns
-    ? sortedWins
-    : sortedWins.map((x) => {
-        console.log('x', x);
-        return {
-          Name: x.name,
-          Provider: x.provider,
-          Pwd: x.isPasswordProtected,
-          IsNew: x.hxCreated && lastUpdate && x.hxCreated >= lastUpdate,
-          IsUpdated: x.hxUpdated && lastUpdate && x.hxUpdated >= lastUpdate,
-          SortKey: toDateHTML(x.hxSortKey, x.hxSortKey),
-          MintDate: toDateHTML(x.mintDate),
-          EndDate: toDateHTML(x.endDate),
-          Twitter: x.twitterHandleGuess,
-          Chain: x.blockchain,
-          W: x.winnerCount,
-          E: x.entryCount,
-          Wallets: toWalletsHTML(x.wallets),
-          User: x.userName || x.userId,
-          //UserName: x.userName,
-          //UserId: x.userId,
-          Team: x.teamName,
-        };
-      });
-      */
+  //const sortedWins = packedWins.map((x) => x.wins).flat();
+  //const lastUpdate = storage.winsLastUpdateFromProvider;
 
   const table = document.createElement('TABLE');
-  //table.appendChild(createTableHeaderRow());
 
-  for (const pwin of packedWins) {
-    const wins = pwin.wins;
-    const firstWin = pwin.wins[0];
+  table.appendChild(createWinsTableHeadRow());
+
+  for (const parent of packedWins) {
+    const wins = parent.wins;
+    const firstWin = parent.wins[0];
     const allWallets = wins.map((x) => x.wallets).flat();
+    const allUsers = wins.map((x) => x.userId).flat();
 
-    debug.log('pwin', pwin);
+    /*
+    debug.log('pwin', parent);
     debug.log('wins', wins);
     debug.log('firstWin', firstWin);
     debug.log('allWallets', allWallets);
+    */
 
     const row = document.createElement('TR');
 
     // ROW: Row relative day class
-    if (firstWin.mintDate && isToday(new Date(firstWin.mintDate))) {
+    if (parent.isToday) {
       row.classList.toggle('is-today', true);
     }
-    if (firstWin.mintDate && isTomorrow(new Date(firstWin.mintDate))) {
-      row.classList.toggle('is-today', true);
-    }
-    if (firstWin.isTomorrowish) {
+    if (parent.isTomorrowish) {
       row.classList.toggle('is-tomorrowish', true);
     }
-    if (firstWin.isYesterdayish) {
+    if (parent.isYesterdayish) {
       row.classList.toggle('is-yesterdayish', true);
     }
 
     // CELL: Num wallets
-    //row.appendChild(createCell(firstWin.wallets.length.toString()));
     row.appendChild(createCell(noDuplicates(allWallets).length.toString()));
+
+    // CELL: Num users
+    row.appendChild(createCell(noDuplicates(allUsers).length.toString()));
+
+    // CELL: dtc
+    const providers = wins.map((x) => x.provider);
+    row.appendChild(createCell(createMultiTexts(providers, { className: 'provider', useTextAsClass: true })));
 
     // CELL: raffle links
     const raffleLinks = wins.map((x) => {
-      const isNew = x.hxCreated && x.hxCreated >= storage.winsLastUpdateTime;
-      const isUpdated = x.hxUpdated && x.hxUpdated >= storage.winsLastUpdateTime;
-      return { url: x.url, text: x.name, isNew, isUpdated };
+      const isNew =
+        !x.hxCreated || (x.hxCreated && x.hxCreated >= storage.results.winsLastUpdateFromProvider);
+      const isUpdated = x.hxUpdated && x.hxUpdated >= storage.results.winsLastUpdateFromProvider;
+      return {
+        url: x.url,
+        text: trimText(x.name, MAX_LEN_RAFFLE_NAME),
+        fullText: x.name,
+        isNew,
+        isUpdated,
+      };
     });
     row.appendChild(
       createCell(createMultiLinks(raffleLinks, { className: 'raffle-link', target: '_blank' }))
     );
 
     // CELL: dtc
-    const dtcTexts = wins.map((x) => `${typeof x.dtc === 'undefined' ? ' ' : x.dtc ? 'Yes' : 'No'}`);
+    const dtcTexts = wins.map((x) => `${typeof x.dtc !== 'boolean' ? ' ' : x.dtc ? 'Yes' : 'No'}`);
     row.appendChild(createCell(createMultiTexts(dtcTexts, { className: 'dtc', useTextAsClass: true })));
 
     // CELL: twitterHandleGuess
     const twitterHandle = pageState.permissions?.enabled ? firstWin.twitterHandleGuess : 'hidden';
     row.appendChild(
       createCell(
-        createLink(makeTwitterURL(twitterHandle), twitterHandle, {
+        createLink(makeTwitterURL(twitterHandle), trimText(twitterHandle, MAX_LEN_TWITTER_HANDLE), {
           dataset: [{ key: 'username', val: firstWin.twitterHandleGuess }],
           className: 'twitter-link',
           target: '_blank',
+          fullText: twitterHandle,
         })
       )
     );
 
-    // CELL: mintDate
+    // CELL: mint-date
     const mintDates = wins.map((x) => {
       return { date: x.mintDate, hasTime: false };
     });
     row.appendChild(createCell(createMultiDates(mintDates, '', { className: 'mint-date' })));
 
-    console.log('row', row);
+    // CELL: mint-time
+    const mintTimes = wins.map((x) => {
+      return { date: x.mintTime ? x.mintDate : null };
+    });
+    row.appendChild(createCell(createMultiDates(mintTimes, '', { className: 'mint-time', timeOnly: true })));
+
+    // CELL: raffle-date
+    const raffleDates = wins.map((x) => {
+      return { date: x.pickedDate, hasTime: false };
+    });
+    // console.log('raffleDates', raffleDates);
+    row.appendChild(createCell(createMultiDates(raffleDates, '', { className: 'raffle-date' })));
+
+    // CELL: wl-price
+    const wlPrices = wins.map((x) => x.wlPrice);
+    const wlPricesShort = wins.map((x) => trimPrice(x.wlPrice));
+    row.appendChild(
+      createCell(createMultiTexts(wlPricesShort, { className: 'wl-price', fullTexts: wlPrices }))
+    );
+
+    // CELL: pub-price
+    const pubPrices = wins.map((x) => trimPrice(x.pubPrice));
+    row.appendChild(createCell(createMultiTexts(pubPrices, { className: 'pub-price' })));
+
+    // CELL: supply
+    const supplies = wins.map((x) => trimText(x.supply, 8));
+    row.appendChild(createCell(createMultiTexts(supplies, { className: 'wl-supply' })));
+
+    // CELL: blockchain
+    const blockchains = wins.map((x) => trimText(x.blockchain, 6));
+    row.appendChild(createCell(createMultiTexts(blockchains, { className: 'blockchain' })));
+
+    // CELL: winner-count
+    const winnerCounts = wins.map((x) => trimTextNum(x.winnerCount, 6));
+    row.appendChild(
+      createCell(createMultiTexts(winnerCounts, { className: 'winner-count', hideDups: false }))
+    );
+
+    // CELL: entry-count
+    const entryCounts = wins.map((x) => trimTextNum(x.entryCount, 6));
+    row.appendChild(createCell(createMultiTexts(entryCounts, { className: 'entry-count', hideDups: false })));
+
+    // CELL: mint-address
+    const sortedMintAddresses = sortMintAddresses(wins.map((x) => x.wallets).flat(), storage.options);
+    // const sortedMintAddresses = p.winners.map((x) => x.mintAddress);
+    const mintAddresses = noDuplicates(
+      sortedMintAddresses.map((addr) => {
+        const walletAlias = walletToAlias(addr, storage.options);
+        const suffix = walletAlias; // ? ` (${walletAlias})` : '';
+        return { addr, shortAddr: trimMintAddress(addr.toLowerCase()), alias: suffix };
+      })
+    );
+    // row.appendChild(createCell(createMultiTexts(mintAddresses, { className: 'mint-address' })));
+    const shortAddrs = mintAddresses.map((x) => x.shortAddr);
+    row.appendChild(
+      createCell(
+        createMultiTexts(shortAddrs, {
+          className: 'mint-address',
+          fullTexts: mintAddresses.map((x) => x.addr),
+        })
+      )
+    );
+
+    // CELL: mint-aliases
+    const aliases = mintAddresses.map((x) => x.alias);
+    row.appendChild(createCell(createMultiTexts(aliases, { className: 'mint-aliases' })));
+
+    // CELL: account-name
+    const accountNames = noDuplicates(
+      wins.map((x) => accountToAlias(x.userId, storage.options) || x.userName || x.userId || '')
+    );
+    row.appendChild(createCell(createMultiTexts(accountNames, { className: 'account-name' })));
+
+    // CELL: team-name
+    const teamNames = wins.map((x) => x.teamName);
+    const teamNamesEnabled = pageState.permissions?.enabled
+      ? teamNames
+      : Array(teamNames.length).fill('hidden');
+    row.appendChild(
+      createCell(
+        createMultiTexts(
+          teamNamesEnabled.map((x) => trimText(x, MAX_LEN_TEAM_NAME)),
+          { className: 'team-name', fullTexts: teamNamesEnabled }
+        )
+      )
+    );
+
+    // CELL: discord-link
+    const discordUrls = wins.filter((x) => x.discordUrl);
+    const discordUrl = discordUrls.length ? discordUrls[0].discordUrl : null;
+    const discordUrlEnabled = pageState.permissions?.enabled ? discordUrl : 'https://discord.gg/hidden';
+    const discordHandle = extractDiscordHandle(discordUrlEnabled);
+    row.appendChild(
+      createCell(
+        createLink(discordUrlEnabled, trimText(discordHandle, MAX_LEN_DISCORD_HANDLE), {
+          className: 'discord-link',
+          target: '_blank',
+          fullText: discordHandle,
+        })
+      )
+    );
+
+    //console.log('row', row);
     table.appendChild(row);
   }
 
@@ -670,13 +907,16 @@ function createCell(childOrText, title = '') {
   return elem;
 }
 
-function createLink(url, text, { dataset, target, className } = {}) {
+function createLink(url, text, { dataset, target, className, fullText } = {}) {
   const elem = document.createElement('A');
   elem.href = url;
   elem.target = target || undefined;
   addTarget(elem, target);
   addClassName(elem, className);
   elem.innerText = text.trim();
+  if (text.includes(SHORTENED_TEXT_SUFFIX) && fullText) {
+    elem.title = fullText;
+  }
   if (dataset?.length) {
     dataset.forEach((x) => {
       elem.dataset[x.key] = x.val;
@@ -698,18 +938,20 @@ function createMultiLinks(links, { target, className } = {}) {
     }`.trim();
     const thisUrl = pageState.permissions?.enabled ? link.url : 'http://example.org/hidden-premium-feature';
     const thisText = pageState.permissions?.enabled ? link.text : 'Hidden Raffle Name';
-    elem.appendChild(createLink(thisUrl, thisText, { target, className: thisClass }));
+    elem.appendChild(
+      createLink(thisUrl, thisText, { target, className: thisClass, fullText: link.fullText })
+    );
     isFirst = false;
   }
   return elem;
 }
 
-function createMultiTexts(texts, { className, useTextAsClass, hideDups = true } = {}) {
+function createMultiTexts(texts, { className, useTextAsClass, hideDups = true, fullTexts } = {}) {
   const elem = document.createElement('SPAN');
   elem.style.whiteSpace = 'nowrap';
   let isFirst = true;
   let lastText = null;
-  for (const text of texts) {
+  for (const [index, text] of texts.entries()) {
     if (!isFirst) {
       elem.appendChild(document.createElement('BR'));
     }
@@ -719,6 +961,9 @@ function createMultiTexts(texts, { className, useTextAsClass, hideDups = true } 
     } else {
       newElem.innerText = text;
       lastText = text;
+      if (text.includes(SHORTENED_TEXT_SUFFIX) && fullTexts?.length) {
+        newElem.title = fullTexts[index];
+      }
     }
     addClassName(newElem, className);
     addClassName(newElem, isFirst ? 'first' : null);
@@ -801,17 +1046,44 @@ function updateShownProvider() {
 
 // MISC HELPERS -----------------------------------------------------
 
-async function reloadOptions() {
-  const { options } = await getStorageItems(['options']);
-  storage.options = options;
-}
-
 // STATUS FUNCS -----------------------------------------------------
 
 function updateMainStatus(text) {
+  console.log('updateMainStatus', text);
+
   const elem = document.getElementById('hx-status-main');
   if (elem) {
     elem.innerText = text;
+  }
+}
+
+function resetSubStatus() {
+  document.getElementById('hx-status').replaceChildren();
+}
+
+function updateSubStatus(html, reuseLast = false) {
+  console.log('updateSubStatus', html);
+
+  const elem = document.getElementById('hx-status');
+  if (!elem) {
+    console.error('Missing status element in HTML!');
+    return false;
+  }
+  let item;
+  let isReused = false;
+  if (reuseLast) {
+    const items = Array.from(elem.getElementsByTagName('LI'));
+    if (items.length) {
+      item = items[items.length - 1];
+      isReused = true;
+    }
+  }
+  if (isReused) {
+    item.innerHTML = html;
+  } else {
+    item = document.createElement('LI');
+    item.innerHTML = html;
+    elem.appendChild(item);
   }
 }
 
@@ -844,3 +1116,132 @@ function updateSubStatus(html, reuseLast = false) {
   }
 }
 */
+
+async function setDateishOnPackedWins(packedWins) {
+  if (!packedWins?.length) {
+    return;
+  }
+
+  const pivotTodayStr = new Date().toLocaleDateString(SORT_ORDER_LOCALE);
+  const pivotTodayDate = new Date(pivotTodayStr);
+  debug.log('pivotTodayStr, pivotTodayDate:', pivotTodayStr, pivotTodayDate);
+
+  const pivotTomorrowStr = new Date(millisecondsAhead(1 * ONE_DAY)).toLocaleDateString(SORT_ORDER_LOCALE);
+  const pivotTomorrowDate = new Date(pivotTomorrowStr);
+  debug.log('pivotTomorrowStr, pivotTomorrowStr:', pivotTomorrowStr, pivotTomorrowDate);
+
+  const pivotYesterdayStr = new Date(millisecondsAhead(-1 * ONE_DAY)).toLocaleDateString(SORT_ORDER_LOCALE);
+  const pivotYesterdayDate = new Date(pivotYesterdayStr);
+  debug.log('pivotYesterdayStr, pivotYesterdayDate:', pivotYesterdayStr, pivotYesterdayDate);
+
+  for (let i = packedWins.length - 1; i--; i >= 0) {
+    //console.log('i', i);
+    const parent = packedWins[i];
+    if (!parent?.wins?.length) {
+      continue;
+    }
+
+    const item = parent.wins[0];
+    // debug.trace('item:', new Date(item.mintDate), pivotTomorrowDate, item.mintDate >= pivotTomorrowDate, item);
+
+    if (!item.mintDate) {
+      continue;
+    }
+    const itemDateStr = new Date(item.mintDate).toLocaleDateString(SORT_ORDER_LOCALE);
+
+    if (isToday(new Date(item.mintDate))) {
+      parent.isToday = true;
+    }
+
+    if (itemDateStr >= pivotTomorrowStr) {
+      parent.isTomorrowish = true;
+      debug.log('isTomorrowish:', item);
+      break;
+    }
+
+    if (itemDateStr < pivotTodayStr && itemDateStr >= pivotYesterdayStr) {
+      parent.isYesterdayish = true;
+      debug.log('isYesterdayish:', item);
+    }
+  }
+}
+
+function showLastUpdatedStatus() {
+  const nowDate = new Date();
+
+  if (storage.results.winsLastUpdateFromProvider) {
+    const timestamp = storage.results.winsLastUpdateFromProvider;
+
+    const timeText1 = timestampToLocaleString(timestamp, '-', DEFAULT_LOCALE);
+    const days1 = daysBetween(timestamp, nowDate);
+    const hours1 = hoursBetween(timestamp, nowDate);
+    const minutes1 = minutesBetween(timestamp, nowDate);
+    const seconds1 = secondsBetween(timestamp, nowDate);
+    let agoText1 = '';
+    if (seconds1 < 60) {
+      agoText1 = `${seconds1} ${pluralize(seconds1, 'second', 'seconds')} ago`;
+    } else if (minutes1 < 60) {
+      agoText1 = `${minutes1} ${pluralize(minutes1, 'minute', 'minutes')} ago`;
+    } else if (hours1 < 24) {
+      agoText1 = `${hours1} ${pluralize(hours1, 'hour', 'hours')} ago`;
+    } else if (days1 > 0) {
+      agoText1 = `${days1} ${pluralize(days1, 'day', 'days')} ago`;
+    }
+    updateSubStatus(`Results last fetched from provider at ${timeText1} (<b>${agoText1}</b>)`);
+  } else {
+    updateSubStatus(`Results never fetched from provider`);
+  }
+
+  if (storage.results.winsLastUpdateFromCloud) {
+    const timestamp = storage.results.winsLastUpdateFromCloud;
+
+    const timeText2 = timestampToLocaleString(timestamp, '-', DEFAULT_LOCALE);
+
+    const days2 = daysBetween(timestamp, nowDate);
+    const hours2 = hoursBetween(timestamp, nowDate);
+    const minutes2 = minutesBetween(timestamp, nowDate);
+    const seconds2 = secondsBetween(timestamp, nowDate);
+    let agoText2 = '';
+    if (seconds2 < 60) {
+      agoText2 = `${seconds2} ${pluralize(seconds2, 'second', 'seconds')} ago`;
+    } else if (minutes2 < 60) {
+      agoText2 = `${minutes2} ${pluralize(minutes2, 'minute', 'minutes')} ago`;
+    } else if (hours2 < 24) {
+      agoText2 = `${hours2} ${pluralize(hours2, 'hour', 'hours')} ago`;
+    } else if (days2 > 0) {
+      agoText2 = `${days2} ${pluralize(days2, 'day', 'days')} ago`;
+    }
+    updateSubStatus(`Results last fetched from cloud at ${timeText2} (<b>${agoText2}</b>)`);
+  } else {
+    updateSubStatus(`Results never fetched from cloud`);
+  }
+}
+
+function writeProviderNewOrUpdatedCount(wins, storageWins, provider, checkTime) {
+  const newWins = !storageWins
+    ? wins
+    : wins.filter((x) => {
+        const old = storageWins.find((y) => y.id === x.id);
+        if (!old) {
+          return true;
+        }
+        return old.hxUpdated >= checkTime;
+      });
+
+  newWins.forEach((x) => {
+    console.log(
+      x.name,
+      x.hxCreated,
+      storage.results.winsLastUpdateFromProvider,
+      x.hxCreated >= storage.results.winsLastUpdateFromProvider
+    );
+    console.log(
+      x.name,
+      x.hxUpdated,
+      storage.results.winsLastUpdateFromProvider,
+      x.hxUpdated >= storage.results.winsLastUpdateFromProvider
+    );
+  });
+
+  statusLogger.sub(`Fetched ${newWins.length} new or updated winners from ${provider}`);
+}

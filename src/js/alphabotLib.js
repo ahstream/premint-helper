@@ -1,5 +1,7 @@
 import { createLogger, sleep, fetchHelper, rateLimitHandler, extractTwitterHandle } from 'hx-lib';
 
+import { removeBadStuffFromTwitterHandle } from './premintHelperLib.js';
+
 const debug = createLogger();
 
 // DATA ----------------------------------------------------------------------------------
@@ -186,36 +188,55 @@ export async function fetchAccountAddress() {
 
 export async function getWinsByNewest(
   account,
-  { interval = 1500, max = null, lastPickedDate = null, statusFn = null } = {}
+  { interval = 1500, max = null, lastPickedDate = null, statusLogger = null } = {}
 ) {
   const checkIfContinueFn = !lastPickedDate
     ? null
     : (partResult) => {
         if (!partResult?.data?.length) {
-          console.log('do not continue (!length)');
+          console.log('getWinsByNewest do not continue (!length)');
           return false;
         }
         const picked = partResult.data[0].picked;
-        console.log('picked, lastPickedDate:', picked, lastPickedDate);
-        if (!picked && picked < lastPickedDate) {
-          console.log('do not continue (picked < lastPickedDate)');
+        console.log(
+          'getWinsByNewest picked, lastPickedDate, picked < lastPickedDate:',
+          picked,
+          lastPickedDate,
+          picked < lastPickedDate
+        );
+        if (picked && picked < lastPickedDate) {
+          console.log('getWinsByNewest do not continue (picked < lastPickedDate)');
           return false;
         }
+        console.log('getWinsByNewest continue');
         return true;
       };
-  return getWins(account, { interval, max, lastPickedDate, sortBy: 'newest', checkIfContinueFn, statusFn });
+  return getWins(account, {
+    interval,
+    max,
+    lastPickedDate,
+    sortBy: 'newest',
+    checkIfContinueFn,
+    statusLogger,
+  });
 }
 
 export async function getWinsByMinting(account, { interval = 1500, max = null, lastPickedDate = null } = {}) {
   return getWins(account, { interval, max, lastPickedDate, sortBy: 'minting' });
 }
 
-async function getWins(account, { interval, max, lastPickedDate, sortBy, checkIfContinueFn, statusFn }) {
-  const result = await fetchWins({ interval, max, lastPickedDate, sortBy, checkIfContinueFn, statusFn });
-  return result.error ? [] : convertWins(result, account);
+async function getWins(account, { interval, max, lastPickedDate, sortBy, checkIfContinueFn, statusLogger }) {
+  const result = await fetchWins({ interval, max, lastPickedDate, sortBy, checkIfContinueFn, statusLogger });
+  if (result.error) {
+    if (statusLogger) {
+      statusLogger.sub(`Error when getting Alphabot results!`);
+    }
+    return [];
+  }
+  return convertWins(result, account);
 }
 
-async function fetchWins({ interval, max, sortBy, pageLength = 16, checkIfContinueFn = null, statusFn }) {
+async function fetchWins({ interval, max, sortBy, pageLength = 16, checkIfContinueFn = null, statusLogger }) {
   debug.log('fetchWins; pageLength:', pageLength);
 
   const wins = [];
@@ -223,8 +244,8 @@ async function fetchWins({ interval, max, sortBy, pageLength = 16, checkIfContin
   let count = 0;
 
   while (pageNum >= 0) {
-    if (statusFn) {
-      statusFn(`Get Alphabot results page ${count + 1}`);
+    if (statusLogger) {
+      statusLogger.main(`Get Alphabot results page ${count + 1}`);
     }
     const url = WINS_BASE_URL.replace('{PAGE_NUM}', pageNum)
       .replace('{PAGE_SIZE}', pageLength)
@@ -266,7 +287,7 @@ async function fetchWins({ interval, max, sortBy, pageLength = 16, checkIfContin
 function convertWins(wins, account) {
   debug.log('wins', wins);
   return wins.map((x) => {
-    debug.log('win', x);
+    //debug.log('win', x);
     const provider = 'alphabot';
 
     const raffleId = x._id;
@@ -281,10 +302,10 @@ function convertWins(wins, account) {
     const mintDate = x.mintDate;
     const mintTime = x.mintDateHasTime ? mintDate : null;
 
-    const twitterHandle = extractTwitterHandle(x.twitterUrl);
+    const twitterHandle = removeBadStuffFromTwitterHandle(extractTwitterHandle(x.twitterUrl));
     const twitterHandleGuess = twitterHandle;
     const discordUrl = x.discordUrl;
-    const websiteUrl = 'todo';
+    const websiteUrl = null;
 
     const wallets = x.entry?.mintAddress ? [x.entry.mintAddress] : [];
 
