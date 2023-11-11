@@ -14,32 +14,25 @@ let pageState = {
 
 const options = [
   {
-    header: 'General Settings',
+    header: 'Alphabot.app Settings',
     hiddenKey: '',
     options: [
-      ['property', 'ALPHABOT_ENABLE', 'Enable raffle automation on Alphabot.app pages'],
-      ['property', 'PREMINT_ENABLE', 'Enable raffle automation on Premint.xyz pages'],
-      /*
-      [
-        'description',
-        'You can have Premint Helper automate Discord and Twitter Intent links when you open them yourself. For Discord, this means that when opening an invite link, Premint Helper will try to automate everything needed to join that server, including accepting rules etc. For Twitter, this means that intent links for follow/like/retweet will be automatically clicked.',
-      ],
-      */
-      ['space', 10],
-      [
-        'property',
-        'DISCORD_ENABLE_MANUAL',
-        'Automate manually opened Discord pages',
-        '',
-        'If enabled, Premint Helper will auto join Discord invite links and then try to click all buttons that turn up while joining server.',
-      ],
-      [
-        'property',
-        'TWITTER_ENABLE_MANUAL',
-        'Automate manually opened Twitter pages',
-        '',
-        'If enabled, Premint Helper will auto click OK button on Twitter intent pages.',
-      ],
+      ['property', 'ALPHABOT_ENABLE', 'Enable raffle automation on alphabot.app website'],
+      ['property', 'ALPHABOT_ENABLE_TWITTER_TASKS', 'Enable Twitter tasks'],
+      ['property', 'ALPHABOT_ENABLE_RESULTS', 'Enable fetch of results'],
+      ['property', 'ALPHABOT_RESULTS_MAX_FETCH_WINS', 'Max new results to fetch'],
+    ],
+  },
+
+  {
+    header: 'Premint.xyz Settings',
+    hiddenKey: '',
+    options: [
+      ['property', 'PREMINT_ENABLE', 'Enable raffle automation on premint.xyz website'],
+      ['property', 'PREMINT_ENABLE_TWITTER_TASKS', 'Enable Twitter tasks'],
+      ['property', 'PREMINT_ENABLE_DISCORD_TASKS', 'Enable Discord tasks'],
+      ['property', 'PREMINT_ENABLE_RESULTS', 'Enable fetch of results'],
+      ['property', 'PREMINT_RESULTS_MAX_FETCH_WINS', 'Max new results to fetch'],
     ],
   },
 
@@ -47,9 +40,11 @@ const options = [
     header: 'Atlas3.io Settings',
     hiddenKey: '',
     options: [
-      ['property', 'ATLAS_ENABLE', 'Enable raffle automation'],
+      ['property', 'ATLAS_ENABLE', 'Enable raffle automation on atlas3.io website'],
       ['property', 'ATLAS_ENABLE_TWITTER_TASKS', 'Enable Twitter tasks'],
       ['property', 'ATLAS_ENABLE_DISCORD_TASKS', 'Enable Discord tasks'],
+      ['property', 'ATLAS_ENABLE_RESULTS', 'Enable fetch of results'],
+      ['property', 'ATLAS_RESULTS_MAX_FETCH_WINS', 'Max new results to fetch'],
     ],
   },
 
@@ -130,6 +125,34 @@ const options = [
   },
 
   {
+    header: 'General Settings',
+    hiddenKey: '',
+    options: [
+      /*
+      [
+        'description',
+        'You can have Premint Helper automate Discord and Twitter Intent links when you open them yourself. For Discord, this means that when opening an invite link, Premint Helper will try to automate everything needed to join that server, including accepting rules etc. For Twitter, this means that intent links for follow/like/retweet will be automatically clicked.',
+      ],
+      */
+      ['space', 10],
+      [
+        'property',
+        'DISCORD_ENABLE_MANUAL',
+        'Automate manually opened Discord pages',
+        '',
+        'If enabled, Premint Helper will auto join Discord invite links and then try to click all buttons that turn up while joining server.',
+      ],
+      [
+        'property',
+        'TWITTER_ENABLE_MANUAL',
+        'Automate manually opened Twitter pages',
+        '',
+        'If enabled, Premint Helper will auto click OK button on Twitter intent pages.',
+      ],
+    ],
+  },
+
+  {
     header: 'Auto-Start Settings',
     hiddenKey: '',
     options: [
@@ -185,12 +208,12 @@ const options = [
   },
 
   {
-    header: 'Alphabot Result Settings',
+    header: 'Cloud Settings',
     hiddenKey: '',
     options: [
       [
         'description',
-        'If joining Alphabot raffles on multiple accounts you can collect results for all on Alphabot results page by using cloud storage. Set the same "Cloud tag" on all instances of Premint Helper. On main account, choose "Load from cloud", on other accounts choose "Save to cloud"',
+        'If joining raffles with multiple users you can collect results for all by using cloud storage. Set the same "Cloud tag" on all instances of Premint Helper. On main account, choose "Load from cloud", on other accounts choose "Save to cloud"',
       ],
       [
         'radioButtons',
@@ -201,6 +224,7 @@ const options = [
           ['load', 'Load from cloud'],
         ],
       ],
+      /*
       ['space', 10],
       ['property', 'CLOUD_TAG', 'Cloud tag'],
       ['space', 20],
@@ -216,6 +240,7 @@ const options = [
         'Raffles often have team names included in them. Removing these makes results page easier to overview.',
       ],
       ['space', 10],
+      */
     ],
   },
 

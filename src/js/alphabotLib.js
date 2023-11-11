@@ -188,24 +188,24 @@ export async function fetchAccountAddress() {
 
 export async function getWinsByNewest(
   account,
-  { interval = 1500, max = null, lastPickedDate = null, statusLogger = null } = {}
+  { interval = 1500, max = null, lastEndDate = null, statusLogger = null } = {}
 ) {
-  const checkIfContinueFn = !lastPickedDate
+  const checkIfContinueFn = !lastEndDate
     ? null
     : (partResult) => {
         if (!partResult?.data?.length) {
           console.log('getWinsByNewest do not continue (!length)');
           return false;
         }
-        const picked = partResult.data[0].picked;
+        const endDate = partResult.data[0].endDate;
         console.log(
-          'getWinsByNewest picked, lastPickedDate, picked < lastPickedDate:',
-          picked,
-          lastPickedDate,
-          picked < lastPickedDate
+          'getWinsByNewest endDate, lastEndDate, endDate < lastEndDate:',
+          endDate,
+          lastEndDate,
+          endDate < lastEndDate
         );
-        if (picked && picked < lastPickedDate) {
-          console.log('getWinsByNewest do not continue (picked < lastPickedDate)');
+        if (endDate && endDate < lastEndDate) {
+          console.log('getWinsByNewest do not continue (endDate < lastEndDate)');
           return false;
         }
         console.log('getWinsByNewest continue');
@@ -214,19 +214,18 @@ export async function getWinsByNewest(
   return getWins(account, {
     interval,
     max,
-    lastPickedDate,
     sortBy: 'newest',
     checkIfContinueFn,
     statusLogger,
   });
 }
 
-export async function getWinsByMinting(account, { interval = 1500, max = null, lastPickedDate = null } = {}) {
-  return getWins(account, { interval, max, lastPickedDate, sortBy: 'minting' });
+export async function getWinsByMinting(account, { interval = 1500, max = null } = {}) {
+  return getWins(account, { interval, max, sortBy: 'minting' });
 }
 
-async function getWins(account, { interval, max, lastPickedDate, sortBy, checkIfContinueFn, statusLogger }) {
-  const result = await fetchWins({ interval, max, lastPickedDate, sortBy, checkIfContinueFn, statusLogger });
+async function getWins(account, { interval, max, sortBy, checkIfContinueFn, statusLogger }) {
+  const result = await fetchWins({ interval, max, sortBy, checkIfContinueFn, statusLogger });
   if (result.error) {
     if (statusLogger) {
       statusLogger.sub(`Error when getting Alphabot results!`);

@@ -188,8 +188,8 @@ async function updateWins() {
   let cloudWins = [];
 
   if (storage.options.CLOUD_MODE === 'load') {
-    const fromTimestamp = (storage.results.lastReadTimestampFromCloud || -1) + 1;
-    console.log('storage.results.lastReadTimestampFromCloud', storage.results.lastReadTimestampFromCloud);
+    const fromTimestamp = (storage.results.fooLastCloudTimestamp || -1) + 1;
+    console.log('storage.results.fooLastCloudTimestamp', storage.results.fooLastCloudTimestamp);
     console.log('fromTimestamp', fromTimestamp);
     cloudWins = await readWins(fromTimestamp, storage.options);
     console.log('cloudWins', cloudWins);
@@ -197,26 +197,17 @@ async function updateWins() {
       statusLogger.sub('Failed getting results from Cloud! Error:' + cloudWins.msg);
     } else {
       statusLogger.sub(`Fetched ${cloudWins.length} new or updated winners from Cloud`);
-      storage.results.lastReadTimestampFromCloud = checkTime;
-      console.log('storage.results.lastReadTimestampFromCloud', storage.results.lastReadTimestampFromCloud);
-      const lastUpdated = Math.max(...cloudWins.map((x) => x.hxUpdated));
-      console.log('lastUpdated', lastUpdated);
-      storage.results.lastReadTimestampFromCloud = lastUpdated;
+      storage.results.fooLastCloudTimestamp = checkTime;
+      console.log('storage.results.fooLastCloudTimestamp', storage.results.fooLastCloudTimestamp);
+      const lastCloudTimestamp = cloudWins?.length ? Math.max(...cloudWins.map((x) => x.hxCloudUpdated)) : 0;
+      console.log('lastCloudTimestamp', lastCloudTimestamp);
 
-      cloudWins.forEach((x) => {
-        console.log(
-          x.name,
-          x.hxCreated,
-          storage.results.winsLastUpdateFromProvider,
-          x.hxCreated >= storage.results.winsLastUpdateFromProvider
-        );
-        console.log(
-          x.name,
-          x.hxUpdated,
-          storage.results.winsLastUpdateFromProvider,
-          x.hxUpdated >= storage.results.winsLastUpdateFromProvider
-        );
-      });
+      if (lastCloudTimestamp > 0) {
+        storage.results.fooLastCloudTimestamp = lastCloudTimestamp;
+      }
+
+      storage.results.fooLastCloudUpdate = checkTime;
+      storage.results.fooLastProviderUpdate = checkTime;
     }
   }
 
@@ -225,9 +216,12 @@ async function updateWins() {
   const alphabot = await updateAlphabotWins(checkTime, cloudWins);
 
   const mergedWins = mergeAllWins({ atlas, alphabot, premint });
-  debug.log('mergedWins:', mergedWins);
   storage.wins = mergedWins;
-  storage.results.winsLastUpdateFromProvider = checkTime;
+  debug.log('mergedWins:', mergedWins);
+
+  storage.results.fooLastProviderUpdate = checkTime;
+  storage.results.fooLastWinsUpdate = checkTime;
+
   await setStorageData(storage);
 
   updateMainStatus('Raffle results updated!');
@@ -246,27 +240,10 @@ async function resetWins() {
   storage.premint = {};
   storage.wins = [];
   storage.projectWins = [];
-  storage.results.winsLastUpdateFromProvider = null;
-  storage.results.winsLastUpdateFromCloud = null;
   initStorage();
-
-  /*
-  removeStorageItem('alphabotSiteRaffles');
-  removeStorageItem('alphabotLastAccount');
-  removeStorageItem('alphabotLastAccountName');
-  removeStorageItem('alphabotLastFetchedEndDate');
-  removeStorageItem('alphabotLastSiteUpdate');
-  removeStorageItem('alphabotLastCloudUpdate');
-  removeStorageItem('alphabotCloudAccounts');
-  removeStorageItem('alphabotCloudRaffles');
-  */
 
   await setStorageData(storage);
   debug.log('storage', storage);
-
-  //resetStatus();
-  //resetPage();
-  // updateStatus('Atlas raffle results reset');
 
   resetSubStatus();
   showPage();
@@ -316,6 +293,11 @@ async function updateAlphabotWins(checkTime, allCloudWins) {
 
   await reloadOptions(storage); // options may have changed, reload them!
 
+  if (!storage.options.ALPHABOT_ENABLE_RESULTS) {
+    statusLogger.sub('Skip fetching new Alphabot results (disabled in Options)');
+    return [];
+  }
+
   updateMainStatus('Get Alphabot account info...');
   const account = await getAlphabotAccount();
   console.log('account', account);
@@ -324,16 +306,16 @@ async function updateAlphabotWins(checkTime, allCloudWins) {
     return [];
   }
 
-  const lastPickedDate = storage.alphabot.myWins?.length
-    ? Math.max(...storage.alphabot.myWins.map((x) => x.pickedDate))
+  const lastEndDate = storage.alphabot.myWins?.length
+    ? Math.max(...storage.alphabot.myWins.map((x) => x.endDate))
     : null;
-  const lastPickedDateStr = lastPickedDate ? new Date(lastPickedDate).toLocaleString() : 'null';
-  console.log('lastPickedDate', lastPickedDate, lastPickedDateStr);
+  const lastEndDateStr = lastEndDate ? new Date(lastEndDate).toLocaleString() : 'null';
+  console.log('lastEndDate', lastEndDate, lastEndDateStr);
 
   const myWinsByNewest = await getAlphabotWinsByNewest(account, {
     interval: ALPHABOT_INTERVAL,
-    max: storage.options.RESULTS_FETCH_MAX_ALPHABOT_WINS,
-    lastPickedDate,
+    max: storage.options.ALPHABOT_RESULTS_MAX_FETCH_WINS,
+    lastEndDate,
     statusLogger,
   });
   console.log('myWinsByNewest', myWinsByNewest);
@@ -341,12 +323,12 @@ async function updateAlphabotWins(checkTime, allCloudWins) {
   updateMainStatus('Get updated mint dates from Alphabot...');
   const myWinsByMinting = await getAlphabotWinsByMinting(account, {
     interval: ALPHABOT_INTERVAL,
-    max: storage.options.RESULTS_FETCH_MAX_ALPHABOT_WINS,
+    max: storage.options.ALPHABOT_RESULTS_MAX_FETCH_WINS,
     statusLogger,
   });
   console.log('myWinsByMinting', myWinsByMinting);
 
-  const myWins = mergeWins(myWinsByMinting, myWinsByNewest, 'id');
+  const myWins = mergeWins(myWinsByMinting, myWinsByNewest, 'id', null);
 
   writeProviderNewOrUpdatedCount(myWins, storage.alphabot.myWins, 'Alphabot', checkTime);
 
@@ -354,11 +336,16 @@ async function updateAlphabotWins(checkTime, allCloudWins) {
   if (storage.options.ALPHABOT_ENABLE_CLOUD && storage.options.CLOUD_MODE === 'load') {
     cloudWins = allCloudWins.filter((x) => x.provider === 'alphabot');
     console.log('cloudWins', cloudWins);
+    // cloudWins should check for duplicates on full key hxId
     storage.alphabot.cloudWins = mergeWins(cloudWins, storage.alphabot.cloudWins, 'hxId', checkTime);
   }
 
+  // myWins should check for duplicates on raffle id
   storage.alphabot.myWins = mergeWins(myWins, storage.alphabot.myWins, 'id', checkTime);
-  storage.alphabot.wins = mergeWins([...myWins, ...cloudWins], storage.alphabot.wins, 'hxId', checkTime);
+
+  // check if updated only on myWins and cloudWins, not on aggregated wins!
+  storage.alphabot.wins = mergeWins([...myWins, ...cloudWins], storage.alphabot.wins, 'hxId', null);
+
   await setStorageData(storage);
 
   if (storage.options.ALPHABOT_ENABLE_CLOUD && storage.options.CLOUD_MODE === 'save') {
@@ -368,58 +355,12 @@ async function updateAlphabotWins(checkTime, allCloudWins) {
     const writeResult = await writeWins(winsToUpload, storage.options);
     if (writeResult.error) {
       statusLogger.sub('Failed uploading Alphabot results to cloud. Network problems?');
+    } else {
+      statusLogger.sub(`Uploaded ${winsToUpload.length} Alphabot winners to Cloud`);
     }
   }
 
   return storage.alphabot.wins;
-}
-
-// ATLAS ------------------------------
-
-async function updateAtlasWins(checkTime, allCloudWins) {
-  debug.log('updateAtlasWins', checkTime);
-
-  await reloadOptions(storage); // options may have changed, reload them!
-
-  updateMainStatus('Get Atlas account info');
-  const account = await getAtlasAccount();
-  console.log('account', account);
-  if (!account?.userId) {
-    statusLogger.sub('Failed getting Atlas account. Check if logged in to website.');
-    return [];
-  }
-
-  const myWins = await getAtlasWins(account, {
-    interval: ATLAS_INTERVAL,
-    max: storage.options.RESULTS_FETCH_MAX_ATLAS_WINS,
-    statusLogger,
-  });
-  console.log('myWins', myWins);
-
-  writeProviderNewOrUpdatedCount(myWins, storage.atlas.myWins, 'Atlas', checkTime);
-
-  let cloudWins = [];
-  if (storage.options.ATLAS_ENABLE_CLOUD && storage.options.CLOUD_MODE === 'load') {
-    cloudWins = allCloudWins.filter((x) => x.provider === 'atlas');
-    console.log('cloudWins', cloudWins);
-    storage.atlas.cloudWins = mergeWins(cloudWins, storage.atlas.cloudWins, 'hxId', checkTime);
-  }
-
-  storage.atlas.myWins = mergeWins(myWins, storage.atlas.myWins, 'id', checkTime);
-  storage.atlas.wins = mergeWins([...myWins, ...cloudWins], storage.atlas.wins, 'hxId', checkTime);
-  await setStorageData(storage);
-
-  if (storage.options.ATLAS_ENABLE_CLOUD && storage.options.CLOUD_MODE === 'save') {
-    const winsToUpload =
-      (await countWins('atlas', account.userId, storage.options)) > 0 ? myWins : storage.atlas.myWins; // if no wins in cloud, upload everything we got!
-    debug.log('winnersToUpload', winsToUpload);
-    const writeResult = await writeWins(winsToUpload, storage.options);
-    if (writeResult.error) {
-      statusLogger.sub('Failed uploading Atlas results to cloud. Network problems?');
-    }
-  }
-
-  return storage.atlas.wins;
 }
 
 // PREMINT ------------------------------
@@ -428,6 +369,11 @@ async function updatePremintWins(checkTime, allCloudWins) {
   debug.log('updatePremintWins', checkTime);
 
   await reloadOptions(storage); // options may have changed, reload them!
+
+  if (!storage.options.PREMINT_ENABLE_RESULTS) {
+    statusLogger.sub('Skip fetching new Premint results (disabled in Options)');
+    return [];
+  }
 
   updateMainStatus('Get Premint account info');
   const account = await getPremintAccount();
@@ -440,7 +386,7 @@ async function updatePremintWins(checkTime, allCloudWins) {
   const skip = [...storage.premint.myWins.map((x) => x.id), ...storage.premint.myLost.map((id) => id)];
   const { wins, lost } = await getPremintWins(account, {
     interval: PREMINT_INTERVAL,
-    max: storage.options.RESULTS_FETCH_MAX_PREMINT_WINS,
+    max: storage.options.PREMINT_RESULTS_MAX_FETCH_WINS,
     skip,
     statusLogger,
   });
@@ -460,7 +406,10 @@ async function updatePremintWins(checkTime, allCloudWins) {
 
   storage.premint.myLost = noDuplicates(myLost, storage.premint.myLost);
   storage.premint.myWins = mergeWins(myWins, storage.premint.myWins, 'id', checkTime);
-  storage.premint.wins = mergeWins([...myWins, ...cloudWins], storage.premint.wins, 'hxId', checkTime);
+
+  // check if updated only on myWins and cloudWins, not on aggregated wins!
+  storage.premint.wins = mergeWins([...myWins, ...cloudWins], storage.premint.wins, 'hxId', null);
+
   await setStorageData(storage);
 
   if (storage.options.PREMINT_ENABLE_CLOUD && storage.options.CLOUD_MODE === 'save') {
@@ -470,13 +419,75 @@ async function updatePremintWins(checkTime, allCloudWins) {
     const writeResult = await writeWins(winsToUpload, storage.options);
     if (writeResult.error) {
       statusLogger.sub('Failed uploading Premint results to cloud. Network problems?');
+    } else {
+      statusLogger.sub(`Uploaded ${winsToUpload.length} Premint winners to Cloud`);
     }
   }
 
   return storage.premint.wins;
 }
 
-function mergeWins(newWins, oldWins, key, checkTime = null) {
+// ATLAS ------------------------------
+
+async function updateAtlasWins(checkTime, allCloudWins) {
+  debug.log('updateAtlasWins', checkTime);
+
+  await reloadOptions(storage); // options may have changed, reload them!
+
+  if (!storage.options.ATLAS_ENABLE_RESULTS) {
+    statusLogger.sub('Skip fetching new Atlas results (disabled in Options)');
+    return [];
+  }
+
+  updateMainStatus('Get Atlas account info');
+  const account = await getAtlasAccount();
+  console.log('account', account);
+  if (!account?.userId) {
+    statusLogger.sub('Failed getting Atlas account. Check if logged in to website.');
+    return [];
+  }
+
+  const myWins = await getAtlasWins(account, {
+    interval: ATLAS_INTERVAL,
+    max: storage.options.ATLAS_RESULTS_MAX_FETCH_WINS,
+    statusLogger,
+  });
+  console.log('myWins', myWins);
+
+  writeProviderNewOrUpdatedCount(myWins, storage.atlas.myWins, 'Atlas', checkTime);
+
+  let cloudWins = [];
+  if (storage.options.ATLAS_ENABLE_CLOUD && storage.options.CLOUD_MODE === 'load') {
+    cloudWins = allCloudWins.filter((x) => x.provider === 'atlas');
+    console.log('cloudWins', cloudWins);
+    storage.atlas.cloudWins = mergeWins(cloudWins, storage.atlas.cloudWins, 'hxId', checkTime);
+  }
+
+  storage.atlas.myWins = mergeWins(myWins, storage.atlas.myWins, 'id', checkTime);
+
+  // check if updated only on myWins and cloudWins, not on aggregated wins!
+  storage.atlas.wins = mergeWins([...myWins, ...cloudWins], storage.atlas.wins, 'hxId', null);
+
+  await setStorageData(storage);
+
+  if (storage.options.ATLAS_ENABLE_CLOUD && storage.options.CLOUD_MODE === 'save') {
+    const winsToUpload =
+      (await countWins('atlas', account.userId, storage.options)) > 0 ? myWins : storage.atlas.myWins; // if no wins in cloud, upload everything we got!
+    debug.log('winnersToUpload', winsToUpload);
+    const writeResult = await writeWins(winsToUpload, storage.options);
+    if (writeResult.error) {
+      statusLogger.sub('Failed uploading Atlas results to cloud. Network problems?');
+    } else {
+      statusLogger.sub(`Uploaded ${winsToUpload.length} Atlas winners to Cloud`);
+    }
+  }
+
+  return storage.atlas.wins;
+}
+
+// WINS ------------------------------
+
+function mergeWins(newWins, oldWins, key, checkTime) {
   if (checkTime) {
     newWins.forEach((win) => {
       const oldWin = oldWins.find((x) => x.id === win.id);
@@ -492,6 +503,8 @@ function mergeWins(newWins, oldWins, key, checkTime = null) {
 }
 
 function isWinModified(newWin, oldWin) {
+  // todo use mintDate instead?
+  // todo check mintTime too?
   return newWin.hxSortKey && newWin.hxSortKey !== oldWin.hxSortKey;
 }
 
@@ -576,52 +589,6 @@ function packWins(wins) {
   return allWins;
 }
 
-/*
-function createWinsTableOrg(wins, header, id, allColumns = false) {
-  console.log('createWinsTable wins', header, wins);
-
-  const packedWins = packWins(wins);
-  console.log('packedWins', packedWins);
-
-  const sortedWins = packedWins.map((x) => x.wins).flat();
-
-  const lastUpdate = storage.winsLastUpdateFromProvider;
-
-  const data = allColumns
-    ? sortedWins
-    : sortedWins.map((x) => {
-        console.log('x', x);
-        return {
-          Name: x.name,
-          Provider: x.provider,
-          Pwd: x.isPasswordProtected,
-          IsNew: x.hxCreated && lastUpdate && x.hxCreated >= lastUpdate,
-          IsUpdated: x.hxUpdated && lastUpdate && x.hxUpdated >= lastUpdate,
-          SortKey: toDateHTML(x.hxSortKey, x.hxSortKey),
-          MintDate: toDateHTML(x.mintDate),
-          EndDate: toDateHTML(x.endDate),
-          Twitter: x.twitterHandleGuess,
-          Chain: x.blockchain,
-          W: x.winnerCount,
-          E: x.entryCount,
-          Wallets: toWalletsHTML(x.wallets),
-          User: x.userName || x.userId,
-          //UserName: x.userName,
-          //UserId: x.userId,
-          Team: x.teamName,
-        };
-      });
-
-  const keys = data?.length ? Object.keys(data[0]) : [];
-  const div = document.createElement('div');
-  div.id = id;
-  div.className = 'provider-wins';
-  div.innerHTML =
-    (header ? `<h3>${header} (${data.length})</h3>` : '') + (data.length ? jht(data, keys) : 'No results');
-  return div;
-}
-*/
-
 function createWinsTableHeadRow() {
   const head = document.createElement('THEAD');
   const row = document.createElement('TR');
@@ -646,7 +613,7 @@ function createWinsTableHeadRow() {
   row.appendChild(
     createCell(
       'DTC',
-      'Wallet added Direct To Contract? This is set by Alphabot project, and cannot always be fully trusted, so do your own research!'
+      'Wallet added Direct To Contract? This is set by Alphabot projects, and cannot always be fully trusted, so do your own research!'
     )
   );
 
@@ -654,6 +621,8 @@ function createWinsTableHeadRow() {
   row.appendChild(createCell('Mint Date'));
   row.appendChild(createCell('Time'));
   row.appendChild(createCell('Raffle Date'));
+  row.appendChild(createCell('Start Date'));
+  row.appendChild(createCell('RR', 'Is raffle restarted?'));
   row.appendChild(createCell('WL Price', 'Price at Whitelist Mint'));
   row.appendChild(createCell('Price', 'Price at Public Mint'));
   row.appendChild(createCell('Supply'));
@@ -688,9 +657,6 @@ function createWinsTable(wins, header, id, allColumns = false) {
       (sortedWins.length ? jht(sortedWins, keys) : 'No results');
     return div;
   }
-
-  //const sortedWins = packedWins.map((x) => x.wins).flat();
-  //const lastUpdate = storage.winsLastUpdateFromProvider;
 
   const table = document.createElement('TABLE');
 
@@ -734,9 +700,8 @@ function createWinsTable(wins, header, id, allColumns = false) {
 
     // CELL: raffle links
     const raffleLinks = wins.map((x) => {
-      const isNew =
-        !x.hxCreated || (x.hxCreated && x.hxCreated >= storage.results.winsLastUpdateFromProvider);
-      const isUpdated = x.hxUpdated && x.hxUpdated >= storage.results.winsLastUpdateFromProvider;
+      const isNew = x.hxCreated && x.hxCreated >= storage.results.fooLastWinsUpdate;
+      const isUpdated = x.hxUpdated && x.hxUpdated >= storage.results.fooLastWinsUpdate;
       return {
         url: x.url,
         text: trimText(x.name, MAX_LEN_RAFFLE_NAME),
@@ -784,6 +749,17 @@ function createWinsTable(wins, header, id, allColumns = false) {
     });
     // console.log('raffleDates', raffleDates);
     row.appendChild(createCell(createMultiDates(raffleDates, '', { className: 'raffle-date' })));
+
+    // CELL: start-date
+    const startDates = wins.map((x) => {
+      return { date: x.startDate, hasTime: false };
+    });
+    // console.log('startDates', startDates);
+    row.appendChild(createCell(createMultiDates(startDates, '', { className: 'raffle-date' })));
+
+    // CELL: start-date
+    const isRestarteds = wins.map((x) => (raffleIsRestarted(x) ? 'Yes' : ''));
+    row.appendChild(createCell(createMultiTexts(isRestarteds, '', { className: 'raffle-restarted' })));
 
     // CELL: wl-price
     const wlPrices = wins.map((x) => x.wlPrice);
@@ -892,6 +868,14 @@ function createWinsTable(wins, header, id, allColumns = false) {
     (header ? `<h3>${header} (${numWins})</h3>` : '') + (numWins ? table.outerHTML : 'No results');
 
   return div;
+}
+
+function raffleIsRestarted(win) {
+  return (
+    (win.mintDate && win.startDate && win.startDate > win.mintDate) ||
+    (win.mintDate && win.endDate && win.endDate > win.mintDate) ||
+    (win.startDate && win.endDate && win.startDate > win.endDate)
+  );
 }
 
 function createCell(childOrText, title = '') {
@@ -1169,8 +1153,8 @@ async function setDateishOnPackedWins(packedWins) {
 function showLastUpdatedStatus() {
   const nowDate = new Date();
 
-  if (storage.results.winsLastUpdateFromProvider) {
-    const timestamp = storage.results.winsLastUpdateFromProvider;
+  if (storage.results.fooLastProviderUpdate) {
+    const timestamp = storage.results.fooLastProviderUpdate;
 
     const timeText1 = timestampToLocaleString(timestamp, '-', DEFAULT_LOCALE);
     const days1 = daysBetween(timestamp, nowDate);
@@ -1187,13 +1171,13 @@ function showLastUpdatedStatus() {
     } else if (days1 > 0) {
       agoText1 = `${days1} ${pluralize(days1, 'day', 'days')} ago`;
     }
-    updateSubStatus(`Results last fetched from provider at ${timeText1} (<b>${agoText1}</b>)`);
+    updateSubStatus(`Results last fetched from providers at ${timeText1} (<b>${agoText1}</b>)`);
   } else {
     updateSubStatus(`Results never fetched from provider`);
   }
 
-  if (storage.results.winsLastUpdateFromCloud) {
-    const timestamp = storage.results.winsLastUpdateFromCloud;
+  if (storage.results.fooLastCloudUpdate) {
+    const timestamp = storage.results.fooLastCloudUpdate;
 
     const timeText2 = timestampToLocaleString(timestamp, '-', DEFAULT_LOCALE);
 
@@ -1227,21 +1211,6 @@ function writeProviderNewOrUpdatedCount(wins, storageWins, provider, checkTime) 
         }
         return old.hxUpdated >= checkTime;
       });
-
-  newWins.forEach((x) => {
-    console.log(
-      x.name,
-      x.hxCreated,
-      storage.results.winsLastUpdateFromProvider,
-      x.hxCreated >= storage.results.winsLastUpdateFromProvider
-    );
-    console.log(
-      x.name,
-      x.hxUpdated,
-      storage.results.winsLastUpdateFromProvider,
-      x.hxUpdated >= storage.results.winsLastUpdateFromProvider
-    );
-  });
 
   statusLogger.sub(`Fetched ${newWins.length} new or updated winners from ${provider}`);
 }

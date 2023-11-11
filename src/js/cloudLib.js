@@ -21,7 +21,7 @@ export async function readWins(fromTimestamp, options) {
     method: 'POST',
     body: JSON.stringify({
       hxTag: tag,
-      lastUpdated: fromTimestamp,
+      timestamp: fromTimestamp,
     }),
   });
   debug.log('cloud read result:', result);

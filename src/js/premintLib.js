@@ -95,7 +95,7 @@ async function fetchWins({ interval, max, skip, statusLogger }) {
     debug.log(`sleep ${interval} ms before next fetch`);
     await sleep(interval);
 
-    debug.log('entry', entry);
+    // debug.log('entry', entry);
 
     if (entry.error) {
       debug.log('skip error entry:', entry);
@@ -104,7 +104,7 @@ async function fetchWins({ interval, max, skip, statusLogger }) {
 
     if (!entry.isWin) {
       lost.push(entry);
-      debug.log('lost entry:', entry);
+      // debug.log('lost entry:', entry);
       continue;
     }
 
@@ -172,9 +172,6 @@ async function fetchEntry(entry) {
     return { error: true, result };
   }
 
-  const isWinMatch = result.data.match(/<div class="heading heading-1">🏆<\/div>/gim);
-  debug.log('isWinMatch', isWinMatch);
-
   const html = result.data;
 
   const discordUrls = getDiscordUrls(html) || [];
@@ -196,7 +193,7 @@ async function fetchEntry(entry) {
 
 function parseJoinDate(html) {
   const m = html.match(/Joined ([a-z][a-z][a-z])\. ([0-9]+), ([0-9][0-9][0-9][0-9])/i);
-  console.log('m', m);
+  //console.log('m', m);
   return createDateFromTextMatch(m);
 }
 
@@ -204,7 +201,7 @@ function getMintDate(html) {
   const m = html.match(
     /<i class="fas fa-calendar-alt text-muted mr-1"><\/i>\s*([a-z][a-z][a-z])\. ([0-9]+), ([0-9][0-9][0-9][0-9])\s*<\/span>/i
   );
-  console.log('m', m);
+  //console.log('m', m);
   return createDateFromTextMatch(m);
 }
 
@@ -219,7 +216,7 @@ function getRaffleDate(html) {
   const m = html.match(
     /This is when the project has said they'd pick winners.">\s*([a-z][a-z][a-z])\. ([0-9]+), ([0-9][0-9][0-9][0-9])/i
   );
-  console.log('m', m);
+  //console.log('m', m);
   return createDateFromTextMatch(m);
 }
 
@@ -245,8 +242,8 @@ function getTwitterHandles(html) {
     ),
   ];
   const m2 = [...html.matchAll(/Twitter: https:\/\/twitter\.com\/([a-z0-9-_]+)</gim)];
-  console.log('m1', m1);
-  console.log('m2', m2);
+  //console.log('m1', m1);
+  //console.log('m2', m2);
 
   const data = [];
 
@@ -269,8 +266,8 @@ function getDiscordUrls(html) {
     ),
   ];
   const m2 = [];
-  console.log('m1', m1);
-  console.log('m2', m2);
+  //console.log('m1', m1);
+  //console.log('m2', m2);
 
   const data = [];
 
@@ -293,7 +290,7 @@ function getWallets(html) {
       /<span class="text-sm text-uppercase text-muted">Wallet Address<\/span>\s*([^<]*)<\/div>/gim
     ),
   ];
-  console.log(m1);
+  //console.log(m1);
 
   const data = [];
 
