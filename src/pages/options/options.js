@@ -126,6 +126,27 @@ const options = [
   },
 
   {
+    header: 'Misc Settings',
+    hiddenKey: '',
+    options: [
+      /*
+      [
+        'description',
+        'You can have Premint Helper automate Discord and Twitter Intent links when you open them yourself. For Discord, this means that when opening an invite link, Premint Helper will try to automate everything needed to join that server, including accepting rules etc. For Twitter, this means that intent links for follow/like/retweet will be automatically clicked.',
+      ],
+      */
+      ['space', 10],
+      [
+        'property',
+        'TWITTER_MAX_RESULTS_PAGE_LOOKUPS',
+        'Max Twitter lookups on results page',
+        '',
+        'Each lookup will only lookup this many Twitter accounts.',
+      ],
+    ],
+  },
+
+  {
     header: 'General Settings',
     hiddenKey: '',
     options: [

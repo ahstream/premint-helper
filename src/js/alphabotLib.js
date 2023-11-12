@@ -1,6 +1,6 @@
 import { createLogger, sleep, fetchHelper, rateLimitHandler, extractTwitterHandle } from 'hx-lib';
 
-import { removeBadStuffFromTwitterHandle } from './premintHelperLib.js';
+import { normalizeTwitterHandle } from './premintHelperLib.js';
 
 const debug = createLogger();
 
@@ -301,7 +301,7 @@ function convertWins(wins, account) {
     const mintDate = x.mintDate;
     const mintTime = x.mintDateHasTime ? mintDate : null;
 
-    const twitterHandle = removeBadStuffFromTwitterHandle(extractTwitterHandle(x.twitterUrl));
+    const twitterHandle = normalizeTwitterHandle(extractTwitterHandle(x.twitterUrl));
     const twitterHandleGuess = twitterHandle;
     const discordUrl = x.discordUrl;
     const websiteUrl = null;

@@ -101,6 +101,7 @@ export async function createObserver({
       }
 
       if (pageState.autoFollowers) {
+        debug.trace('getTwitterLinkElems...');
         const twitterLinks = getTwitterLinkElems(mutation.addedNodes);
         for (const link of twitterLinks) {
           handleTwitterLink(link);
@@ -108,6 +109,7 @@ export async function createObserver({
       }
 
       if (pageState.autoOdds || pageState.autoWins) {
+        debug.trace('getAlphabotProjectLinkElems 1...');
         const links = getAlphabotProjectLinkElems(mutation.addedNodes);
         for (const link of links) {
           handleProjectLink(link);
@@ -115,6 +117,7 @@ export async function createObserver({
       }
 
       if (storage.options.ALPHABOT_OPEN_RAFFLE_LINKS_IN_NEW_TAB) {
+        debug.trace('getAlphabotProjectLinkElems 2...');
         const allProjectLinks = getAlphabotProjectLinkElems(mutation.addedNodes, false, false);
         for (const link of allProjectLinks) {
           link.target = '_blank';
@@ -265,7 +268,7 @@ export async function createObserver({
     debug.log('profile', profile);
     if (!profile?.ok) {
       console.warn('invalid profile');
-      return true;
+      return false;
     }
 
     handleProfileResult(profile);
@@ -492,6 +495,7 @@ export async function createObserver({
   }
 
   function handleProjectLink(link) {
+    debug.trace('handleProjectLink, link:', link);
     if (pageState.autoOdds) {
       handleOdds(link);
     }
@@ -501,6 +505,7 @@ export async function createObserver({
   }
 
   function createPreviousWonSection(twitterHandle, showAll = false, permissions = null) {
+    debug.trace('createPreviousWonSection', twitterHandle, showAll);
     const walletsWon = getPreviousWalletsWon(twitterHandle);
     if (!walletsWon.length) {
       return null;
@@ -572,13 +577,16 @@ export async function createObserver({
 // HELPERS FUNCS ----------------------------------------------------------------------------------
 
 export function getPreviousWalletsWon(twitterHandle) {
+  debug.trace('getPreviousWalletsWon, twitterHandle:', twitterHandle);
   if (!twitterHandle || typeof twitterHandle !== 'string') {
     return [];
   }
 
   const elem = storage?.projectWins?.length
-    ? storage.projectWins.find((x) => x.name === twitterHandle)
+    ? storage.projectWins.find((x) => x.name.toLowerCase() === twitterHandle.toLowerCase())
     : null;
+  console.log('storage.projectWins', storage.projectWins);
+  debug.trace('getPreviousWalletsWon, elem:', elem);
   if (!elem) {
     return [];
   }
@@ -602,18 +610,19 @@ export function getPreviousWalletsWon(twitterHandle) {
     timestampToLocaleString(minPickedDate)
   );
 
-  const wallets = elem.winners
-    .filter((winner) => {
-      if (winner.mintDate) {
-        if (winner.mintDate >= minMintDate) {
-          debug.log('getPreviousWalletsWonmintDate still valid, keep:', winner);
+  const wallets = elem.wins
+    .filter((win) => {
+      if (win.mintDate) {
+        if (win.mintDate >= minMintDate) {
+          debug.log('getPreviousWalletsWonmintDate still valid, keep:', win);
           return true;
         }
-        debug.log('getPreviousWalletsWonmintDate too early:', winner);
+        debug.log('getPreviousWalletsWonmintDate too early:', win);
       }
-      return winner.picked >= minPickedDate;
+      return win.pickedDate >= minPickedDate;
     })
-    .map((x) => x.mintAddress);
+    .map((x) => x.wallets)
+    .flat();
   debug.log('getPreviousWalletsWonwallets', wallets);
 
   const noDupsWallets = noDuplicates(wallets.map((x) => x.toLowerCase()));

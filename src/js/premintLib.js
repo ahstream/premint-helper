@@ -7,7 +7,7 @@ import {
   convertTextToMonthNum,
 } from 'hx-lib';
 
-import { removeBadStuffFromTwitterHandle } from './premintHelperLib.js';
+import { normalizeTwitterHandle } from './premintHelperLib.js';
 
 const debug = createLogger();
 
@@ -254,7 +254,7 @@ function getTwitterHandles(html) {
   });
 
   // remove twitter.com/ etc from bad handles!
-  const trimmedData = data.map((x) => removeBadStuffFromTwitterHandle(x));
+  const trimmedData = data.map((x) => normalizeTwitterHandle(x));
 
   return trimmedData.length ? trimmedData : [];
 }

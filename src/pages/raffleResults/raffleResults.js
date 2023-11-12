@@ -12,6 +12,8 @@ import { getAccount as getPremintAccount, getWins as getPremintWins } from '../.
 
 import { readWins, writeWins, countWins } from '../../js/cloudLib';
 
+import { waitForUser } from '../../js/twitterLib';
+
 import {
   createStatusbarButtons,
   checkIfSubscriptionEnabled,
@@ -22,12 +24,15 @@ import {
   trimMintAddress,
   accountToAlias,
   reloadOptions,
+  getMyTabIdFromExtension,
+  normalizeTwitterHandle,
 } from '../../js/premintHelperLib.js';
 
 import { trimPrice, trimText, trimTextNum } from '../../js/raffleResultsLib.js';
 
 import {
   ONE_DAY,
+  sleep,
   createHashArgs,
   getStorageItems,
   setStorageData,
@@ -155,7 +160,7 @@ async function runPage() {
       options: true,
       results: 'disabled',
       reveal: 'disabled',
-      followers: 'disabled',
+      followers: lookupTwitterEventHandler,
     })
   );
 
@@ -226,11 +231,11 @@ async function updateWins() {
   storage.results.lastProviderUpdate = checkTime;
   storage.results.lastWinsUpdate = checkTime;
 
+  storage.projectWins = createProjectWins(packWins(storage.wins));
+
   await setStorageData(storage);
 
   updateMainStatus('Raffle results updated!');
-
-  storage.projectWins = createProjectWins(packWins(storage.wins));
 
   showPage();
 }
@@ -254,6 +259,23 @@ async function resetWins() {
   resetSubStatus();
   showPage();
 }
+
+// EVENT HANDLERS ----------------------------------------------------------------------------------
+
+chrome.runtime.onMessage.addListener(async (request, sender, sendResponse) => {
+  debug.log('Received message:', request, sender);
+
+  if (request.cmd === 'switchedToTwitterUser') {
+    pageState.switchedToTwitterUser = request;
+  }
+
+  if (request.cmd === 'getMyTabIdAsyncResponse') {
+    pageState.myTabId = request.response;
+  }
+
+  sendResponse();
+  return true;
+});
 
 // MAIN ------------------------------
 
@@ -279,6 +301,11 @@ async function showPage(customWins = null, customHeader = '') {
 
   await updateTwitterFollowers();
 
+  window.preminthelper = {
+    storage,
+  };
+
+  statusLogger.main('Showing raffle results below');
   debug.log('Done showing results page!');
 }
 
@@ -418,6 +445,7 @@ async function updatePremintWins(checkTime, allCloudWins) {
   console.log('myLost', myLost);
 
   const myWinsNew = filterNewWins(myWins, raffleStorage.myWins, checkTime);
+  statusLogger.sub(`Fetched ${myWinsNew.length} new or updated winners from ${providerName}`);
 
   let cloudWins = [];
   if (storage.options.PREMINT_ENABLE_CLOUD && storage.options.CLOUD_MODE === 'load') {
@@ -484,6 +512,7 @@ async function updateAtlasWins(checkTime, allCloudWins) {
   console.log('myWins', myWins);
 
   const myWinsNew = filterNewWins(myWins, raffleStorage.myWins, checkTime);
+  statusLogger.sub(`Fetched ${myWinsNew.length} new or updated winners from ${providerName}`);
 
   let cloudWins = [];
   if (storage.options.ATLAS_ENABLE_CLOUD && storage.options.CLOUD_MODE === 'load') {
@@ -577,8 +606,19 @@ function toWalletsHTML(wallets, defaultVal = '') {
 
 function packWins(wins) {
   console.log('sortWins', wins);
-  const winsToSort = [...(wins?.length ? wins : [])];
+  const winsToSort = resortHxUpdated([...(wins?.length ? wins : [])]);
+
+  winsToSort.forEach((x) => {
+    x.twitterHandle = normalizeTwitterHandle(x.twitterHandle);
+    x.twitterHandleGuess = normalizeTwitterHandle(x.twitterHandleGuess);
+  });
+
   const sortedWins = winsToSort.sort(dynamicSortMultiple('twitterHandleGuess', '-hxSortKey'));
+
+  console.log(
+    'foobar',
+    sortedWins.filter((x) => x.twitterHandleGuess && x.twitterHandleGuess.toLowerCase() === 'kuramaverse')
+  );
 
   const winsWithTwitter = [];
   const winsWithoutTwitterRaw = [];
@@ -611,13 +651,57 @@ function packWins(wins) {
     };
   });
 
-  const allWins = [...winsWithTwitter, ...winsWithoutTwitter];
-  allWins.sort(dynamicSortMultiple('-hxSortKey'));
-
   console.log('winsWithTwitter', winsWithTwitter);
   console.log('winsWithoutTwitter', winsWithoutTwitterRaw);
 
-  return allWins;
+  const allWins = [...winsWithTwitter, ...winsWithoutTwitter];
+  allWins.sort(dynamicSortMultiple('-hxSortKey'));
+
+  const minMintDate = millisecondsAhead(-storage.options.ALPHABOT_RESULTS_DAYS_TO_KEEP_MINTED_WINS * ONE_DAY);
+  debug.log('minMintDate', minMintDate);
+
+  const winsToShow = allWins.filter((x) => isWinnerToShow(x.wins[0], minMintDate));
+  debug.log('winsToShow', winsToShow);
+
+  return winsToShow;
+}
+
+function resortHxUpdated(wins) {
+  wins.forEach((win) => {
+    if (isRestarted(win)) {
+      win.hxSortKey = win.pickedDate > win.startDate ? win.pickedDate : win.startDate;
+    }
+  });
+  return wins;
+}
+
+function isWinnerToShow(win, minMintDate) {
+  console.log('isWinnerToShow', win.name, minMintDate, win);
+  if (!win) {
+    console.log('!win, hide');
+    return false;
+  }
+  if (!win.mintDate) {
+    // no mint date set -> include in result set!
+    console.log('!win.mintDate, show');
+    return true;
+  }
+  if (win.mintDate >= minMintDate) {
+    console.log('win.mintDate >= minMintDate, show');
+    return true;
+  }
+  if (isRestarted(win)) {
+    console.log('already minted but new raffle');
+    // already minted but new raffle, probably restarted drop -> include in result set!?
+    return true;
+  }
+  console.log('do not show winner');
+  return false;
+}
+
+function isRestarted(win) {
+  // already minted but new raffle, probably restarted drop
+  return win.startDate && win.mintDate && win.startDate >= win.mintDate;
 }
 
 function createWinsTableHeadRow() {
@@ -653,6 +737,8 @@ function createWinsTableHeadRow() {
   row.appendChild(createCell('Time'));
   row.appendChild(createCell('Raffle Date'));
   row.appendChild(createCell('Start Date'));
+  row.appendChild(createCell('Sort Key 1'));
+  row.appendChild(createCell('Sort Key 2'));
   row.appendChild(createCell('R?', 'Is raffle restarted after mint date?'));
   row.appendChild(createCell('WL Price', 'Price at Whitelist Mint'));
   row.appendChild(createCell('Price', 'Price at Public Mint'));
@@ -788,7 +874,16 @@ function createWinsTable(wins, header, id, allColumns = false) {
     // console.log('startDates', startDates);
     row.appendChild(createCell(createMultiDates(startDates, '', { className: 'raffle-date' })));
 
-    // CELL: start-date
+    // CELL: hxSortKey
+    row.appendChild(createCell(createDate(parent.hxSortKey, false, '', { className: 'sort-key' })));
+
+    // CELL: hxSortKeys
+    const hxSortKeys = wins.map((x) => {
+      return { date: x.hxSortKey, hasTime: false };
+    });
+    row.appendChild(createCell(createMultiDates(hxSortKeys, '', { className: 'sort-key' })));
+
+    // CELL: raffle-restarted
     const isRestarteds = wins.map((x) => (raffleIsRestarted(x) ? 'Yes' : ''));
     row.appendChild(createCell(createMultiTexts(isRestarteds, '', { className: 'raffle-restarted' })));
 
@@ -1155,6 +1250,7 @@ async function setDateishOnPackedWins(packedWins) {
   const pivotYesterdayDate = new Date(pivotYesterdayStr);
   debug.log('pivotYesterdayStr, pivotYesterdayDate:', pivotYesterdayStr, pivotYesterdayDate);
 
+  let lastTommorowishDateStr = null;
   for (let i = packedWins.length - 1; i--; i >= 0) {
     //console.log('i', i);
     const parent = packedWins[i];
@@ -1174,10 +1270,17 @@ async function setDateishOnPackedWins(packedWins) {
       parent.isToday = true;
     }
 
+    if (itemDateStr > lastTommorowishDateStr) {
+      debug.log('no more tomorrowishs');
+      break;
+    }
+
     if (itemDateStr >= pivotTomorrowStr) {
+      lastTommorowishDateStr = itemDateStr;
       parent.isTomorrowish = true;
       debug.log('isTomorrowish:', item);
-      break;
+      // break;
+      continue;
     }
 
     if (itemDateStr < pivotTodayStr && itemDateStr >= pivotYesterdayStr) {
@@ -1300,19 +1403,22 @@ async function updateTwitterFollowers() {
 
 // PROJECT-WINS
 
-async function createProjectWins(packedWins) {
+function createProjectWins(packedWins) {
   console.log('createProjectWins; packedWins:', packedWins);
 
   const data = [];
   packedWins.forEach((pw) => {
+    console.log('pw:', pw);
     const handle = pw.twitterHandle;
     const dateKey = maxOrNull(...pw.wins.map((x) => x.hxSortKey).filter((x) => x));
     const startDate = maxOrNull(...pw.wins.map((x) => x.startDate).filter((x) => x));
     const mintDate = maxOrNull(...pw.wins.map((x) => x.mintDate).filter((x) => x));
     const picked = maxOrNull(...pw.wins.map((x) => x.picked).filter((x) => x));
-    const wallets = noDuplicates(pw.wins.map((x) => x.mintAddresses))
+
+    const wallets = noDuplicates(pw.wins.map((x) => x.wallets))
       .flat()
       .map((x) => x.toLowerCase());
+
     data.push({
       name: handle,
       twitterHandle: handle,
@@ -1329,6 +1435,124 @@ async function createProjectWins(packedWins) {
   console.log('createProjectWins; data:', data);
 
   return data;
+}
+
+// LOOKUP TWITTER FUNCS -----------------------------------------------------------------------------------------
+
+async function lookupTwitterEventHandler(event) {
+  event.preventDefault();
+  event.stopImmediatePropagation();
+
+  await reloadOptions(storage);
+  console.log('lookupTwitterEventHandler, storage:', storage);
+
+  if (!storage.options.TWITTER_FETCH_FOLLOWERS_USER) {
+    window.alert(
+      'It is recommended to set TWITTER_FETCH_FOLLOWERS_USER property on Optins page before fetching follower counts!'
+    );
+  }
+
+  const links = noDuplicates(getLookupTwitterLinks());
+  if (!links.length) {
+    window.alert('No Twitter links with unknown follower count found on page!');
+    return;
+  }
+
+  if (
+    !window.confirm(
+      `Lookup follower count for ${storage.options.TWITTER_MAX_RESULTS_PAGE_LOOKUPS} of ${links.length} Twitter links on page?`
+    )
+  ) {
+    return;
+  }
+
+  lookupTwitter();
+}
+
+function getLookupTwitterLinks() {
+  return [...document.querySelectorAll('a')]
+    .filter((x) => x.classList.contains('twitter-link'))
+    .filter((x) => !x.dataset.hxFollowers)
+    .map((x) => cleanTwitterLink(x.href));
+}
+
+async function lookupTwitter() {
+  debug.log('lookupTwitter');
+
+  const twitterLinksAll = getLookupTwitterLinks();
+  debug.log('twitterLinks', twitterLinksAll);
+
+  if (!twitterLinksAll?.length) {
+    statusLogger.main(`Already got follower counts for all Twitter links on page`);
+    return;
+  }
+  const links = noDuplicates(twitterLinksAll);
+  debug.log('links', links);
+
+  const packedWins = packWins(storage.wins);
+  const sortedLinks = [];
+  for (let item of packedWins) {
+    const link = links.find((x) => x.toLowerCase().endsWith(item.twitterHandle.toLowerCase()));
+    if (link) {
+      sortedLinks.push(link);
+    }
+  }
+  debug.log('sortedLinks', sortedLinks);
+
+  const useLinks = sortedLinks.slice(0, storage.options.TWITTER_MAX_RESULTS_PAGE_LOOKUPS);
+  debug.log('useLinks', useLinks);
+
+  await getMyTabIdFromExtension(pageState, 5000);
+  if (!pageState.myTabId) {
+    console.error('Invalid myTabId');
+    statusLogger.sub(`Failed getting own page tab id when looking up Twitter followers!`);
+    return;
+  }
+
+  if (storage.options.TWITTER_FETCH_FOLLOWERS_USER && !(await switchTwitterUserBeforeFetchingFollowers())) {
+    return;
+  }
+
+  let ct = 0;
+  for (const baseUrl of useLinks) {
+    ct++;
+    statusLogger.main(`Get follower counts for Twitter links on page (${ct}/${useLinks.length})`);
+    debug.log(`Get Twitter followers ${ct}/${useLinks.length}: ${baseUrl}`);
+    if (await pageState.observer.updateTwitter(baseUrl, pageState.myTabId)) {
+      await sleep(2000);
+    }
+  }
+
+  statusLogger.main(`Done getting follower count for ${useLinks.length} Twitter links`);
+  await pageState.observer.saveTwitter();
+}
+
+async function switchTwitterUserBeforeFetchingFollowers() {
+  if (storage.options.TWITTER_FETCH_FOLLOWERS_USER) {
+    statusLogger.main(
+      `Switching to Twitter user @${storage.options.TWITTER_FETCH_FOLLOWERS_USER} on Twitter home page...`
+    );
+    const result = await waitForUser(
+      storage.options.TWITTER_FETCH_FOLLOWERS_USER,
+      pageState.myTabId,
+      pageState
+    );
+
+    if (!result || !result.ok) {
+      debug.log('Failed switching to Twitter user; result:', result);
+      statusLogger.sub(
+        `Failed switching to Twitter user @${storage.options.TWITTER_FETCH_FOLLOWERS_USER}, aborting action`
+      );
+      return false;
+    }
+    statusLogger.main(`Switched to Twitter user ${result.user}`);
+  }
+  return true;
+}
+
+function cleanTwitterLink(href) {
+  const url = new URL(href);
+  return url.protocol + '//' + url.host + url.pathname;
 }
 
 // MISC HELPERS -----------------------------------------------------

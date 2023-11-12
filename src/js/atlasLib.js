@@ -1,5 +1,5 @@
 import { sleep, fetchHelper, rateLimitHandler, createLogger } from 'hx-lib';
-import { removeBadStuffFromTwitterHandle } from './premintHelperLib.js';
+import { normalizeTwitterHandle } from './premintHelperLib.js';
 
 const debug = createLogger();
 
@@ -100,8 +100,8 @@ function convertWins(wins, account) {
     const mintDate = x.collabProject?.mintDate ? new Date(x.endsAt).getTime() : null;
     const mintTime = x.collabProject?.mintTime;
 
-    const twitterHandle = removeBadStuffFromTwitterHandle(x.collabProject?.twitterUsername);
-    const twitterHandleGuess = removeBadStuffFromTwitterHandle(
+    const twitterHandle = normalizeTwitterHandle(x.collabProject?.twitterUsername);
+    const twitterHandleGuess = normalizeTwitterHandle(
       x.rules.find((r) => r.type === 'TWITTER_FRIENDSHIP')?.twitterFriendshipRule?.username
     );
     const discordUrl = x.collabProject?.discordInviteUrl;

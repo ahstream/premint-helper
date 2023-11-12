@@ -596,3 +596,18 @@ export function removeBadStuffFromTwitterHandle(s) {
   const tokens = s.split('/');
   return tokens.length <= 1 ? s : tokens[tokens.length - 1];
 }
+
+export function normalizeTwitterHandle(s) {
+  if (typeof s !== 'string') {
+    return s;
+  }
+
+  let handle = s;
+
+  const tokens = s.split('/');
+  if (tokens.length > 1) {
+    handle = tokens[tokens.length - 1];
+  }
+
+  return handle.trim().toLowerCase();
+}
