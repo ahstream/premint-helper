@@ -51,6 +51,7 @@ export const defaultOptions = {
   ATLAS_ENABLE_TWITTER_TASKS: true,
   ATLAS_ENABLE_DISCORD_TASKS: true,
   ATLAS_ENABLE_RESULTS: true,
+  ATLAS_SKIP_REQS_IF_READY: true,
   ATLAS_MAIN_REGION_SEL: 'Entry Requirements',
   ATLAS_REG_BTN_SEL: 'Enter Giveaway',
   ATLAS_MUST_LIKE_SEL: 'like',

@@ -325,6 +325,12 @@ async function joinRaffle() {
   updateStatusbarRunning('Fulfilling raffle tasks...');
   startQuickRegBtn();
 
+  if (provider.skipReqsIfReady && provider.skipReqsIfReady()) {
+    console.log('ready to register, skip reqs');
+    registerRaffle();
+    return waitForRegistered();
+  }
+
   const reqs = getRequirements();
   debug.log('reqs', reqs);
 

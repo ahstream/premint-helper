@@ -16,6 +16,8 @@ import {
   normalizePendingLink,
 } from 'hx-lib';
 
+import { createObserver as createRaffleObserver } from './observerGeneric';
+
 const debug = createLogger();
 
 // DATA ----------------------------------------------------------------------------
@@ -82,7 +84,7 @@ function setStorage(newStorage) {
 // OBSERVER ----------------------------------------------
 
 async function createObserver() {
-  return null;
+  return await createRaffleObserver();
 }
 
 // WAIT FOR LOADED ----------------------------------------------

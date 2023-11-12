@@ -22,7 +22,7 @@ import {
   isTwitterURL,
 } from 'hx-lib';
 
-import { createObserver as createRaffleObserver, getPreviousWalletsWon } from './observer';
+import { createObserver as createRaffleObserver, getPreviousWalletsWon } from './observerGeneric';
 
 import { initRafflePage } from './rafflePage';
 

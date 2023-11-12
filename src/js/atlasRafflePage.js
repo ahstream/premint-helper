@@ -19,6 +19,8 @@ import {
   millisecondsAhead,
 } from 'hx-lib';
 
+import { createObserver as createRaffleObserver } from './observerGeneric';
+
 const debug = createLogger();
 
 // DATA ----------------------------------------------------------------------------
@@ -34,6 +36,7 @@ const config = {
   waitForRafflePageLoaded,
   forceRegister,
   readyToRegister,
+  skipReqsIfReady,
   hasRegistered,
   hasCaptcha,
   hasWalletConnectDialog,
@@ -86,7 +89,7 @@ function setStorage(newStorage) {
 // OBSERVER ----------------------------------------------
 
 async function createObserver() {
-  return null; // do nothing
+  return await createRaffleObserver();
 }
 
 // WAIT FOR LOADED ----------------------------------------------
@@ -118,6 +121,10 @@ function forceRegister() {
 
 function readyToRegister() {
   return isAllTasksCompleted();
+}
+
+function skipReqsIfReady() {
+  return storage.options.ATLAS_SKIP_REQS_IF_READY && isAllTasksCompleted();
 }
 
 // REGISTER BTN FUNCS ----------------------------------------------
@@ -179,7 +186,10 @@ function isAllTasksCompleted() {
   const matchesArr = [...matches].flat();
   console.log('matches', matches, matchesArr);
 
-  return (matchesArr.length === 3) & (matchesArr[1] === matchesArr[2]);
+  const r = (matchesArr.length === 3) & (matchesArr[1] === matchesArr[2]);
+  console.log('r', r);
+
+  return r;
 }
 
 // RAFFLE STATE CHECKERS -------------------------------------------------------------------

@@ -188,3 +188,27 @@ function convertWins(wins, account) {
     };
   });
 }
+
+// HTML DOM
+
+/*
+// this already implemented in atlasRAfflePage, which one is best?
+export function isAllTasksCompleted() {
+  const elems = [...document.querySelectorAll('p')].filter((x) => x.innerText.endsWith('TASKS COMPLETED'));
+  console.log('elems', elems);
+  if (!elems?.length) {
+    return false;
+  }
+  const s = elems[0].innerText.replace('TASKS COMPLETED', '').trim();
+  console.log('s', s);
+
+  const tokens = s.split(s, 'OF').map((x) => x.trim());
+  console.log('tokens', tokens);
+
+  if (tokens.length === 2 && tokens[0] === tokens[1]) {
+    return true;
+  }
+
+  return false;
+}
+*/

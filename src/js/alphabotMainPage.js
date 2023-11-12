@@ -1,7 +1,7 @@
 console.info('alphabotMainPage.js begin', window?.location?.href);
 
 import '../styles/alphabotPage.css';
-import { createObserver } from './observer';
+import { createObserver } from './observerGeneric.js';
 import { waitForUser } from './twitterLib.js';
 import { fetchProjects } from './alphabotLib.js';
 import {

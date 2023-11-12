@@ -18,6 +18,13 @@ ul.status {
   }
 }
 
+.show-provider:after {
+  content: attr(data-hx-count);
+  display: inline-block;
+  font-size: 16px;
+  margin-left: 5px;
+}
+
 #hx-status-main {
   margin-top: 20px;
   font-weight: bold;

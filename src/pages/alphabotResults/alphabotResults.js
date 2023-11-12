@@ -373,7 +373,6 @@ async function updateCloudWinners() {
   storage.alphabot.lastCloudFetchDate = now;
   storage.alphabot.cloudWinners = allWinners;
 
-  // todo: save storage only once?!
   await setStorageData(storage);
   debug.log('storage', storage);
 
@@ -388,8 +387,6 @@ async function getWinnersFromAlphabot(accountName, lastPickedDate) {
     accountName,
     timestampToLocaleString(new Date(lastPickedDate))
   );
-
-  // lastPickedDate = 0; //  todo
 
   if (DEBUG_MODE && storage.alphabot.myWinnersCache) {
     debug.log('return storage.alphabot.myWinnersCache');

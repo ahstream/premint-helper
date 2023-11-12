@@ -45,6 +45,7 @@ const options = [
       ['property', 'ATLAS_ENABLE_DISCORD_TASKS', 'Enable Discord tasks'],
       ['property', 'ATLAS_ENABLE_RESULTS', 'Enable fetch of results'],
       ['property', 'ATLAS_RESULTS_MAX_FETCH_WINS', 'Max new results to fetch'],
+      ['property', 'ATLAS_SKIP_REQS_IF_READY', 'Skip task requirements if ready to register'],
     ],
   },
 

@@ -50,11 +50,14 @@ import {
   hoursBetween,
   minutesBetween,
   secondsBetween,
+  kFormatter,
 } from 'hx-lib';
 
 import { getPermissions } from '../../js/permissions';
 
 import { createStatusbar } from 'hx-statusbar';
+
+import { createObserver } from '../../js/observerGeneric';
 
 const jht = require('json-html-table');
 
@@ -143,6 +146,7 @@ async function runPage() {
     hashArgs,
     statusbar: createStatusbar(STATUSBAR_DEFAULT_TEXT),
     permissions: await getPermissions(),
+    observer: await createObserver({ autoFollowers: true }),
   };
   debug.log('pageState', pageState);
 
@@ -226,6 +230,8 @@ async function updateWins() {
 
   updateMainStatus('Raffle results updated!');
 
+  storage.projectWins = createProjectWins(packWins(storage.wins));
+
   showPage();
 }
 
@@ -258,6 +264,8 @@ async function showPage(customWins = null, customHeader = '') {
 
   showLastUpdatedStatus();
 
+  updateShownProvider();
+
   if (customWins) {
     appendWinsTable(createWinsTable(customWins, customHeader));
     appendWinsTable(createWinsTable(customWins, customHeader, true));
@@ -268,6 +276,8 @@ async function showPage(customWins = null, customHeader = '') {
   appendWinsTable(createWinsTable(storage.atlas?.wins, 'Atlas raffles', 'atlas'));
   appendWinsTable(createWinsTable(storage.premint?.wins, 'Premint raffles', 'premint'));
   appendWinsTable(createWinsTable(storage.wins, 'All raffles, all columns', 'debug', true));
+
+  await updateTwitterFollowers();
 
   debug.log('Done showing results page!');
 }
@@ -526,8 +536,7 @@ function mergeWins(newWins, oldWins, key, checkTime) {
 
 function isWinModified(newWin, oldWin) {
   // todo use mintDate instead?
-  // todo check mintTime too?
-  return newWin.hxSortKey && newWin.hxSortKey !== oldWin.hxSortKey;
+  return (newWin.hxSortKey && newWin.hxSortKey !== oldWin.hxSortKey) || newWin.mintTime !== oldWin.mintTime;
 }
 
 // HELPERS ------------------------------
@@ -1030,20 +1039,26 @@ function showProviderClickHandler(id) {
 }
 
 function updateShownProvider() {
-  const update = (id) => {
-    const elem = document.getElementById(id);
-    console.log('id, elem', id, elem, pageState);
-    if (elem && pageState.shownProvider === id) {
-      elem.classList.toggle('show', true);
-    } else if (elem) {
-      elem.classList.toggle('show', false);
+  const update = (id, ct = 0) => {
+    const elemContent = document.getElementById(id);
+    console.log('updateShownProvider id, ct, elem, pageState', id, ct, elemContent, pageState);
+
+    if (elemContent && pageState.shownProvider === id) {
+      elemContent.classList.toggle('show', true);
+    } else if (elemContent) {
+      elemContent.classList.toggle('show', false);
+    }
+
+    const elemLink = document.getElementById(`show-${id}`);
+    if (elemLink) {
+      elemLink.dataset.hxCount = `(${ct})`;
     }
   };
-  update('all');
-  update('alphabot');
-  update('premint');
-  update('atlas');
-  update('debug');
+  update('all', storage.wins?.length);
+  update('alphabot', storage.alphabot?.wins?.length);
+  update('premint', storage.premint?.wins?.length);
+  update('atlas', storage.atlas?.wins?.length);
+  update('debug', storage.wins?.length);
 }
 
 // UPDATE FUNCS -----------------------------------------------------
@@ -1257,4 +1272,70 @@ function filterNewWins(wins, storageWins, checkTime) {
         }
         return old.hxUpdated >= checkTime;
       });
+}
+
+// TWITTER HELPERS -----------------------------------------------------
+
+async function getTwitterFollowerCount(username) {
+  return (await getObserver()).getTwitter(username, 999);
+}
+
+async function getObserver() {
+  if (!pageState.observer) {
+    pageState.observer = await createObserver({ autoFollowers: true });
+  }
+  return pageState.observer;
+}
+
+async function updateTwitterFollowers() {
+  debug.log('updateTwitterFollowers');
+  const elems = [...document.querySelectorAll('a.twitter-link')];
+  debug.log('elems', elems);
+  for (let link of elems) {
+    const followers = await getTwitterFollowerCount(link.dataset.username);
+    link.dataset.hxFollowersNum = followers;
+    link.dataset.hxFollowers = kFormatter(followers);
+  }
+}
+
+// PROJECT-WINS
+
+async function createProjectWins(packedWins) {
+  console.log('createProjectWins; packedWins:', packedWins);
+
+  const data = [];
+  packedWins.forEach((pw) => {
+    const handle = pw.twitterHandle;
+    const dateKey = maxOrNull(...pw.wins.map((x) => x.hxSortKey).filter((x) => x));
+    const startDate = maxOrNull(...pw.wins.map((x) => x.startDate).filter((x) => x));
+    const mintDate = maxOrNull(...pw.wins.map((x) => x.mintDate).filter((x) => x));
+    const picked = maxOrNull(...pw.wins.map((x) => x.picked).filter((x) => x));
+    const wallets = noDuplicates(pw.wins.map((x) => x.mintAddresses))
+      .flat()
+      .map((x) => x.toLowerCase());
+    data.push({
+      name: handle,
+      twitterHandle: handle,
+      dateKey,
+      mintDate,
+      picked,
+      startDate,
+      wallets,
+      wins: pw.wins,
+    });
+  });
+
+  data.sort(dynamicSortMultiple('-mintDate', '-picked'));
+  console.log('createProjectWins; data:', data);
+
+  return data;
+}
+
+// MISC HELPERS -----------------------------------------------------
+
+function maxOrNull(...args) {
+  if (!args.length) {
+    return null;
+  }
+  return Math.max(...args);
 }
