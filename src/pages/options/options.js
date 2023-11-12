@@ -224,13 +224,19 @@ const options = [
           ['load', 'Load from cloud'],
         ],
       ],
-      /*
       ['space', 10],
       ['property', 'CLOUD_TAG', 'Cloud tag'],
-      ['space', 20],
+    ],
+  },
+
+  {
+    header: 'Alias Settings',
+    hiddenKey: '',
+    options: [
       ['property', 'WALLET_ALIAS', 'Wallet aliases', null, 'Use aliases for wallet addresses'],
       ['space', 20],
       ['property', 'ACCOUNT_ALIAS', 'Account aliases', null, 'Use aliases for account addresses'],
+      /*
       ['space', 20],
       [
         'property',

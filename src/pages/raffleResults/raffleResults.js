@@ -188,8 +188,8 @@ async function updateWins() {
   let cloudWins = [];
 
   if (storage.options.CLOUD_MODE === 'load') {
-    const fromTimestamp = (storage.results.fooLastCloudTimestamp || -1) + 1;
-    console.log('storage.results.fooLastCloudTimestamp', storage.results.fooLastCloudTimestamp);
+    const fromTimestamp = (storage.results.lastCloudTimestamp || -1) + 1;
+    console.log('storage.results.lastCloudTimestamp', storage.results.lastCloudTimestamp);
     console.log('fromTimestamp', fromTimestamp);
     cloudWins = await readWins(fromTimestamp, storage.options);
     console.log('cloudWins', cloudWins);
@@ -197,17 +197,17 @@ async function updateWins() {
       statusLogger.sub('Failed getting results from Cloud! Error:' + cloudWins.msg);
     } else {
       statusLogger.sub(`Fetched ${cloudWins.length} new or updated winners from Cloud`);
-      storage.results.fooLastCloudTimestamp = checkTime;
-      console.log('storage.results.fooLastCloudTimestamp', storage.results.fooLastCloudTimestamp);
+      storage.results.lastCloudTimestamp = checkTime;
+      console.log('storage.results.lastCloudTimestamp', storage.results.lastCloudTimestamp);
       const lastCloudTimestamp = cloudWins?.length ? Math.max(...cloudWins.map((x) => x.hxCloudUpdated)) : 0;
       console.log('lastCloudTimestamp', lastCloudTimestamp);
 
       if (lastCloudTimestamp > 0) {
-        storage.results.fooLastCloudTimestamp = lastCloudTimestamp;
+        storage.results.lastCloudTimestamp = lastCloudTimestamp;
       }
 
-      storage.results.fooLastCloudUpdate = checkTime;
-      storage.results.fooLastProviderUpdate = checkTime;
+      storage.results.lastCloudUpdate = checkTime;
+      storage.results.lastProviderUpdate = checkTime;
     }
   }
 
@@ -219,8 +219,8 @@ async function updateWins() {
   storage.wins = mergedWins;
   debug.log('mergedWins:', mergedWins);
 
-  storage.results.fooLastProviderUpdate = checkTime;
-  storage.results.fooLastWinsUpdate = checkTime;
+  storage.results.lastProviderUpdate = checkTime;
+  storage.results.lastWinsUpdate = checkTime;
 
   await setStorageData(storage);
 
@@ -291,23 +291,27 @@ function mergeAllWins({ atlas = null, alphabot = null, premint = null } = {}) {
 async function updateAlphabotWins(checkTime, allCloudWins) {
   debug.log('updateAlphabotWins', checkTime);
 
+  const providerName = 'Alphabot';
+  const providerKey = providerName.toLowerCase();
+  const raffleStorage = storage.alphabot;
+
   await reloadOptions(storage); // options may have changed, reload them!
 
   if (!storage.options.ALPHABOT_ENABLE_RESULTS) {
-    statusLogger.sub('Skip fetching new Alphabot results (disabled in Options)');
+    statusLogger.sub(`Skip fetching new ${providerName} results (disabled in Options)`);
     return [];
   }
 
-  updateMainStatus('Get Alphabot account info...');
+  updateMainStatus(`Get ${providerName} account info...`);
   const account = await getAlphabotAccount();
   console.log('account', account);
   if (!account?.userId) {
-    statusLogger.sub('Failed getting Alphabot account. Check if logged in to website.');
+    statusLogger.sub(`Failed getting ${providerName} account. Check if logged in to website.`);
     return [];
   }
 
-  const lastEndDate = storage.alphabot.myWins?.length
-    ? Math.max(...storage.alphabot.myWins.map((x) => x.endDate))
+  const lastEndDate = raffleStorage.myWins?.length
+    ? Math.max(...raffleStorage.myWins.map((x) => x.endDate))
     : null;
   const lastEndDateStr = lastEndDate ? new Date(lastEndDate).toLocaleString() : 'null';
   console.log('lastEndDate', lastEndDate, lastEndDateStr);
@@ -320,7 +324,7 @@ async function updateAlphabotWins(checkTime, allCloudWins) {
   });
   console.log('myWinsByNewest', myWinsByNewest);
 
-  updateMainStatus('Get updated mint dates from Alphabot...');
+  updateMainStatus(`Get updated mint dates from ${providerName}...`);
   const myWinsByMinting = await getAlphabotWinsByMinting(account, {
     interval: ALPHABOT_INTERVAL,
     max: storage.options.ALPHABOT_RESULTS_MAX_FETCH_WINS,
@@ -330,37 +334,41 @@ async function updateAlphabotWins(checkTime, allCloudWins) {
 
   const myWins = mergeWins(myWinsByMinting, myWinsByNewest, 'id', null);
 
-  writeProviderNewOrUpdatedCount(myWins, storage.alphabot.myWins, 'Alphabot', checkTime);
+  const myWinsNew = filterNewWins(myWins, raffleStorage.myWins, checkTime);
+  statusLogger.sub(`Fetched ${myWinsNew.length} new or updated winners from ${providerName}`);
 
   let cloudWins = [];
   if (storage.options.ALPHABOT_ENABLE_CLOUD && storage.options.CLOUD_MODE === 'load') {
-    cloudWins = allCloudWins.filter((x) => x.provider === 'alphabot');
+    cloudWins = allCloudWins.filter((x) => x.provider === providerKey);
     console.log('cloudWins', cloudWins);
     // cloudWins should check for duplicates on full key hxId
-    storage.alphabot.cloudWins = mergeWins(cloudWins, storage.alphabot.cloudWins, 'hxId', checkTime);
+    raffleStorage.cloudWins = mergeWins(cloudWins, raffleStorage.cloudWins, 'hxId', checkTime);
   }
 
   // myWins should check for duplicates on raffle id
-  storage.alphabot.myWins = mergeWins(myWins, storage.alphabot.myWins, 'id', checkTime);
+  raffleStorage.myWins = mergeWins(myWinsNew, raffleStorage.myWins, 'id', checkTime);
 
   // check if updated only on myWins and cloudWins, not on aggregated wins!
-  storage.alphabot.wins = mergeWins([...myWins, ...cloudWins], storage.alphabot.wins, 'hxId', null);
+  raffleStorage.wins = mergeWins([...myWinsNew, ...cloudWins], raffleStorage.wins, 'hxId', null);
 
   await setStorageData(storage);
 
   if (storage.options.ALPHABOT_ENABLE_CLOUD && storage.options.CLOUD_MODE === 'save') {
-    const winsToUpload =
-      (await countWins('alphabot', account.userId, storage.options)) > 0 ? myWins : storage.alphabot.myWins; // if no wins in cloud, upload everything we got!
-    debug.log('winnersToUpload', winsToUpload);
+    const ct = await countWins(providerKey, account.userId, storage.options);
+    console.log('Count wins:', ct);
+    // if no wins in cloud, upload everything we got!
+    const winsToUpload = ct > 0 ? myWinsNew : raffleStorage.myWins;
+    debug.log('winsToUpload', winsToUpload);
     const writeResult = await writeWins(winsToUpload, storage.options);
     if (writeResult.error) {
-      statusLogger.sub('Failed uploading Alphabot results to cloud. Network problems?');
+      statusLogger.sub(`Failed uploading ${providerName} results to Cloud. Network problems?`);
     } else {
-      statusLogger.sub(`Uploaded ${winsToUpload.length} Alphabot winners to Cloud`);
+      storage.results.lastCloudUpload = Date.now();
+      statusLogger.sub(`Uploaded ${winsToUpload.length} ${providerName} winners to Cloud`);
     }
   }
 
-  return storage.alphabot.wins;
+  return raffleStorage.wins;
 }
 
 // PREMINT ------------------------------
@@ -368,22 +376,26 @@ async function updateAlphabotWins(checkTime, allCloudWins) {
 async function updatePremintWins(checkTime, allCloudWins) {
   debug.log('updatePremintWins', checkTime);
 
+  const providerName = 'Premint';
+  const providerKey = providerName.toLowerCase();
+  const raffleStorage = storage.premint;
+
   await reloadOptions(storage); // options may have changed, reload them!
 
   if (!storage.options.PREMINT_ENABLE_RESULTS) {
-    statusLogger.sub('Skip fetching new Premint results (disabled in Options)');
+    statusLogger.sub(`Skip fetching new ${providerName} results (disabled in Options)`);
     return [];
   }
 
-  updateMainStatus('Get Premint account info');
+  updateMainStatus(`Get ${providerName} account info`);
   const account = await getPremintAccount();
   console.log('account', account);
   if (!account?.userId) {
-    statusLogger.sub('Failed getting Premint account. Check if logged in to website.');
+    statusLogger.sub(`Failed getting ${providerName} account. Check if logged in to website.`);
     return [];
   }
 
-  const skip = [...storage.premint.myWins.map((x) => x.id), ...storage.premint.myLost.map((id) => id)];
+  const skip = [...raffleStorage.myWins.map((x) => x.id), ...raffleStorage.myLost.map((id) => id)];
   const { wins, lost } = await getPremintWins(account, {
     interval: PREMINT_INTERVAL,
     max: storage.options.PREMINT_RESULTS_MAX_FETCH_WINS,
@@ -395,36 +407,39 @@ async function updatePremintWins(checkTime, allCloudWins) {
   console.log('myWins', myWins);
   console.log('myLost', myLost);
 
-  writeProviderNewOrUpdatedCount(myWins, storage.premint.myWins, 'Premint', checkTime);
+  const myWinsNew = filterNewWins(myWins, raffleStorage.myWins, checkTime);
 
   let cloudWins = [];
   if (storage.options.PREMINT_ENABLE_CLOUD && storage.options.CLOUD_MODE === 'load') {
-    cloudWins = allCloudWins.filter((x) => x.provider === 'premint');
+    cloudWins = allCloudWins.filter((x) => x.provider === providerKey);
     console.log('cloudWins', cloudWins);
-    storage.premint.cloudWins = mergeWins(cloudWins, storage.premint.cloudWins, 'hxId', checkTime);
+    raffleStorage.cloudWins = mergeWins(cloudWins, raffleStorage.cloudWins, 'hxId', checkTime);
   }
 
-  storage.premint.myLost = noDuplicates(myLost, storage.premint.myLost);
-  storage.premint.myWins = mergeWins(myWins, storage.premint.myWins, 'id', checkTime);
+  raffleStorage.myLost = noDuplicates(myLost, raffleStorage.myLost);
+  raffleStorage.myWins = mergeWins(myWinsNew, raffleStorage.myWins, 'id', checkTime);
 
   // check if updated only on myWins and cloudWins, not on aggregated wins!
-  storage.premint.wins = mergeWins([...myWins, ...cloudWins], storage.premint.wins, 'hxId', null);
+  raffleStorage.wins = mergeWins([...myWinsNew, ...cloudWins], raffleStorage.wins, 'hxId', null);
 
   await setStorageData(storage);
 
   if (storage.options.PREMINT_ENABLE_CLOUD && storage.options.CLOUD_MODE === 'save') {
-    const winsToUpload =
-      (await countWins('premint', account.userId, storage.options)) > 0 ? myWins : storage.premint.myWins; // if no wins in cloud, upload everything we got!
-    debug.log('winnersToUpload', winsToUpload);
+    const ct = await countWins(providerKey, account.userId, storage.options);
+    console.log('Count wins:', ct);
+    // if no wins in cloud, upload everything we got!
+    const winsToUpload = ct > 0 ? myWinsNew : raffleStorage.myWins;
+    debug.log('winsToUpload', winsToUpload);
     const writeResult = await writeWins(winsToUpload, storage.options);
     if (writeResult.error) {
-      statusLogger.sub('Failed uploading Premint results to cloud. Network problems?');
+      statusLogger.sub(`Failed uploading ${providerName} results to Cloud. Network problems?`);
     } else {
-      statusLogger.sub(`Uploaded ${winsToUpload.length} Premint winners to Cloud`);
+      storage.results.lastCloudUpload = Date.now();
+      statusLogger.sub(`Uploaded ${winsToUpload.length} ${providerName} winners to Cloud`);
     }
   }
 
-  return storage.premint.wins;
+  return raffleStorage.wins;
 }
 
 // ATLAS ------------------------------
@@ -432,18 +447,22 @@ async function updatePremintWins(checkTime, allCloudWins) {
 async function updateAtlasWins(checkTime, allCloudWins) {
   debug.log('updateAtlasWins', checkTime);
 
+  const providerName = 'Atlas';
+  const providerKey = providerName.toLowerCase();
+  const raffleStorage = storage.atlas;
+
   await reloadOptions(storage); // options may have changed, reload them!
 
   if (!storage.options.ATLAS_ENABLE_RESULTS) {
-    statusLogger.sub('Skip fetching new Atlas results (disabled in Options)');
+    statusLogger.sub(`Skip fetching new ${providerName} results (disabled in Options)`);
     return [];
   }
 
-  updateMainStatus('Get Atlas account info');
+  updateMainStatus(`Get ${providerName} account info`);
   const account = await getAtlasAccount();
   console.log('account', account);
   if (!account?.userId) {
-    statusLogger.sub('Failed getting Atlas account. Check if logged in to website.');
+    statusLogger.sub(`Failed getting ${providerName} account. Check if logged in to website.`);
     return [];
   }
 
@@ -454,35 +473,38 @@ async function updateAtlasWins(checkTime, allCloudWins) {
   });
   console.log('myWins', myWins);
 
-  writeProviderNewOrUpdatedCount(myWins, storage.atlas.myWins, 'Atlas', checkTime);
+  const myWinsNew = filterNewWins(myWins, raffleStorage.myWins, checkTime);
 
   let cloudWins = [];
   if (storage.options.ATLAS_ENABLE_CLOUD && storage.options.CLOUD_MODE === 'load') {
-    cloudWins = allCloudWins.filter((x) => x.provider === 'atlas');
+    cloudWins = allCloudWins.filter((x) => x.provider === providerKey);
     console.log('cloudWins', cloudWins);
-    storage.atlas.cloudWins = mergeWins(cloudWins, storage.atlas.cloudWins, 'hxId', checkTime);
+    raffleStorage.cloudWins = mergeWins(cloudWins, raffleStorage.cloudWins, 'hxId', checkTime);
   }
 
-  storage.atlas.myWins = mergeWins(myWins, storage.atlas.myWins, 'id', checkTime);
+  raffleStorage.myWins = mergeWins(myWinsNew, raffleStorage.myWins, 'id', checkTime);
 
   // check if updated only on myWins and cloudWins, not on aggregated wins!
-  storage.atlas.wins = mergeWins([...myWins, ...cloudWins], storage.atlas.wins, 'hxId', null);
+  raffleStorage.wins = mergeWins([...myWinsNew, ...cloudWins], raffleStorage.wins, 'hxId', null);
 
   await setStorageData(storage);
 
   if (storage.options.ATLAS_ENABLE_CLOUD && storage.options.CLOUD_MODE === 'save') {
-    const winsToUpload =
-      (await countWins('atlas', account.userId, storage.options)) > 0 ? myWins : storage.atlas.myWins; // if no wins in cloud, upload everything we got!
-    debug.log('winnersToUpload', winsToUpload);
+    const ct = await countWins(providerKey, account.userId, storage.options);
+    console.log('Count wins:', ct);
+    // if no wins in cloud, upload everything we got!
+    const winsToUpload = ct > 0 ? myWinsNew : raffleStorage.myWins;
+    debug.log('winsToUpload', winsToUpload);
     const writeResult = await writeWins(winsToUpload, storage.options);
     if (writeResult.error) {
-      statusLogger.sub('Failed uploading Atlas results to cloud. Network problems?');
+      statusLogger.sub(`Failed uploading ${providerName} results to Cloud. Network problems?`);
     } else {
-      statusLogger.sub(`Uploaded ${winsToUpload.length} Atlas winners to Cloud`);
+      storage.results.lastCloudUpload = Date.now();
+      statusLogger.sub(`Uploaded ${winsToUpload.length} ${providerName} winners to Cloud`);
     }
   }
 
-  return storage.atlas.wins;
+  return raffleStorage.wins;
 }
 
 // WINS ------------------------------
@@ -700,8 +722,8 @@ function createWinsTable(wins, header, id, allColumns = false) {
 
     // CELL: raffle links
     const raffleLinks = wins.map((x) => {
-      const isNew = x.hxCreated && x.hxCreated >= storage.results.fooLastWinsUpdate;
-      const isUpdated = x.hxUpdated && x.hxUpdated >= storage.results.fooLastWinsUpdate;
+      const isNew = x.hxCreated && x.hxCreated >= storage.results.lastWinsUpdate;
+      const isUpdated = x.hxUpdated && x.hxUpdated >= storage.results.lastWinsUpdate;
       return {
         url: x.url,
         text: trimText(x.name, MAX_LEN_RAFFLE_NAME),
@@ -1153,8 +1175,8 @@ async function setDateishOnPackedWins(packedWins) {
 function showLastUpdatedStatus() {
   const nowDate = new Date();
 
-  if (storage.results.fooLastProviderUpdate) {
-    const timestamp = storage.results.fooLastProviderUpdate;
+  if (storage.results.lastProviderUpdate) {
+    const timestamp = storage.results.lastProviderUpdate;
 
     const timeText1 = timestampToLocaleString(timestamp, '-', DEFAULT_LOCALE);
     const days1 = daysBetween(timestamp, nowDate);
@@ -1171,13 +1193,13 @@ function showLastUpdatedStatus() {
     } else if (days1 > 0) {
       agoText1 = `${days1} ${pluralize(days1, 'day', 'days')} ago`;
     }
-    updateSubStatus(`Results last fetched from providers at ${timeText1} (<b>${agoText1}</b>)`);
+    updateSubStatus(`Results last fetched from raffle providers at ${timeText1} (<b>${agoText1}</b>)`);
   } else {
-    updateSubStatus(`Results never fetched from provider`);
+    updateSubStatus(`Results never fetched from raffle providers`);
   }
 
-  if (storage.results.fooLastCloudUpdate) {
-    const timestamp = storage.results.fooLastCloudUpdate;
+  if (storage.results.lastCloudUpdate) {
+    const timestamp = storage.results.lastCloudUpdate;
 
     const timeText2 = timestampToLocaleString(timestamp, '-', DEFAULT_LOCALE);
 
@@ -1195,14 +1217,38 @@ function showLastUpdatedStatus() {
     } else if (days2 > 0) {
       agoText2 = `${days2} ${pluralize(days2, 'day', 'days')} ago`;
     }
-    updateSubStatus(`Results last fetched from cloud at ${timeText2} (<b>${agoText2}</b>)`);
+    updateSubStatus(`Results last fetched from Cloud at ${timeText2} (<b>${agoText2}</b>)`);
   } else {
-    updateSubStatus(`Results never fetched from cloud`);
+    updateSubStatus(`Results never fetched from Cloud`);
+  }
+
+  if (storage.results.lastCloudUpload) {
+    const timestamp = storage.results.lastCloudUpload;
+
+    const timeText2 = timestampToLocaleString(timestamp, '-', DEFAULT_LOCALE);
+
+    const days2 = daysBetween(timestamp, nowDate);
+    const hours2 = hoursBetween(timestamp, nowDate);
+    const minutes2 = minutesBetween(timestamp, nowDate);
+    const seconds2 = secondsBetween(timestamp, nowDate);
+    let agoText2 = '';
+    if (seconds2 < 60) {
+      agoText2 = `${seconds2} ${pluralize(seconds2, 'second', 'seconds')} ago`;
+    } else if (minutes2 < 60) {
+      agoText2 = `${minutes2} ${pluralize(minutes2, 'minute', 'minutes')} ago`;
+    } else if (hours2 < 24) {
+      agoText2 = `${hours2} ${pluralize(hours2, 'hour', 'hours')} ago`;
+    } else if (days2 > 0) {
+      agoText2 = `${days2} ${pluralize(days2, 'day', 'days')} ago`;
+    }
+    updateSubStatus(`Results last uploaded to Cloud at ${timeText2} (<b>${agoText2}</b>)`);
+  } else {
+    updateSubStatus(`Results never uploaded to Cloud`);
   }
 }
 
-function writeProviderNewOrUpdatedCount(wins, storageWins, provider, checkTime) {
-  const newWins = !storageWins
+function filterNewWins(wins, storageWins, checkTime) {
+  return !storageWins
     ? wins
     : wins.filter((x) => {
         const old = storageWins.find((y) => y.id === x.id);
@@ -1211,6 +1257,4 @@ function writeProviderNewOrUpdatedCount(wins, storageWins, provider, checkTime) 
         }
         return old.hxUpdated >= checkTime;
       });
-
-  statusLogger.sub(`Fetched ${newWins.length} new or updated winners from ${provider}`);
 }

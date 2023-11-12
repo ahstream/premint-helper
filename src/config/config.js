@@ -147,8 +147,8 @@ export const defaultOptions = {
   WALLET_ALIAS: [
     'hot-1: ETH_ADDRESS',
     'hot-2: ETH_ADDRESS',
-    'warm-1: ETH_ADDRESS',
-    'warm-2: ETH_ADDRESS',
+    'cold-1: ETH_ADDRESS',
+    'cold-2: ETH_ADDRESS',
     'btc-1: BTC_ADDRESS',
     'btc-2: BTC_ADDRESS',
   ],
