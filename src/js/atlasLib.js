@@ -212,3 +212,15 @@ export function isAllTasksCompleted() {
   return false;
 }
 */
+
+// MISC
+
+export function getSelectedWallet() {
+  try {
+    const elem = document.getElementById('headlessui-listbox-button-:r0:');
+    return elem?.innerText || '';
+  } catch (e) {
+    console.error(e);
+    return null;
+  }
+}

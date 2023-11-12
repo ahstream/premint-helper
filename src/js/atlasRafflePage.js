@@ -17,9 +17,10 @@ import {
   //addToDate,
   //normalizePendingLink,
   millisecondsAhead,
+  extractTwitterHandle,
 } from 'hx-lib';
 
-import { createObserver as createRaffleObserver } from './observerGeneric';
+import { createObserver as createRaffleObserver, getPreviousWalletsWon } from './observerGeneric';
 
 const debug = createLogger();
 
@@ -52,8 +53,6 @@ const config = {
   setPendingReg,
   getTwitterUser,
   getDiscordUser,
-  getAlphaName,
-  getRaffleTwitterHandle,
   parseMustLikeLinks,
   parseMustRetweetLinks,
   parseMustLikeAndRetweetLinks,
@@ -127,6 +126,21 @@ function skipReqsIfReady() {
   return storage.options.ATLAS_SKIP_REQS_IF_READY && isAllTasksCompleted();
 }
 
+function isAllTasksCompleted() {
+  const s = getEntryContainer()?.innerText;
+  if (!s) {
+    return false;
+  }
+  const matches = s.matchAll(/([0-9]+) of ([0-9]+) TASKS COMPLETED/gi);
+  const matchesArr = [...matches].flat();
+  console.log('matches', matches, matchesArr);
+
+  const r = (matchesArr.length === 3) & (matchesArr[1] === matchesArr[2]);
+  console.log('r', r);
+
+  return r;
+}
+
 // REGISTER BTN FUNCS ----------------------------------------------
 
 async function getRegisterButton(maxWait = 1000, interval = 10) {
@@ -175,21 +189,6 @@ function getEntryContainer() {
       x.innerText.startsWith('Entry Requirements')
     )[0] || null
   );
-}
-
-function isAllTasksCompleted() {
-  const s = getEntryContainer()?.innerText;
-  if (!s) {
-    return false;
-  }
-  const matches = s.matchAll(/([0-9]+) of ([0-9]+) TASKS COMPLETED/gi);
-  const matchesArr = [...matches].flat();
-  console.log('matches', matches, matchesArr);
-
-  const r = (matchesArr.length === 3) & (matchesArr[1] === matchesArr[2]);
-  console.log('r', r);
-
-  return r;
 }
 
 // RAFFLE STATE CHECKERS -------------------------------------------------------------------
@@ -244,44 +243,6 @@ function isPendingReg() {
 
 async function setPendingReg() {
   return false;
-}
-
-// PAGE GETTERS -------------------------------------
-
-function getTwitterUser() {
-  try {
-    const elems = parseTaskTexts(storage.options.ATLAS_TWITTER_USER_SEL);
-    console.log('getTwitterUser elems', elems);
-    if (!elems?.length) {
-      return null;
-    }
-    return elems[0].innerText.replace(storage.options.ATLAS_TWITTER_USER_SEL, '').replace('@', '').trim();
-  } catch (e) {
-    console.error('Failed getTwitterUser! Error:', e);
-    return null;
-  }
-}
-
-function getDiscordUser() {
-  try {
-    const elems = parseTaskTexts(storage.options.ATLAS_DISCORD_USER_SEL);
-    console.log('getDiscordUser elems', elems);
-    if (!elems?.length) {
-      return null;
-    }
-    return elems[0].innerText.replace(storage.options.ATLAS_DISCORD_USER_SEL, '').trim();
-  } catch (e) {
-    console.error('Failed getDiscordUser! Error:', e);
-    return null;
-  }
-}
-
-function getAlphaName() {
-  return '';
-}
-
-function getRaffleTwitterHandle() {
-  return '';
 }
 
 // PARSE TASK LINKS -------------------------------------
@@ -366,34 +327,49 @@ function getMainTaskElements() {
   return [...baseElems];
 }
 
-function count(str, regexp) {
-  return ((str || '').match(regexp) || []).length;
-}
-
 function isCorruptTaskLink(s) {
   // eslint-disable-next-line no-useless-escape
-  const n = count(s, /https\:\/\//gi);
+  const n = countOccurances(s, /https\:\/\//gi);
   console.log('isCorruptTaskLink', s, n, n > 1);
   return n > 1;
   // return s.includes('https://twitter.com/any/status/');
 }
 
-// WON WALLETS
+// MISC HELPERS
 
-function addPreviouslyWonWallets() {
-  return;
+function countOccurances(str, regexp) {
+  return ((str || '').match(regexp) || []).length;
 }
 
-function getWonWalletsByThisAccount() {
-  return [];
+// WON WALLETS
+
+function addPreviouslyWonWallets(pageState) {
+  const twitterHandle = getRaffleTwitterHandle();
+  if (!twitterHandle) {
+    return;
+  }
+  debug.log('twitterHandle', twitterHandle);
+
+  const section = pageState.observer.createPreviousWonSection(twitterHandle, true, pageState.permissions);
+  if (!section) {
+    return;
+  }
+  debug.log('section', section);
+  document.body.appendChild(section);
+
+  /*
+  const tasksElem = getElementByText('Tasks', 'h5', { contains: true });
+  if (!tasksElem) {
+    console.error('Missing Tasks elem!');
+    return;
+  }
+  debug.log('tasksElem', tasksElem);
+  tasksElem.after(section);
+  */
 }
 
 function getWonWalletsByAllAccounts() {
-  return [];
-}
-
-function getSelectedWallet() {
-  return null;
+  return getPreviousWalletsWon(getRaffleTwitterHandle());
 }
 
 // ERROR HANDLING
@@ -443,4 +419,73 @@ async function handleComplexErrors(pageState, context) {
 
 function loadRafflePageWithCustomContent() {
   return false;
+}
+
+// RAFFLE GETTERS
+
+function getSelectedWallet() {
+  try {
+    const elem = document.getElementById('headlessui-listbox-button-:r0:');
+    if (elem?.innerText) {
+      return null;
+    }
+
+    const shortWallet = elem?.innerText || '';
+    const longWallet = '';
+    const tokens = shortWallet.split('...');
+    const shortPrefix = tokens.length >= 2 ? tokens[0] : '';
+    const shortSuffix = tokens.length >= 2 ? tokens[1] : '';
+
+    return { shortWallet, longWallet, shortPrefix, shortSuffix };
+  } catch (e) {
+    console.error(e);
+    return null;
+  }
+}
+
+function getWonWalletsByThisAccount() {
+  return [];
+}
+
+function getRaffleTwitterHandle() {
+  const mustFollowLinks = parseMustFollowLinks();
+  console.log('mustFollowLinks', mustFollowLinks);
+  if (!mustFollowLinks?.length) {
+    return null;
+  }
+  const twitterHandle = extractTwitterHandle(mustFollowLinks[0]);
+  if (!twitterHandle) {
+    return null;
+  }
+  debug.log('twitterHandle', twitterHandle);
+
+  return twitterHandle;
+}
+
+function getTwitterUser() {
+  try {
+    const elems = parseTaskTexts(storage.options.ATLAS_TWITTER_USER_SEL);
+    console.log('getTwitterUser elems', elems);
+    if (!elems?.length) {
+      return null;
+    }
+    return elems[0].innerText.replace(storage.options.ATLAS_TWITTER_USER_SEL, '').replace('@', '').trim();
+  } catch (e) {
+    console.error('Failed getTwitterUser! Error:', e);
+    return null;
+  }
+}
+
+function getDiscordUser() {
+  try {
+    const elems = parseTaskTexts(storage.options.ATLAS_DISCORD_USER_SEL);
+    console.log('getDiscordUser elems', elems);
+    if (!elems?.length) {
+      return null;
+    }
+    return elems[0].innerText.replace(storage.options.ATLAS_DISCORD_USER_SEL, '').trim();
+  } catch (e) {
+    console.error('Failed getDiscordUser! Error:', e);
+    return null;
+  }
 }

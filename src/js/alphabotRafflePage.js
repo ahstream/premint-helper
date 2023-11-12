@@ -26,6 +26,8 @@ import { createObserver as createRaffleObserver, getPreviousWalletsWon } from '.
 
 import { initRafflePage } from './rafflePage';
 
+import {} from './alphabotLib';
+
 const debug = createLogger();
 
 // DATA ----------------------------------------------------------------------------
@@ -55,8 +57,6 @@ const config = {
   setPendingReg,
   getTwitterUser,
   getDiscordUser,
-  getAlphaName,
-  getRaffleTwitterHandle,
   parseMustLikeLinks,
   parseMustRetweetLinks,
   parseMustLikeAndRetweetLinks,
@@ -298,7 +298,7 @@ async function hasRaffleTrigger2() {
 }
 
 function isIgnored(pageState) {
-  const teamName = getAlphaName();
+  const teamName = getTeamName();
   let ignored =
     pageState.isAutoStarted && // only ignore auto started raffles!
     storage.options.ALPHABOT_IGNORED_NAMES.length &&
@@ -316,50 +316,6 @@ function isPendingReg() {
 
 async function setPendingReg() {
   return false;
-}
-
-// PAGE GETTERS -------------------------------------
-
-function getTwitterUser() {
-  const elems = [...document.querySelectorAll('div.MuiSelect-select[role="button"]')].filter((e) =>
-    e.innerText.startsWith('@')
-  );
-  return elems?.length === 1 ? elems[0].innerText.replace('@', '') : null;
-}
-
-function getDiscordUser() {
-  const elems = [...document.querySelectorAll('div.MuiBox-root')].filter((e) =>
-    e.innerText.toLowerCase().startsWith('discord:')
-  );
-  if (!elems || !elems.length) {
-    return null;
-  }
-  const elem = elems[0].querySelector('div[role="button"]');
-  return elem ? elem.innerText : null;
-}
-
-function getAlphaName() {
-  // /from\\n\\n([a-z0-9 ]*)\\n\\non/i
-  const elem = document.querySelector(
-    '.MuiChip-root.MuiChip-filled.MuiChip-sizeSmall.MuiChip-colorSecondary.MuiChip-filledSecondary'
-  );
-  return elem?.innerText || '';
-}
-
-function getRaffleTwitterHandle() {
-  const twitterLink = document.querySelector('a[data-action="option-twitter"]');
-  if (!twitterLink) {
-    return null;
-  }
-  debug.log('twitterLink', twitterLink);
-
-  const twitterHandle = extractTwitterHandle(twitterLink?.href);
-  if (!twitterHandle) {
-    return null;
-  }
-  debug.log('twitterHandle', twitterHandle);
-
-  return twitterHandle;
 }
 
 // PARSE TASK LINKS -------------------------------------
@@ -448,59 +404,8 @@ function addPreviouslyWonWallets(pageState) {
   tasksElem.after(section);
 }
 
-function getWonWalletsByThisAccount() {
-  try {
-    const elems = [
-      ...[...document.querySelectorAll('div.MuiBox-root')].filter(
-        (x) => x.innerText.toLowerCase() === 'you won'
-      ),
-    ];
-    if (!elems?.length) {
-      return [];
-    }
-    return [...elems[0].nextElementSibling.querySelectorAll('p')]
-      .filter((x) => x.innerText.includes('...'))
-      .map((x) => x.innerText);
-  } catch (e) {
-    console.error(e);
-    return [];
-  }
-}
-
 function getWonWalletsByAllAccounts() {
   return getPreviousWalletsWon(getRaffleTwitterHandle());
-}
-
-function getSelectedWallet() {
-  try {
-    const elems = [...document.querySelectorAll('div.MuiAlert-message')].filter((x) =>
-      x.innerText.toLowerCase().includes(' mint wallet:\n')
-    );
-    // console.log('elems', elems);
-    //const elems = [...document.querySelectorAll('svg[aria-label^="Select a wallet address"]')];
-    if (!elems?.length) {
-      return null;
-    }
-    const elem = elems[0].querySelector('div[role="button"]');
-    if (!elem) {
-      return null;
-    }
-
-    const shortWallet = elem?.innerText || '';
-    const longWallet = elem.nextSibling?.value || '';
-
-    return { shortWallet, longWallet };
-    /*
-    console.log('elem', elem);
-    console.log('elem?.nextSibling', elem?.nextSibling);
-    console.log('elem?.nextSibling?.value', elem?.nextSibling?.value);
-    return elem?.nextSibling?.value || null;
-    */
-    // return elems[0].previousElementSibling.querySelector('div[role="button"]').parentElement.innerText;
-  } catch (e) {
-    console.error(e);
-    return null;
-  }
 }
 
 // ERROR HANDLING
@@ -585,4 +490,102 @@ async function handleComplexErrors(pageState, context) {
 
 function loadRafflePageWithCustomContent() {
   return false;
+}
+
+// RAFFLE GETTERS
+
+function getSelectedWallet() {
+  try {
+    const elems = [...document.querySelectorAll('div.MuiAlert-message')].filter((x) =>
+      x.innerText.toLowerCase().includes(' mint wallet:\n')
+    );
+    // console.log('elems', elems);
+    //const elems = [...document.querySelectorAll('svg[aria-label^="Select a wallet address"]')];
+    if (!elems?.length) {
+      return null;
+    }
+    const elem = elems[0].querySelector('div[role="button"]');
+    if (!elem) {
+      return null;
+    }
+
+    const shortWallet = elem?.innerText || '';
+    const longWallet = elem.nextSibling?.value || '';
+    const tokens = shortWallet.split('...');
+    const shortPrefix = tokens.length >= 2 ? tokens[0] : '';
+    const shortSuffix = tokens.length >= 2 ? tokens[1] : '';
+
+    return { shortWallet, longWallet, shortPrefix, shortSuffix };
+    /*
+    console.log('elem', elem);
+    console.log('elem?.nextSibling', elem?.nextSibling);
+    console.log('elem?.nextSibling?.value', elem?.nextSibling?.value);
+    return elem?.nextSibling?.value || null;
+    */
+    // return elems[0].previousElementSibling.querySelector('div[role="button"]').parentElement.innerText;
+  } catch (e) {
+    console.error(e);
+    return null;
+  }
+}
+
+function getWonWalletsByThisAccount() {
+  try {
+    const elems = [
+      ...[...document.querySelectorAll('div.MuiBox-root')].filter(
+        (x) => x.innerText.toLowerCase() === 'you won'
+      ),
+    ];
+    if (!elems?.length) {
+      return [];
+    }
+    return [...elems[0].nextElementSibling.querySelectorAll('p')]
+      .filter((x) => x.innerText.includes('...'))
+      .map((x) => x.innerText);
+  } catch (e) {
+    console.error(e);
+    return [];
+  }
+}
+
+function getTeamName() {
+  // /from\\n\\n([a-z0-9 ]*)\\n\\non/i
+  const elem = document.querySelector(
+    '.MuiChip-root.MuiChip-filled.MuiChip-sizeSmall.MuiChip-colorSecondary.MuiChip-filledSecondary'
+  );
+  return elem?.innerText || '';
+}
+
+function getRaffleTwitterHandle() {
+  const twitterLink = document.querySelector('a[data-action="option-twitter"]');
+  if (!twitterLink) {
+    return null;
+  }
+  debug.log('twitterLink', twitterLink);
+
+  const twitterHandle = extractTwitterHandle(twitterLink?.href);
+  if (!twitterHandle) {
+    return null;
+  }
+  debug.log('twitterHandle', twitterHandle);
+
+  return twitterHandle;
+}
+
+function getTwitterUser() {
+  const elems = [...document.querySelectorAll('div.MuiSelect-select[role="button"]')].filter((e) =>
+    e.innerText.startsWith('@')
+  );
+  return elems?.length === 1 ? elems[0].innerText.replace('@', '') : null;
+}
+
+function getDiscordUser() {
+  const elems = [...document.querySelectorAll('div.MuiBox-root')].filter((e) =>
+    e.innerText.toLowerCase().startsWith('discord:')
+  );
+  if (!elems || !elems.length) {
+    return null;
+  }
+  const elem = elems[0].querySelector('div[role="button"]');
+  return elem ? elem.innerText : null;
 }

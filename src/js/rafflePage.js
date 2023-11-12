@@ -826,7 +826,7 @@ function updateStatusbarRunning(content) {
 // WON WALLETS
 
 function checkForJoinWithWonWallet() {
-  const wonWallets = getWonWallets();
+  const wonWallets = getWonWallets().map((x) => x.toLowerCase());
   debug.log('wonWallets', wonWallets);
   if (!wonWallets.length) {
     return false;
@@ -838,9 +838,32 @@ function checkForJoinWithWonWallet() {
     return false;
   }
 
-  if (wonWallets.includes(selectedWallet.shortWallet) || wonWallets.includes(selectedWallet.longWallet)) {
+  selectedWallet.shortWallet = selectedWallet.shortWallet.toLowerCase();
+  selectedWallet.longWallet = selectedWallet.longWallet.toLowerCase();
+  selectedWallet.shortPrefix = selectedWallet.shortPrefix.toLowerCase();
+  selectedWallet.shortSuffix = selectedWallet.shortSuffix.toLowerCase();
+
+  if (wonWallets.includes(selectedWallet.shortWallet)) {
+    console.log('checkForJoinWithWonWallet shortWallet hit!', selectedWallet, wonWallets);
     return true;
   }
+
+  if (wonWallets.includes(selectedWallet.longWallet)) {
+    console.log('checkForJoinWithWonWallet longWallet hit!', selectedWallet, wonWallets);
+    return true;
+  }
+
+  if (selectedWallet.shortPrefix && selectedWallet.shortSuffix) {
+    if (
+      wonWallets.find(
+        (x) => x.startsWith(selectedWallet.shortPrefix) && x.endsWith(selectedWallet.shortSuffix)
+      )
+    ) {
+      console.log('checkForJoinWithWonWallet prefix/suffix hit!', selectedWallet, wonWallets);
+      return true;
+    }
+  }
+  console.log('checkForJoinWithWonWalletno hit!');
 
   return false;
 }

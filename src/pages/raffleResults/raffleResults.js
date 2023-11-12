@@ -653,7 +653,7 @@ function createWinsTableHeadRow() {
   row.appendChild(createCell('Time'));
   row.appendChild(createCell('Raffle Date'));
   row.appendChild(createCell('Start Date'));
-  row.appendChild(createCell('RR', 'Is raffle restarted?'));
+  row.appendChild(createCell('R?', 'Is raffle restarted after mint date?'));
   row.appendChild(createCell('WL Price', 'Price at Whitelist Mint'));
   row.appendChild(createCell('Price', 'Price at Public Mint'));
   row.appendChild(createCell('Supply'));

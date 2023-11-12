@@ -47,7 +47,6 @@ const config = {
   setPendingReg,
   getTwitterUser,
   getDiscordUser,
-  getAlphaName,
   getRaffleTwitterHandle,
   parseMustLikeLinks,
   parseMustRetweetLinks,
@@ -225,10 +224,6 @@ function getDiscordUser() {
     console.error('Failed getting Twitter user! Error:', e);
     return null;
   }
-}
-
-function getAlphaName() {
-  return '';
 }
 
 function getRaffleTwitterHandle() {
