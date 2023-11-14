@@ -19,6 +19,8 @@ module.exports = {
     alphabotRafflePage: './src/js/alphabotRafflePage.js',
     alphabotMainPage: './src/js/alphabotMainPage.js',
     atlasRafflePage: './src/js/atlasRafflePage.js',
+    luckyRafflePage: './src/js/luckyRafflePage.js',
+    luckyMyRafflesPage: './src/js/luckyMyRafflesPage.js',
     discordPage: './src/js/discordPage.js',
     twitterPage: './src/js/twitterPage.js',
     twitterIntentPage: './src/js/twitterIntentPage.js',

@@ -1,15 +1,18 @@
-console.info('atlasPage.js begin', window?.location?.href);
+console.info('luckyPage.js begin', window?.location?.href);
 
-import '../styles/atlasPage.css';
+import '../styles/luckyPage.css';
 
-import { JOIN_BUTTON_TEXT, JOIN_BUTTON_IN_PROGRESS_TEXT, JOIN_BUTTON_TITLE } from './premintHelperLib';
+import {
+  JOIN_BUTTON_TEXT,
+  JOIN_BUTTON_IN_PROGRESS_TEXT,
+  JOIN_BUTTON_TITLE,
+  clickElement,
+} from './premintHelperLib';
 
 import { initRafflePage } from './rafflePage';
 
 import {
-  ONE_SECOND,
   sleep,
-  waitForSelector,
   waitForTextEquals,
   createLogger,
   //setStorageData,
@@ -18,6 +21,7 @@ import {
   //normalizePendingLink,
   millisecondsAhead,
   extractTwitterHandle,
+  getTextEquals,
 } from 'hx-lib';
 
 import { createObserver as createRaffleObserver, getPreviousWalletsWon } from './observerGeneric';
@@ -29,15 +33,13 @@ const debug = createLogger();
 let storage = null;
 
 const config = {
-  name: 'ATLAS',
-  enableForceRegister: false,
+  name: 'LUCKY',
+  enableForceRegister: true,
   storageKeys: ['runtime', 'options'],
   setStorage,
   createObserver,
   waitForRafflePageLoaded,
   forceRegister,
-  readyToRegister,
-  skipReqsIfReady,
   hasRegistered,
   hasCaptcha,
   hasWalletConnectDialog,
@@ -69,6 +71,7 @@ const config = {
   JOIN_BUTTON_TEXT,
   JOIN_BUTTON_TITLE,
   JOIN_BUTTON_IN_PROGRESS_TEXT,
+  getRegisteringButtonSync,
 };
 
 // STARTUP ----------------------------------------------------------------------------
@@ -96,8 +99,11 @@ async function createObserver() {
 async function waitForRafflePageLoaded() {
   debug.log('waitForRafflePageLoaded');
 
-  const stopTime = millisecondsAhead(storage.options.ATLAS_WAIT_FOR_RAFFLE_PAGE_LOADED);
+  const stopTime = millisecondsAhead(storage.options.LUCKY_WAIT_FOR_RAFFLE_PAGE_LOADED);
   while (Date.now() <= stopTime) {
+    if (hasRegistered()) {
+      return true;
+    }
     const du = getDiscordUser();
     const tu = getTwitterUser();
     console.log('du, tu:', du, tu);
@@ -115,15 +121,43 @@ async function waitForRafflePageLoaded() {
 // REGISTER
 
 function forceRegister() {
-  return null;
+  const regBtn = getRegisterButtonSync(true);
+  debug.log('forceRegister; regBtn:', regBtn);
+
+  if (!regBtn) {
+    debug.log('!regBtn');
+    return null;
+  }
+
+  const errors = getErrors();
+  debug.log('errors:', errors);
+  if (errors.discord) {
+    debug.log('Do not force register when discord errors!');
+    return null;
+  }
+
+  if (hasDoingItTooOften()) {
+    debug.log('hasDoingItTooOften');
+    return null;
+  }
+
+  if (!isAllRegBtnsEnabled()) {
+    debug.log('!isAllRegBtnsEnabled');
+    return null;
+  }
+
+  clickElement(regBtn);
+  // pageState.isRegistering = true;
+  return regBtn;
 }
 
+/*
 function readyToRegister() {
   return isAllTasksCompleted();
 }
 
 function skipReqsIfReady() {
-  return storage.options.ATLAS_SKIP_REQS_IF_READY && isAllTasksCompleted();
+  return false;
 }
 
 function isAllTasksCompleted() {
@@ -140,18 +174,23 @@ function isAllTasksCompleted() {
 
   return r;
 }
+*/
 
 // REGISTER BTN FUNCS ----------------------------------------------
 
 async function getRegisterButton(maxWait = 1000, interval = 10) {
   console.log('getRegisterButton');
-  return await waitForTextEquals(storage.options.ATLAS_REG_BTN_SEL, 'button', maxWait, interval);
+  return await waitForTextEquals(storage.options.LUCKY_REG_BTN_SEL, 'div', maxWait, interval);
 }
 
 function getRegisterButtonSync() {
-  return [...document.querySelectorAll('button')].filter(
-    (x) => x.innerText === storage.options.ATLAS_REG_BTN_SEL
+  return [...document.querySelectorAll('div')].filter(
+    (x) => x.innerText === storage.options.LUCKY_REG_BTN_SEL
   )[0];
+}
+
+function getRegisteringButtonSync() {
+  return [...document.querySelectorAll('div')].filter((x) => x.innerText === 'Registering')[0];
 }
 
 function isAllRegBtnsEnabled() {
@@ -165,7 +204,7 @@ function isAllRegBtnsEnabled() {
 
 async function addQuickRegButton(clickHandler) {
   const regBtnContainer = await getRegisterButton();
-  debug.log('regBtn', regBtnContainer);
+  debug.log('regBtnContainer', regBtnContainer);
   if (!regBtnContainer) {
     return;
   }
@@ -175,14 +214,13 @@ async function addQuickRegButton(clickHandler) {
   btn.innerHTML = JOIN_BUTTON_TEXT;
   btn.title = JOIN_BUTTON_TITLE;
   btn.className =
-    'ph-button flex justify-center items-center gap-2 py-2 px-4 bg-primary-500 rounded-lg text-white w-full transition hover:cursor-pointer';
+    'ph-button active:buttonShadow mt-6 flex h-12 cursor-pointer items-center justify-center rounded-full bg-primary-500 text-base font-medium text-neutral-100 hover:bg-primary-600 bg-primary-500 text-neutral-100';
   btn.addEventListener('click', clickHandler);
 
-  const container = getEntryContainer();
-  console.log('container', container);
-  container.after(btn);
+  regBtnContainer.before(btn);
 }
 
+/*
 function getEntryContainer() {
   return (
     [...document.querySelectorAll('div.pb-2')].filter((x) =>
@@ -190,11 +228,12 @@ function getEntryContainer() {
     )[0] || null
   );
 }
+*/
 
 // RAFFLE STATE CHECKERS -------------------------------------------------------------------
 
 function hasRegistered() {
-  return document.body.innerHTML.match(/REGISTERED SUCCESSFULLY - /i);
+  return !!getTextEquals('Registered successfully.', 'div');
 }
 
 function hasCaptcha() {
@@ -210,7 +249,7 @@ function hasWalletConnectDialog() {
 }
 
 function hasAlreadyWon() {
-  return false;
+  return !!getTextEquals('Congratulations', 'div');
 }
 
 function hasDoingItTooOften() {
@@ -218,9 +257,7 @@ function hasDoingItTooOften() {
 }
 
 async function hasRaffleTrigger() {
-  const elem = await waitForSelector(storage.options.ATLAS_MAIN_REGION_SEL, 10 * ONE_SECOND, 50);
-  debug.log('hasRaffleTrigger:', elem);
-  return !!elem;
+  return !!getRegisterButtonSync();
 }
 
 async function hasRaffleTrigger2() {
@@ -232,7 +269,7 @@ function isIgnored() {
 }
 
 function hasErrors() {
-  return !!document.querySelector('div.text-white.bg-red-500');
+  return false; //  !!document.querySelector('div.text-white.bg-red-500');
 }
 
 // PENDING REG --------------------------------
@@ -248,98 +285,91 @@ async function setPendingReg() {
 // PARSE TASK LINKS -------------------------------------
 
 function parseMustLikeLinks() {
-  return parseTaskLinks(storage.options.ATLAS_MUST_LIKE_SEL);
+  return getTwitterLinks(
+    [...document.querySelectorAll('div')].filter(
+      (x) => x.innerText.startsWith('Like this') && x.innerText.endsWith('s) .')
+    )
+  );
 }
 
 function parseMustRetweetLinks() {
-  return parseTaskLinks(storage.options.ATLAS_MUST_RETWEET_SEL);
+  return getTwitterLinks(
+    [...document.querySelectorAll('div')].filter(
+      (x) => x.innerText.startsWith('Retweet this') && x.innerText.endsWith('s) .')
+    )
+  );
 }
 
 function parseMustLikeAndRetweetLinks() {
-  return parseTaskLinks(storage.options.ATLAS_MUST_LIKE_AND_RETWEET_SEL);
+  return getTwitterLinks(
+    [...document.querySelectorAll('div')].filter(
+      (x) => x.innerText.startsWith('Like & Retweet') && x.innerText.endsWith('s) .')
+    )
+  );
 }
 
 function parseMustFollowLinks() {
-  return parseTaskLinks(storage.options.ATLAS_MUST_FOLLOW_SEL);
+  return getTwitterLinks(
+    [...document.querySelectorAll('div')].filter(
+      (x) => x.innerText.startsWith('Follow') && x.innerText.endsWith('on Twitter.')
+    )
+  );
+}
+
+function getTwitterLinks(elems) {
+  console.log('getTwitterLinks, elems', elems);
+  if (!elems.length) {
+    return [];
+  }
+  const allLinks = [];
+  for (let elem of elems) {
+    console.log('elem', elem);
+    const links = [...elem.querySelectorAll('a')]
+      .filter(
+        (x) =>
+          x.href.toLowerCase().startsWith('https://twitter.com/') ||
+          x.href.toLowerCase().startsWith('https://x.com/')
+      )
+      .map((x) => x.href);
+    if (links.length) {
+      allLinks.push(...links);
+    }
+  }
+
+  console.log('getTwitterLinks', allLinks);
+
+  return noDuplicates(allLinks);
 }
 
 function parseMustJoinLinks(mustHaveRole = false) {
+  console.log('parseMustJoinLinks:', mustHaveRole);
+  /*
+  let elems;
   if (mustHaveRole) {
-    return [];
+    elems = [...document.querySelectorAll('div')].filter(
+      (e) =>
+        e.innerText.toLowerCase().startsWith('join') &&
+        e.innerText.toLowerCase().includes('discord') &&
+        e.innerText.toLowerCase().includes('have role')
+    );
+  } else {
+    elems = [...document.querySelectorAll('div')].filter(
+      (e) => e.innerText.toLowerCase().startsWith('join') && e.innerText.toLowerCase().includes('discord')
+    );
   }
-  return parseTaskLinks(storage.options.ATLAS_JOIN_DISCORD_SEL);
-}
+  console.log('parseMustJoinLinks, elems:', elems);
+  */
 
-function parseTaskLinks(prefix) {
-  debug.log('parseTaskLinks; prefix:', prefix);
-  try {
-    const baseElems = getMainTaskElements();
-    if (!baseElems?.length) {
-      return [];
-    }
-    const mainElems = baseElems.filter((e) => e.innerText.toLowerCase().trim().startsWith(prefix));
-    debug.log('elems', mainElems);
+  const matches = [
+    ...document.body.innerHTML.matchAll(/"invite_link":"(https:\/\/discord.gg\/[a-z0-9_-]+)"/gim),
+    ...document.body.innerHTML.matchAll(/"invite_link":"(https:\/\/discord.com\/invite\/[a-z0-9_-]+)"/gim),
+  ];
+  console.log('matches:', matches);
 
-    const arr = mainElems.map((x) => x.getElementsByTagName('a')).map((x) => Array.from(x));
-    debug.log('arr', arr);
-    const noDups = noDuplicates(arr.flat().map((x) => x.href));
-    debug.log('noDups', noDups);
-    const badLinks = noDups.filter((x) => isCorruptTaskLink(x));
-    const useLinks = noDups.filter((x) => !isCorruptTaskLink(x));
-    debug.log('badLinks, useLinks', badLinks, useLinks);
-    // return noDuplicates(arr);
-    return useLinks;
-  } catch (e) {
-    console.error('Failed parsing task links. Error:', e);
-    return [];
-  }
-}
-
-function parseTaskTexts(prefix) {
-  debug.log('parseTaskText; prefix:', prefix);
-  try {
-    const baseElems = getMainTaskElements();
-    if (!baseElems?.length) {
-      return [];
-    }
-    const mainElems = baseElems.filter((e) => e.innerText.trim().startsWith(prefix));
-    debug.log('elems', mainElems);
-    return mainElems;
-  } catch (e) {
-    console.error('Failed parsing task texts. Error:', e);
-    return [];
-  }
-}
-
-function getMainTaskElements() {
-  debug.log('getMainTaskElements');
-  const mainElems = [...document.querySelectorAll('p')].filter(
-    (x) => x.innerText === storage.options.ATLAS_MAIN_REGION_SEL
-  );
-  if (!mainElems) {
-    return [];
-  }
-  const baseElems = document.querySelectorAll('div.flex.py-5');
-  debug.log('baseElems', baseElems);
-  if (!baseElems?.length) {
-    return [];
-  }
-  return [...baseElems];
-}
-
-function isCorruptTaskLink(s) {
-  // eslint-disable-next-line no-useless-escape
-  const n = countOccurances(s, /https\:\/\//gi);
-  console.log('isCorruptTaskLink', s, n, n > 1);
-  return n > 1;
-  // return s.includes('https://twitter.com/any/status/');
+  return matches.map((x) => x[1]);
 }
 
 // MISC HELPERS
-
-function countOccurances(str, regexp) {
-  return ((str || '').match(regexp) || []).length;
-}
 
 // WON WALLETS
 
@@ -375,10 +405,12 @@ function getWonWalletsByAllAccounts() {
 // ERROR HANDLING
 
 function getErrors() {
+  /*
   const elems = [...document.querySelectorAll('.alert-danger')];
   if (elems?.length) {
     return ['unspecifiedRaffleError'];
   }
+  */
   return [];
 }
 
@@ -402,9 +434,8 @@ async function handleComplexErrors(pageState, context) {
     return false;
   }
   await sleep(500);
-  const regBtn = getRegisterButtonSync();
-  console.log('Wait for regbtn not disabled');
-  while (regBtn && regBtn.disabled) {
+  console.log('Wait for regbtn not registering');
+  while (getRegisteringButtonSync()) {
     await sleep(10);
   }
   if (hasErrors()) {
@@ -464,12 +495,11 @@ function getRaffleTwitterHandle() {
 
 function getTwitterUser() {
   try {
-    const elems = parseTaskTexts(storage.options.ATLAS_TWITTER_USER_SEL);
-    console.log('getTwitterUser elems', elems);
+    const elems = [...document.querySelectorAll('div')].filter((x) => x.innerText === 'Twitter');
     if (!elems?.length) {
       return null;
     }
-    return elems[0].innerText.replace(storage.options.ATLAS_TWITTER_USER_SEL, '').replace('@', '').trim();
+    return elems[0].nextElementSibling?.innerText.replace('@', '').trim();
   } catch (e) {
     console.error('Failed getTwitterUser! Error:', e);
     return null;
@@ -478,12 +508,11 @@ function getTwitterUser() {
 
 function getDiscordUser() {
   try {
-    const elems = parseTaskTexts(storage.options.ATLAS_DISCORD_USER_SEL);
-    console.log('getDiscordUser elems', elems);
+    const elems = [...document.querySelectorAll('div')].filter((x) => x.innerText === 'Discord');
     if (!elems?.length) {
       return null;
     }
-    return elems[0].innerText.replace(storage.options.ATLAS_DISCORD_USER_SEL, '').trim();
+    return elems[0].nextElementSibling?.innerText.trim();
   } catch (e) {
     console.error('Failed getDiscordUser! Error:', e);
     return null;

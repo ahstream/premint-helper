@@ -568,7 +568,7 @@ async function waitAndTryRegisterOneLastTime() {
       debug.log('forceRegister ok!');
       return waitForRegisteredMainLoop(regBtn);
     }
-    await sleep(1000);
+    await sleep(1500);
   }
 
   if (provider.hasRegistered()) {
@@ -598,7 +598,7 @@ async function waitAndTryRegisterBeforeRetry(retries) {
         }
       }
     }
-    await sleep(1000);
+    await sleep(1500);
   }
 
   if (provider.hasRegistered()) {
@@ -900,7 +900,7 @@ async function handleRaffleCaptcha() {
     } else {
       debug.log('forceRegister NOK!');
     }
-    await sleep(1000);
+    await sleep(1500);
   }
 }
 

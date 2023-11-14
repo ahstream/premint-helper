@@ -1,0 +1,28 @@
+@import 'baseVars.css';
+@import 'raffleInfo.css';
+@import 'statusbar.css';
+
+:root {
+  /* raffle-info */
+  --raffle-info-registered: #7df17d;
+  --raffle-info-not-register-properly: #bb5555;
+  --raffle-info-raffle-unknown-error: #bb5555;
+  --raffle-info-wallet-connect-dialog: #bb5555;
+  --raffle-info-doing-it-too-often: #bb5555;
+  --raffle-info-switch-twitter-user-error: #bb5555;
+  --raffle-info-no-raffle-trigger: #bb5555;
+  --raffle-info-generic-error: #bb5555;
+}
+
+.ph-button {
+  color: var(--atlas-btn-color) !important;
+  background-color: var(--atlas-btn-background-color) !important;
+  border-color: var(--atlas-btn-border-color) !important;
+  font-weight: 700 !important;
+  margin-top: 10px;
+  width: 100%;
+}
+
+.ph-button:hover {
+  background-color: var(--atlas-btn-hover-background-color) !important;
+}

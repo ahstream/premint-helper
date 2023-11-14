@@ -15,6 +15,7 @@ mountPopupPage([
       window.close();
     },
   },
+  /*
   {
     id: 'hx-show-alphabot-results',
     callback: () => {
@@ -26,6 +27,7 @@ mountPopupPage([
       });
     },
   },
+  */
   {
     id: 'hx-show-raffle-results',
     callback: () => {

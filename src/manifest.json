@@ -81,6 +81,20 @@
       "css": ["styles/atlasRafflePage.css"],
       "js": ["atlasRafflePage.js"],
       "run_at": "document_start"
+    },
+    {
+      "matches": ["https://luckygo.io/r/*"],
+      "exclude_matches": [],
+      "css": ["styles/luckyRafflePage.css"],
+      "js": ["luckyRafflePage.js"],
+      "run_at": "document_start"
+    },
+    {
+      "matches": ["https://luckygo.io/myraffles"],
+      "exclude_matches": [],
+      "css": [],
+      "js": ["luckyMyRafflesPage.js"],
+      "run_at": "document_start"
     }
   ]
 }

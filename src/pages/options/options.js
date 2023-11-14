@@ -50,6 +50,18 @@ const options = [
   },
 
   {
+    header: 'LuckyGo.io Settings',
+    hiddenKey: '',
+    options: [
+      ['property', 'LUCKY_ENABLE', 'Enable raffle automation on luckygo.io website'],
+      ['property', 'LUCKY_ENABLE_TWITTER_TASKS', 'Enable Twitter tasks'],
+      ['property', 'LUCKY_ENABLE_DISCORD_TASKS', 'Enable Discord tasks'],
+      ['property', 'LUCKY_ENABLE_RESULTS', 'Enable fetch of results'],
+      ['property', 'LUCKY_RESULTS_MAX_FETCH_WINS', 'Max new results to fetch'],
+    ],
+  },
+
+  {
     header: 'Raffle Settings',
     hiddenKey: '',
     options: [

@@ -2,6 +2,7 @@
 @import 'hx-statusbar/dist/main.css';
 
 .hx-statusbar {
+  font-family: var(--sans-font) !important;
   color: var(--statusbar-color);
   background-color: var(--statusbar-background-color);
   width: 100%;

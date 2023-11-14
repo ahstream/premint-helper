@@ -94,4 +94,9 @@
   --atlas-btn-background-color: var(--base-theme-background-color);
   --atlas-btn-border-color: darkgray;
   --atlas-btn-hover-background-color: #032557;
+
+  /* Set sans-serif & mono fonts */
+  --sans-font: -apple-system, BlinkMacSystemFont, 'Avenir Next', Avenir, 'Nimbus Sans L', Roboto, 'Noto Sans',
+    'Segoe UI', Arial, Helvetica, 'Helvetica Neue', sans-serif;
+  --mono-font: Consolas, Menlo, Monaco, 'Andale Mono', 'Ubuntu Mono', monospace;
 }
