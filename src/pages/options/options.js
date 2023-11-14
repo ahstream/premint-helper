@@ -171,6 +171,8 @@ const options = [
         '',
         'If enabled, Premint Helper will auto click OK button on Twitter intent pages.',
       ],
+      ['property', 'DISCORD_ENABLE', 'DISCORD_ENABLE', '', ''],
+      ['property', 'TWITTER_ENABLE', 'TWITTER_ENABLE', '', ''],
     ],
   },
 
