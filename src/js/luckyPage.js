@@ -1,8 +1,9 @@
-console.info('luckyMyRafflesPage.js begin', window?.location?.href);
+console.info('luckyPage.js begin', window?.location?.href);
 
-import { getAccount as getLuckyAccount, getWins as getLuckyWins } from './luckyLib.js';
+// import { getAccount as getLuckyAccount, getWins as getLuckyWins } from './luckyLib.js';
 
-import { getStorageItems, createLogger, sleep, createHashArgs } from 'hx-lib';
+import { getStorageItems, createLogger, sleep, createHashArgs, dispatch } from 'hx-lib';
+import { getCookie } from './premintHelperLib';
 
 const debug = createLogger();
 
@@ -49,26 +50,42 @@ async function runPage() {
   debug.log('runPage');
 
   if (window.location.href.includes('/myraffles')) {
-    return runWon();
+    return runMyRafflesPage();
   }
 
   debug.log('Exit runPage!');
 }
 
-async function runWon() {
-  debug.log('runWon');
+async function runMyRafflesPage() {
+  debug.log('runGetAuthKey');
 
-  if (!pageState.parentTabId) {
-    debug.log('not run by PH, exit');
-    return;
+  if (!pageState.action) {
+    const request = await dispatch(window.location.href, 300);
+    debug.log('dispatched request:', request);
+    pageState.request = request;
+    pageState.action = request?.action;
+    pageState.parentTabId = request?.tabId;
   }
 
-  console.log(getLuckyAccount);
+  if (pageState.action === 'getAuth') {
+    return getAuth();
+  }
 
-  const account = await getLuckyAccount();
-  await sleep(2000);
-  const wins = await getLuckyWins(account);
-  console.log('wins', wins);
+  debug.log('not dispatched, exit');
+  return;
+}
+
+async function getAuth() {
+  const val = getCookie('Authorization');
+  debug.log('getAuth, val:', val);
+
+  await chrome.runtime.sendMessage({
+    cmd: 'sendTo',
+    to: pageState.parentTabId,
+    request: { cmd: 'getAuth', val },
+  });
+  await sleep(1);
+  window.close();
 }
 
 /*

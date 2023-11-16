@@ -2,6 +2,8 @@ console.info('luckyPage.js begin', window?.location?.href);
 
 import '../styles/luckyPage.css';
 
+import { getRaffleTwitterHandle } from './luckyLib';
+
 import {
   JOIN_BUTTON_TEXT,
   JOIN_BUTTON_IN_PROGRESS_TEXT,
@@ -20,7 +22,6 @@ import {
   //addToDate,
   //normalizePendingLink,
   millisecondsAhead,
-  extractTwitterHandle,
   getTextEquals,
 } from 'hx-lib';
 
@@ -30,12 +31,15 @@ const debug = createLogger();
 
 // DATA ----------------------------------------------------------------------------
 
+const SLEEP_BEFORE_NEXT_FORCE_REGISTER = 10000;
+
 let storage = null;
 
 const config = {
   name: 'LUCKY',
   enableForceRegister: true,
   storageKeys: ['runtime', 'options'],
+  SLEEP_BETWEEN_WAIT_FOR_REGISTERED: 2000,
   setStorage,
   createObserver,
   waitForRafflePageLoaded,
@@ -120,7 +124,7 @@ async function waitForRafflePageLoaded() {
 
 // REGISTER
 
-function forceRegister() {
+async function forceRegister(pageState) {
   const regBtn = getRegisterButtonSync(true);
   debug.log('forceRegister; regBtn:', regBtn);
 
@@ -141,12 +145,16 @@ function forceRegister() {
     return null;
   }
 
-  if (!isAllRegBtnsEnabled()) {
+  if (!isAllRegBtnsEnabled(pageState)) {
     debug.log('!isAllRegBtnsEnabled');
     return null;
   }
 
   clickElement(regBtn);
+  console.log('pageState', pageState);
+  if (pageState.isRegistering) {
+    await sleep(SLEEP_BEFORE_NEXT_FORCE_REGISTER);
+  }
   // pageState.isRegistering = true;
   return regBtn;
 }
@@ -194,8 +202,14 @@ function getRegisteringButtonSync() {
 }
 
 function isAllRegBtnsEnabled() {
+  /*
+  if (pageState.isRegistering) {
+    // if registering, all reg buttons should not be enabled!
+    return false;
+  }
+  */
   const regBtn = getRegisterButtonSync();
-  console.log('regBtn', regBtn);
+  // console.log('regBtn', regBtn);
   if (regBtn?.disabled) {
     return false;
   }
@@ -269,7 +283,8 @@ function isIgnored() {
 }
 
 function hasErrors() {
-  return false; //  !!document.querySelector('div.text-white.bg-red-500');
+  return false;
+  // return !!getErrors()?.length;
 }
 
 // PENDING REG --------------------------------
@@ -374,6 +389,8 @@ function parseMustJoinLinks(mustHaveRole = false) {
 // WON WALLETS
 
 function addPreviouslyWonWallets(pageState) {
+  console.log('addPreviouslyWonWallets', pageState);
+
   const twitterHandle = getRaffleTwitterHandle();
   if (!twitterHandle) {
     return;
@@ -381,11 +398,26 @@ function addPreviouslyWonWallets(pageState) {
   debug.log('twitterHandle', twitterHandle);
 
   const section = pageState.observer.createPreviousWonSection(twitterHandle, true, pageState.permissions);
+  console.log('section', section);
   if (!section) {
     return;
   }
   debug.log('section', section);
-  document.body.appendChild(section);
+
+  const containers1 = [...document.querySelectorAll('div')].filter((x) =>
+    x.innerText.startsWith('Mint wallet')
+  );
+  const containers2 = [...document.querySelectorAll('div')].filter((x) =>
+    x.innerText.startsWith('You submitted:')
+  );
+  const containers = [...containers1, ...containers2];
+
+  if (!containers?.length) {
+    console.error('Missing mint wallet container:', containers);
+    return;
+  }
+  debug.log('section', section);
+  containers[0].before(section);
 
   /*
   const tasksElem = getElementByText('Tasks', 'h5', { contains: true });
@@ -405,12 +437,12 @@ function getWonWalletsByAllAccounts() {
 // ERROR HANDLING
 
 function getErrors() {
-  /*
-  const elems = [...document.querySelectorAll('.alert-danger')];
-  if (elems?.length) {
+  if (
+    [...document.querySelectorAll('p')].filter((x) => x.innerText.includes('Please add mint wallet first'))
+      ?.length
+  ) {
     return ['unspecifiedRaffleError'];
   }
-  */
   return [];
 }
 
@@ -433,9 +465,21 @@ async function handleComplexErrors(pageState, context) {
   if (!pageState.isRegistering) {
     return false;
   }
+  if (hasErrors()) {
+    context.exitAction('raffleUnknownError');
+    return true;
+  }
   await sleep(500);
+  if (hasErrors()) {
+    context.exitAction('raffleUnknownError');
+    return true;
+  }
   console.log('Wait for regbtn not registering');
   while (getRegisteringButtonSync()) {
+    if (hasErrors()) {
+      context.exitAction('raffleUnknownError');
+      return true;
+    }
     await sleep(10);
   }
   if (hasErrors()) {
@@ -456,10 +500,11 @@ function loadRafflePageWithCustomContent() {
 
 function getSelectedWallet() {
   try {
-    const elem = document.getElementById('headlessui-listbox-button-:r0:');
-    if (elem?.innerText) {
+    const elems = [...document.querySelectorAll('img')].filter((x) => x.src.includes('Ethereum-fill-brand'));
+    if (!elems?.length) {
       return null;
     }
+    const elem = elems[0].nextElementSibling;
 
     const shortWallet = elem?.innerText || '';
     const longWallet = '';
@@ -476,21 +521,6 @@ function getSelectedWallet() {
 
 function getWonWalletsByThisAccount() {
   return [];
-}
-
-function getRaffleTwitterHandle() {
-  const mustFollowLinks = parseMustFollowLinks();
-  console.log('mustFollowLinks', mustFollowLinks);
-  if (!mustFollowLinks?.length) {
-    return null;
-  }
-  const twitterHandle = extractTwitterHandle(mustFollowLinks[0]);
-  if (!twitterHandle) {
-    return null;
-  }
-  debug.log('twitterHandle', twitterHandle);
-
-  return twitterHandle;
 }
 
 function getTwitterUser() {

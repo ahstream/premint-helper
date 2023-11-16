@@ -563,12 +563,16 @@ async function waitAndTryRegisterOneLastTime() {
   const stopTime = millisecondsAhead(waitSecs * 1000);
   while (Date.now() <= stopTime && storage.options.RAFFLE_FORCE_REGISTER) {
     debug.log('try to forceRegister');
-    const regBtn = provider.forceRegister();
+    const regBtn = await provider.forceRegister(pageState);
     if (regBtn) {
       debug.log('forceRegister ok!');
       return waitForRegisteredMainLoop(regBtn);
     }
-    await sleep(1500);
+    if (provider.SLEEP_BETWEEN_WAIT_FOR_REGISTERED) {
+      await sleep(provider.SLEEP_BETWEEN_WAIT_FOR_REGISTERED);
+    } else {
+      await sleep(1500);
+    }
   }
 
   if (provider.hasRegistered()) {
@@ -588,7 +592,7 @@ async function waitAndTryRegisterBeforeRetry(retries) {
   while (Date.now() <= stopTime) {
     if (storage.options.RAFFLE_FORCE_REGISTER) {
       debug.log('try to forceRegister');
-      const regBtn = provider.forceRegister();
+      const regBtn = await provider.forceRegister(pageState);
       if (regBtn) {
         debug.log('forceRegister ok!');
         return waitForRegisteredMainLoop(regBtn);
@@ -598,7 +602,11 @@ async function waitAndTryRegisterBeforeRetry(retries) {
         }
       }
     }
-    await sleep(1500);
+    if (provider.SLEEP_BETWEEN_WAIT_FOR_REGISTERED) {
+      await sleep(provider.SLEEP_BETWEEN_WAIT_FOR_REGISTERED);
+    } else {
+      await sleep(1500);
+    }
   }
 
   if (provider.hasRegistered()) {
@@ -619,7 +627,7 @@ async function waitForRegisteredMainLoop(regBtn = null, maxWait = 300 * ONE_MINU
       if (provider.hasDoingItTooOften()) {
         return debug.log('hasDoingItTooOften');
       }
-      if (provider.isAllRegBtnsEnabled()) {
+      if (provider.isAllRegBtnsEnabled(pageState)) {
         clickElement(regBtn);
       } else {
         console.log('Not isAllRegBtnsEnabled');
@@ -634,7 +642,11 @@ async function waitForRegisteredMainLoop(regBtn = null, maxWait = 300 * ONE_MINU
     if (regBtn) {
       // await sleep(1000);
     }
-    await sleep(interval);
+    if (provider.SLEEP_BETWEEN_WAIT_FOR_REGISTERED) {
+      await sleep(provider.SLEEP_BETWEEN_WAIT_FOR_REGISTERED);
+    } else {
+      await sleep(interval);
+    }
   }
 
   debug.log('Stop waiting for registered in main loop');
@@ -826,6 +838,8 @@ function updateStatusbarRunning(content) {
 // WON WALLETS
 
 function checkForJoinWithWonWallet() {
+  debug.log('checkForJoinWithWonWallet');
+
   const wonWallets = getWonWallets().map((x) => x.toLowerCase());
   debug.log('wonWallets', wonWallets);
   if (!wonWallets.length) {
@@ -863,7 +877,7 @@ function checkForJoinWithWonWallet() {
       return true;
     }
   }
-  console.log('checkForJoinWithWonWalletno hit!');
+  console.log('checkForJoinWithWonWallet no hit!');
 
   return false;
 }
@@ -894,7 +908,7 @@ async function handleRaffleCaptcha() {
   const stopTime = millisecondsAhead(60 * 1000);
   while (Date.now() <= stopTime) {
     debug.log('try to handleRaffleCaptcha with forceRegister');
-    if (provider.forceRegister()) {
+    if (await provider.forceRegister()) {
       debug.log('forceRegister ok!');
       return waitForRegisteredMainLoop();
     } else {

@@ -61,6 +61,13 @@ span.mint-date,
 span.mint-time,
 span.raffle-date {
   color: black;
+  .restarted {
+    color: #cfcbcb;
+  }
+}
+
+span.restarted {
+  color: #cfcbcb;
 }
 
 span.mint-date:not(.first),
@@ -169,6 +176,7 @@ a.twitter-link-expired:after {
 .is-yesterdayish {
   border: 1px solid rgb(53, 53, 53);
   background-color: rgb(248, 216, 199) !important;
+  background-color: rgb(239 209 206) !important;
   color: black;
 
   .raffle-link:not(.first),

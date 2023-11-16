@@ -93,7 +93,7 @@
       "matches": ["https://luckygo.io/myraffles"],
       "exclude_matches": [],
       "css": [],
-      "js": ["luckyMyRafflesPage.js"],
+      "js": ["luckyPage.js"],
       "run_at": "document_start"
     }
   ]

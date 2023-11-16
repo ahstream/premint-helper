@@ -4,7 +4,7 @@ import './raffleResults.scss';
 
 import { getAccount as getAtlasAccount, getWins as getAtlasWins } from '../../js/atlasLib';
 
-// import { getAccount as getLuckyAccount, getWins as getLuckyWins } from '../../js/luckyLib';
+import { getAccount as getLuckyAccount, getWins as getLuckyWins } from '../../js/luckyLib';
 
 import {
   getAccount as getAlphabotAccount,
@@ -60,6 +60,7 @@ import {
   minutesBetween,
   secondsBetween,
   kFormatter,
+  addPendingRequest,
 } from 'hx-lib';
 
 import { getPermissions } from '../../js/permissions';
@@ -77,6 +78,7 @@ const debug = createLogger();
 const ALPHABOT_INTERVAL = 1500;
 const ATLAS_INTERVAL = 1500;
 const PREMINT_INTERVAL = 520;
+const LUCKY_INTERVAL = 1500;
 
 const SHORTENED_TEXT_SUFFIX = '...';
 
@@ -111,16 +113,21 @@ function initStorage() {
   storage.alphabot.cloudWins = storage.alphabot.cloudWins || [];
   storage.alphabot.wins = storage.alphabot.wins || [];
 
-  storage.atlas = storage.atlas || {};
-  storage.atlas.myWins = storage.atlas.myWins || [];
-  storage.atlas.cloudWins = storage.atlas.cloudWins || [];
-  storage.atlas.wins = storage.atlas.wins || [];
-
   storage.premint = storage.premint || {};
   storage.premint.myWins = storage.premint.myWins || [];
   storage.premint.myLost = storage.premint.myLost || [];
   storage.premint.cloudWins = storage.premint.cloudWins || [];
   storage.premint.wins = storage.premint.wins || [];
+
+  storage.atlas = storage.atlas || {};
+  storage.atlas.myWins = storage.atlas.myWins || [];
+  storage.atlas.cloudWins = storage.atlas.cloudWins || [];
+  storage.atlas.wins = storage.atlas.wins || [];
+
+  storage.lucky = storage.lucky || {};
+  storage.lucky.myWins = storage.lucky.myWins || [];
+  storage.lucky.cloudWins = storage.lucky.cloudWins || [];
+  storage.lucky.wins = storage.lucky.wins || [];
 
   storage.wins = storage.wins || [];
   storage.projectWins = storage.projectWins || [];
@@ -135,8 +142,9 @@ async function runPage() {
     'projectWins',
     'results',
     'alphabot',
-    'atlas',
     'premint',
+    'atlas',
+    'lucky',
   ]);
   debug.log('storage:', storage);
 
@@ -181,6 +189,7 @@ async function runPage() {
     .getElementById('show-premint')
     .addEventListener('click', () => showProviderClickHandler('premint'));
   document.getElementById('show-atlas').addEventListener('click', () => showProviderClickHandler('atlas'));
+  document.getElementById('show-lucky').addEventListener('click', () => showProviderClickHandler('lucky'));
   document.getElementById('show-debug').addEventListener('click', () => showProviderClickHandler('debug'));
 
   if (pageState.hashArgs.has('action', 'update')) {
@@ -224,11 +233,12 @@ async function updateWins() {
     }
   }
 
+  const lucky = await updateLuckyWins(checkTime, cloudWins);
+  const alphabot = await updateAlphabotWins(checkTime, cloudWins);
   const premint = await updatePremintWins(checkTime, cloudWins);
   const atlas = await updateAtlasWins(checkTime, cloudWins);
-  const alphabot = await updateAlphabotWins(checkTime, cloudWins);
 
-  const mergedWins = mergeAllWins({ atlas, alphabot, premint });
+  const mergedWins = mergeAllWins({ atlas, alphabot, premint, lucky });
   storage.wins = mergedWins;
   debug.log('mergedWins:', mergedWins);
 
@@ -269,6 +279,12 @@ async function resetWins() {
 chrome.runtime.onMessage.addListener(async (request, sender, sendResponse) => {
   debug.log('Received message:', request, sender);
 
+  if (request.cmd === 'getAuth') {
+    debug.log('Received getAuth');
+    pageState[`${request.cmd}`] = true;
+    pageState[`${request.cmd}Val`] = request.val;
+  }
+
   if (request.cmd === 'switchedToTwitterUser') {
     pageState.switchedToTwitterUser = request;
   }
@@ -280,6 +296,24 @@ chrome.runtime.onMessage.addListener(async (request, sender, sendResponse) => {
   sendResponse();
   return true;
 });
+
+async function getFromWebPage(url, key, tabId, maxWait = 30000, interval = 10) {
+  debug.log('getFromWebPage:', url);
+
+  await addPendingRequest(url, { action: key, tabId });
+  window.open(url);
+
+  const stopTime = millisecondsAhead(maxWait);
+  while (Date.now() <= stopTime) {
+    if (pageState[key]) {
+      const result = pageState[`${key}Val`];
+      pageState[key] = null;
+      return result;
+    }
+    await sleep(interval);
+  }
+  return null;
+}
 
 // MAIN ------------------------------
 
@@ -299,8 +333,9 @@ async function showPage(customWins = null, customHeader = '') {
   }
   appendWinsTable(createWinsTable(storage.wins, 'All raffle providers', 'all'));
   appendWinsTable(createWinsTable(storage.alphabot?.wins, 'Alphabot raffles', 'alphabot'));
-  appendWinsTable(createWinsTable(storage.atlas?.wins, 'Atlas raffles', 'atlas'));
   appendWinsTable(createWinsTable(storage.premint?.wins, 'Premint raffles', 'premint'));
+  appendWinsTable(createWinsTable(storage.atlas?.wins, 'Atlas raffles', 'atlas'));
+  appendWinsTable(createWinsTable(storage.lucky?.wins, 'LuckyGo raffles', 'lucky'));
   appendWinsTable(createWinsTable(storage.wins, 'All raffles, all columns', 'debug', true));
 
   await updateTwitterFollowers();
@@ -318,11 +353,12 @@ function appendWinsTable(table) {
   updateShownProvider();
 }
 
-function mergeAllWins({ atlas = null, alphabot = null, premint = null } = {}) {
+function mergeAllWins({ atlas = null, alphabot = null, premint = null, lucky = null } = {}) {
   const r = [
-    ...(atlas?.length ? atlas : []),
     ...(alphabot?.length ? alphabot : []),
     ...(premint?.length ? premint : []),
+    ...(atlas?.length ? atlas : []),
+    ...(lucky?.length ? lucky : []),
   ];
   return r;
 }
@@ -550,6 +586,99 @@ async function updateAtlasWins(checkTime, allCloudWins) {
   return raffleStorage.wins;
 }
 
+// LUCKY ------------------------------
+
+async function updateLuckyWins(checkTime, allCloudWins) {
+  debug.log('updateLuckyWins', checkTime);
+
+  const providerName = 'LuckyGo';
+  const providerKey = 'lucky'; // providerName.toLowerCase();
+  const raffleStorage = storage.lucky;
+
+  await reloadOptions(storage); // options may have changed, reload them!
+
+  if (!storage.options.LUCKY_ENABLE_RESULTS) {
+    statusLogger.sub(`Skip fetching new ${providerName} results (disabled in Options)`);
+    return [];
+  }
+
+  updateMainStatus(`Get ${providerName} account info`);
+  const account = await getLuckyAccount();
+  console.log('account', account);
+  if (!account?.userId) {
+    statusLogger.sub(`Failed getting ${providerName} account. Check if logged in to website.`);
+    return [];
+  }
+
+  const authKey = await getLuckyAuth();
+  if (!authKey) {
+    statusLogger.sub(`Failed getting ${providerName} authentication key. Check if logged in to website.`);
+    return [];
+  }
+
+  const skip = []; //  [...raffleStorage.myWins.map((x) => x.id)];
+  const wins = await getLuckyWins(account, authKey, {
+    interval: LUCKY_INTERVAL,
+    max: storage.options.LUCKY_RESULTS_MAX_FETCH_WINS,
+    skip,
+    statusLogger,
+  });
+  const myWins = wins;
+  console.log('myWins', myWins);
+
+  const myWinsNew = filterNewWins(myWins, raffleStorage.myWins, checkTime);
+  statusLogger.sub(`Fetched ${myWinsNew.length} new or updated winners from ${providerName}`);
+
+  let cloudWins = [];
+  if (storage.options.LUCKY_ENABLE_CLOUD && storage.options.CLOUD_MODE === 'load') {
+    cloudWins = allCloudWins.filter((x) => x.provider === providerKey);
+    console.log('cloudWins', cloudWins);
+    raffleStorage.cloudWins = mergeWins(cloudWins, raffleStorage.cloudWins, 'hxId', checkTime);
+  }
+
+  raffleStorage.myWins = mergeWins(myWinsNew, raffleStorage.myWins, 'id', checkTime);
+
+  // check if updated only on myWins and cloudWins, not on aggregated wins!
+  raffleStorage.wins = mergeWins([...myWinsNew, ...cloudWins], raffleStorage.wins, 'hxId', null);
+
+  await setStorageData(storage);
+
+  if (storage.options.LUCKY_ENABLE_CLOUD && storage.options.CLOUD_MODE === 'save') {
+    const ct = await countWins(providerKey, account.userId, storage.options);
+    console.log('Count wins:', ct);
+    // if no wins in cloud, upload everything we got!
+    const winsToUpload = ct > 0 ? myWinsNew : raffleStorage.myWins;
+    debug.log('winsToUpload', winsToUpload);
+    const writeResult = await writeWins(winsToUpload, storage.options);
+    if (writeResult.error) {
+      statusLogger.sub(`Failed uploading ${providerName} results to Cloud. Network problems?`);
+    } else {
+      storage.results.lastCloudUpload = Date.now();
+      statusLogger.sub(`Uploaded ${winsToUpload.length} ${providerName} winners to Cloud`);
+    }
+  }
+
+  return raffleStorage.wins;
+}
+
+async function getLuckyAuth() {
+  await getMyTabIdFromExtension(pageState, 5000);
+  if (!pageState.myTabId) {
+    console.error('Invalid myTabId');
+    return null;
+  }
+  const authKey = await getFromWebPage(`https://luckygo.io/myraffles`, 'getAuth', pageState.myTabId);
+  console.log('authKey', authKey);
+
+  if (typeof authKey !== 'string') {
+    return null;
+  }
+
+  const authKeyTrim = authKey.replace('%20', ' ');
+
+  return authKeyTrim;
+}
+
 // WINS ------------------------------
 
 function mergeWins(newWins, oldWins, key, checkTime) {
@@ -645,6 +774,8 @@ function packWins(wins) {
 
   winsWithTwitter.forEach((x) => {
     x.hxSortKey = Math.max(...x.wins.map((w) => w.hxSortKey || 0));
+    x.mintDateLast = Math.max(...x.wins.map((w) => w.mintDate || 0));
+    x.mintDate = x.wins.some((w) => isRestarted(w)) ? null : Math.max(...x.wins.map((w) => w.mintDate || 0));
   });
 
   const winsWithoutTwitter = winsWithoutTwitterRaw.map((x) => {
@@ -661,13 +792,19 @@ function packWins(wins) {
   const allWins = [...winsWithTwitter, ...winsWithoutTwitter];
   allWins.sort(dynamicSortMultiple('-hxSortKey'));
 
-  const minMintDate = millisecondsAhead(-storage.options.ALPHABOT_RESULTS_DAYS_TO_KEEP_MINTED_WINS * ONE_DAY);
-  debug.log('minMintDate', minMintDate);
+  const minMintDate = millisecondsAhead(-storage.options.RESULTS_DAYS_TO_KEEP_MINTED_WINS * ONE_DAY);
+  debug.log('minMintDate', minMintDate, storage.options.RESULTS_DAYS_TO_KEEP_MINTED_WINS);
 
   const winsToShow = allWins.filter((x) => isWinnerToShow(x.wins[0], minMintDate));
   debug.log('winsToShow', winsToShow);
 
-  return winsToShow;
+  const winsToShowSorted = [
+    ...winsToShow.filter((x) => x.mintDate),
+    ...winsToShow.filter((x) => !x.mintDate),
+  ];
+  debug.log('winsToShowSorted', winsToShowSorted);
+
+  return winsToShowSorted;
 }
 
 function resortHxUpdated(wins) {
@@ -852,17 +989,26 @@ function createWinsTable(wins, header, id, allColumns = false) {
       )
     );
 
+    const restarted = !!wins.some((w) => isRestarted(w));
+    const restartedClassName = restarted ? ' restarted' : '';
+
     // CELL: mint-date
     const mintDates = wins.map((x) => {
       return { date: x.mintDate, hasTime: false };
     });
-    row.appendChild(createCell(createMultiDates(mintDates, '', { className: 'mint-date' })));
+    row.appendChild(
+      createCell(createMultiDates(mintDates, '', { className: 'mint-date' + restartedClassName }))
+    );
 
     // CELL: mint-time
     const mintTimes = wins.map((x) => {
       return { date: x.mintTime ? x.mintDate : null };
     });
-    row.appendChild(createCell(createMultiDates(mintTimes, '', { className: 'mint-time', timeOnly: true })));
+    row.appendChild(
+      createCell(
+        createMultiDates(mintTimes, '', { className: 'mint-time' + restartedClassName, timeOnly: true })
+      )
+    );
 
     // CELL: raffle-date
     const raffleDates = wins.map((x) => {
@@ -1157,6 +1303,7 @@ function updateShownProvider() {
   update('alphabot', storage.alphabot?.wins?.length);
   update('premint', storage.premint?.wins?.length);
   update('atlas', storage.atlas?.wins?.length);
+  update('lucky', storage.lucky?.wins?.length);
   update('debug', storage.wins?.length);
 }
 

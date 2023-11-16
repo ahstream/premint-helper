@@ -39,6 +39,23 @@ chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {
 
 function messageHandler(request, sender, sendResponse) {
   switch (request.cmd) {
+    /*
+  await chrome.runtime.sendMessage({
+    cmd: 'sentFromWebPage',
+    request: { to: pageState.parentTabId, key: 'getAuth', val },
+  });
+  */
+
+    case 'closeRaffleWhenFinished2':
+      chrome.tabs.query({}, (tabs) => {
+        console.log('tabs', tabs);
+        if (tabs.length < 2) {
+          chrome.tabs.create({ url: `chrome://extensions/?url=${request.url}`, active: true });
+        }
+        chrome.tabs.remove(sender.tab.id, () => console.log('close tab'));
+      });
+      break;
+
     case 'closeRaffleWhenFinished':
       chrome.tabs.query({}, (tabs) => {
         console.log('tabs', tabs);
@@ -67,7 +84,11 @@ function messageHandler(request, sender, sendResponse) {
       revealAlphabotRaffles();
       break;
     case 'finish':
-      chrome.tabs.sendMessage(Number(request.to), { ...request, url: sender.url, senderTabId: sender.tab.id });
+      chrome.tabs.sendMessage(Number(request.to), {
+        ...request,
+        url: sender.url,
+        senderTabId: sender.tab.id,
+      });
       break;
     case 'profileResultMainLoop':
       chrome.tabs.query({}, (tabs) =>
@@ -78,7 +99,11 @@ function messageHandler(request, sender, sendResponse) {
       break;
     case 'fetch':
       fetchHelper(request.request.url, request.request.options).then((result) => {
-        chrome.tabs.sendMessage(sender.tab.id, { cmd: 'fetchResult', result, context: request.context || {} });
+        chrome.tabs.sendMessage(sender.tab.id, {
+          cmd: 'fetchResult',
+          result,
+          context: request.context || {},
+        });
       });
       break;
     default:

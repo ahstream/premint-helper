@@ -62,6 +62,21 @@ const options = [
   },
 
   {
+    header: 'Results Settings',
+    hiddenKey: '',
+    options: [
+      ['property', 'RESULTS_DAYS_TO_KEEP_MINTED_WINS', 'RESULTS_DAYS_TO_KEEP_MINTED_WINS'],
+      [
+        'property',
+        'TWITTER_MAX_RESULTS_PAGE_LOOKUPS',
+        'Max Twitter lookups on results page',
+        '',
+        'Each lookup will only lookup this many Twitter accounts.',
+      ],
+    ],
+  },
+
+  {
     header: 'Raffle Settings',
     hiddenKey: '',
     options: [
@@ -133,27 +148,6 @@ const options = [
         'Do not close Discord pages that have role requirement ',
         null,
         'When raffle has Discord role requirement it is often needed to verify in server before getting that role. Keeping Discord task pages open in these cases makes it more convenient.',
-      ],
-    ],
-  },
-
-  {
-    header: 'Misc Settings',
-    hiddenKey: '',
-    options: [
-      /*
-      [
-        'description',
-        'You can have Premint Helper automate Discord and Twitter Intent links when you open them yourself. For Discord, this means that when opening an invite link, Premint Helper will try to automate everything needed to join that server, including accepting rules etc. For Twitter, this means that intent links for follow/like/retweet will be automatically clicked.',
-      ],
-      */
-      ['space', 10],
-      [
-        'property',
-        'TWITTER_MAX_RESULTS_PAGE_LOOKUPS',
-        'Max Twitter lookups on results page',
-        '',
-        'Each lookup will only lookup this many Twitter accounts.',
       ],
     ],
   },

@@ -4,14 +4,12 @@
 
 :root {
   /* raffle-info */
-  --raffle-info-registered: #7df17d;
-  --raffle-info-not-register-properly: #bb5555;
-  --raffle-info-raffle-unknown-error: #bb5555;
-  --raffle-info-wallet-connect-dialog: #bb5555;
-  --raffle-info-doing-it-too-often: #bb5555;
-  --raffle-info-switch-twitter-user-error: #bb5555;
-  --raffle-info-no-raffle-trigger: #bb5555;
-  --raffle-info-generic-error: #bb5555;
+  --raffle-info-registered: #50ee76;
+  --raffle-info-not-register-properly: #d6432b;
+  --raffle-info-raffle-unknown-error: #d6432b;
+  --raffle-info-switch-twitter-user-error: #d6432b;
+  --raffle-info-no-raffle-trigger: #d6432b;
+  --raffle-info-generic-error: #d6432b;
 }
 
 .ph-button {
@@ -25,4 +23,21 @@
 
 .ph-button:hover {
   background-color: var(--atlas-btn-hover-background-color) !important;
+}
+
+body.alreadyWon .text-sm.font-normal {
+  color: black;
+}
+
+body.registered .text-sm.font-normal {
+  color: black;
+}
+
+.hx-already-won {
+  color: var(--raffle-wins-color);
+  background-color: var(--raffle-wins-background-color);
+  border: solid 1px black;
+  padding: 3px;
+  text-align: center;
+  width: 100%;
 }
