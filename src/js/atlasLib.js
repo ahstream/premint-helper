@@ -14,8 +14,11 @@ const WINS_BASE_URL = 'https://atlas3.io/api/me/won-giveaways?&page={PAGE}&pageL
 export async function getAccount() {
   const result = await fetchHelper(ACCOUNT_URL, {});
   debug.log('getAccount:', result);
+  const id = result?.data?.user?.id;
   return {
-    userId: result?.data?.user?.id,
+    id,
+    address: null,
+    userId: id,
     userName: result?.data?.user?.name,
   };
 }

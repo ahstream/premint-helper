@@ -233,8 +233,12 @@ async function joinRaffle() {
   debug.log('reqs', reqs);
 
   const skipDoneTasks = storage.options.RAFFLE_SKIP_DONE_TASKS;
-  const discordLinks = skipDoneTasks ? await removeDoneLinks(reqs.discordUser, reqs.discordLinks, pageState) : reqs.discordLinks;
-  const twitterLinks = skipDoneTasks ? await removeDoneLinks(reqs.twitterUser, reqs.twitterLinks, pageState) : reqs.twitterLinks;
+  const discordLinks = skipDoneTasks
+    ? await removeDoneLinks(reqs.discordUser, reqs.discordLinks, pageState)
+    : reqs.discordLinks;
+  const twitterLinks = skipDoneTasks
+    ? await removeDoneLinks(reqs.twitterUser, reqs.twitterLinks, pageState)
+    : reqs.twitterLinks;
 
   const reqLinks = [...discordLinks, ...twitterLinks];
   debug.log('reqLinks', reqLinks);
@@ -294,14 +298,16 @@ async function joinRaffle() {
       chrome.runtime.sendMessage({ cmd: 'openTab', url });
     }
 
-    if (isTwitter && storage.options.TWITTER_OPEN_LINKS_IN_SEQUENCE) {
-      console.log('Open rest of twitter links in sequence!');
+    if (isTwitter && storage.options.TWITTER_QUEUE_TASK_LINKS) {
+      console.log('Open rest of twitter links in queue!');
       break;
     }
 
     if (i + 1 < reqLinks.length) {
       const delayMs = Math.round(
-        isTwitter ? storage.options.RAFFLE_OPEN_TWITTER_LINK_DELAY : storage.options.RAFFLE_OPEN_TWITTER_LINK_DELAY / 2
+        isTwitter
+          ? storage.options.RAFFLE_OPEN_TWITTER_LINK_DELAY
+          : storage.options.RAFFLE_OPEN_TWITTER_LINK_DELAY / 2
       );
       await sleep(delayMs, null, 0.2);
     }
@@ -649,12 +655,22 @@ function getMustLikeAndRetweetLinks() {
 }
 
 function getMustRetweetLinks() {
-  const links = [...new Set([...parseMustRetweetLinks(), ...parseMustLikeAndRetweetLinks()].map((x) => makeTwitterRetweetIntentUrl(x)))];
+  const links = [
+    ...new Set(
+      [...parseMustRetweetLinks(), ...parseMustLikeAndRetweetLinks()].map((x) =>
+        makeTwitterRetweetIntentUrl(x)
+      )
+    ),
+  ];
   return links;
 }
 
 function getMustLikeLinks() {
-  const links = [...new Set([...parseMustLikeLinks(), ...parseMustLikeAndRetweetLinks()].map((x) => makeTwitterLikeIntentUrl(x)))];
+  const links = [
+    ...new Set(
+      [...parseMustLikeLinks(), ...parseMustLikeAndRetweetLinks()].map((x) => makeTwitterLikeIntentUrl(x))
+    ),
+  ];
   return links;
 }
 
@@ -730,10 +746,14 @@ function parseMustJoinLinks(mustHaveRole = false) {
     .map((e) => e.href);
     */
   debug.log('parseMustJoinLinks');
-  const selectors = mustHaveRole ? storage.options.PREMINT_JOIN_DISCORD_WITH_ROLE_SEL : storage.options.PREMINT_JOIN_DISCORD_SEL;
+  const selectors = mustHaveRole
+    ? storage.options.PREMINT_JOIN_DISCORD_WITH_ROLE_SEL
+    : storage.options.PREMINT_JOIN_DISCORD_SEL;
 
   const allElems = [...document.querySelectorAll(selectors[0])].filter(
-    (el) => el.textContent.trim().toLowerCase().startsWith(selectors[1]) && el.textContent.trim().toLowerCase().includes(selectors[2])
+    (el) =>
+      el.textContent.trim().toLowerCase().startsWith(selectors[1]) &&
+      el.textContent.trim().toLowerCase().includes(selectors[2])
   );
   debug.log('selectors', selectors);
   debug.log('allElems', allElems);
@@ -840,19 +860,26 @@ function getPremintData() {
 }
 
 function getPremintCustomFieldProperties() {
-  const customFieldLabel = document.querySelector(storage.options.PREMINT_CUSTOM_FIELD_LABEL_SEL)?.textContent.trim();
+  const customFieldLabel = document
+    .querySelector(storage.options.PREMINT_CUSTOM_FIELD_LABEL_SEL)
+    ?.textContent.trim();
   debug.log('customFieldLabel', customFieldLabel);
   if (customFieldLabel) {
     return {
       customFieldLabel: customFieldLabel,
-      customFieldIsRetweetLink: customFieldLabel.search(new RegExp(storage.options.PREMINT_RETWEET_RE, 'i')) > -1,
+      customFieldIsRetweetLink:
+        customFieldLabel.search(new RegExp(storage.options.PREMINT_RETWEET_RE, 'i')) > -1,
       customFieldIsEmail: customFieldLabel.search(new RegExp(storage.options.PREMINT_EMAIL_RE, 'i')) > -1,
       customFieldIsTwitter: customFieldLabel.search(new RegExp(storage.options.PREMINT_TWITTER_RE, 'i')) > -1,
       customFieldIsDiscord: customFieldLabel.search(new RegExp(storage.options.PREMINT_DISCORD_RE, 'i')) > -1,
-      customFieldIsSolWallet: customFieldLabel.search(new RegExp(storage.options.PREMINT_SOL_WALLET_RE, 'i')) > -1,
-      customFieldIsEthWallet: customFieldLabel.search(new RegExp(storage.options.PREMINT_ETH_WALLET_RE, 'i')) > -1,
-      customFieldIsTezWallet: customFieldLabel.search(new RegExp(storage.options.PREMINT_TEZ_WALLET_RE, 'i')) > -1,
-      customFieldIsBtcWallet: customFieldLabel.search(new RegExp(storage.options.PREMINT_BTC_WALLET_RE, 'i')) > -1,
+      customFieldIsSolWallet:
+        customFieldLabel.search(new RegExp(storage.options.PREMINT_SOL_WALLET_RE, 'i')) > -1,
+      customFieldIsEthWallet:
+        customFieldLabel.search(new RegExp(storage.options.PREMINT_ETH_WALLET_RE, 'i')) > -1,
+      customFieldIsTezWallet:
+        customFieldLabel.search(new RegExp(storage.options.PREMINT_TEZ_WALLET_RE, 'i')) > -1,
+      customFieldIsBtcWallet:
+        customFieldLabel.search(new RegExp(storage.options.PREMINT_BTC_WALLET_RE, 'i')) > -1,
     };
   }
   return {};

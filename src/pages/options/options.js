@@ -14,7 +14,7 @@ let pageState = {
 
 const options = [
   {
-    header: 'Alphabot.app Settings',
+    header: 'Alphabot.app Raffles',
     hiddenKey: '',
     options: [
       ['property', 'ALPHABOT_ENABLE', 'Enable raffle automation on alphabot.app website'],
@@ -25,7 +25,7 @@ const options = [
   },
 
   {
-    header: 'Premint.xyz Settings',
+    header: 'Premint.xyz Raffles',
     hiddenKey: '',
     options: [
       ['property', 'PREMINT_ENABLE', 'Enable raffle automation on premint.xyz website'],
@@ -37,7 +37,7 @@ const options = [
   },
 
   {
-    header: 'Atlas3.io Settings',
+    header: 'Atlas3.io Raffles',
     hiddenKey: '',
     options: [
       ['property', 'ATLAS_ENABLE', 'Enable raffle automation on atlas3.io website'],
@@ -50,34 +50,40 @@ const options = [
   },
 
   {
-    header: 'LuckyGo.io Settings',
+    header: 'LuckyGo.io Raffles',
     hiddenKey: '',
     options: [
-      ['property', 'LUCKY_ENABLE', 'Enable raffle automation on luckygo.io website'],
-      ['property', 'LUCKY_ENABLE_TWITTER_TASKS', 'Enable Twitter tasks'],
-      ['property', 'LUCKY_ENABLE_DISCORD_TASKS', 'Enable Discord tasks'],
-      ['property', 'LUCKY_ENABLE_RESULTS', 'Enable fetch of results'],
-      ['property', 'LUCKY_RESULTS_MAX_FETCH_WINS', 'Max new results to fetch'],
+      ['property', 'LUCKYGO_ENABLE', 'Enable raffle automation on luckygo.io website'],
+      ['property', 'LUCKYGO_ENABLE_TWITTER_TASKS', 'Enable Twitter tasks'],
+      ['property', 'LUCKYGO_ENABLE_DISCORD_TASKS', 'Enable Discord tasks'],
+      ['property', 'LUCKYGO_ENABLE_RESULTS', 'Enable fetch of results'],
+      ['property', 'LUCKYGO_RESULTS_MAX_FETCH_WINS', 'Max new results to fetch'],
     ],
   },
 
   {
-    header: 'Results Settings',
+    header: 'Results Page',
     hiddenKey: '',
     options: [
-      ['property', 'RESULTS_DAYS_TO_KEEP_MINTED_WINS', 'RESULTS_DAYS_TO_KEEP_MINTED_WINS'],
+      [
+        'property',
+        'RESULTS_DAYS_TO_KEEP_MINTED_WINS',
+        'Show this many previous days of results',
+        '',
+        'Default behaviour is that wins with a set mint date will not be shown when date has passed. If drop have multiple day phases, it would not be shown after first day has passed. Use this setting to prevent that.',
+      ],
       [
         'property',
         'TWITTER_MAX_RESULTS_PAGE_LOOKUPS',
-        'Max Twitter lookups on results page',
+        'Batch Twitter lookups on results page',
         '',
-        'Each lookup will only lookup this many Twitter accounts.',
+        'Each lookup request will only lookup this many Twitter accounts to avoid bot detection',
       ],
     ],
   },
 
   {
-    header: 'Raffle Settings',
+    header: 'Raffle Behaviour',
     hiddenKey: '',
     options: [
       [
@@ -92,24 +98,28 @@ const options = [
         'RAFFLE_SWITCH_TWITTER_USER',
         'Switch to selected Twitter user',
         null,
-        'If enabled, Premint Helper will switch to (on raffle page) selected Twitter user before fulfilling Twitter tasks.',
-      ],
-      [
-        'property',
-        'TWITTER_OPEN_LINKS_IN_SEQUENCE',
-        'Fulfill Twitter tasks one at a time',
-        null,
-        'If disabled, all Twitter tasks will be opened at once (with configured delay between)',
-      ],
-      [
-        'property',
-        'RAFFLE_OPEN_TWITTER_LINK_DELAY',
-        'Delay before opening next Twitter task (milliseconds)',
-        '',
-        'If fulfilling Twitter tasks one at a time you can set this short (500 ms), otherwise need to be longer (2500 ms) to avoid bot behaviour.',
+        'If enabled, Premint Helper will switch to selected Twitter user on Twitter page before fulfilling Twitter tasks.',
       ],
 
-      ['space', 15],
+      ['space', 22],
+
+      [
+        'property',
+        'TWITTER_QUEUE_TASK_LINKS',
+        'Open next Twitter task when previous one has finished',
+        null,
+        'If disabled, all Twitter tasks will be opened at once (with configured delay below)',
+      ],
+      [
+        'property',
+        'RAFFLE_OPEN_AT_ONCE_TWITTER_LINK_DELAY',
+        'Delay between Twitter tasks if not waiting for previous task to finish  (milliseconds)',
+        '',
+        'This need to be long enough to avoid bot behaviour.',
+      ],
+
+      ['space', 22],
+
       [
         'property',
         'RAFFLE_FORCE_REGISTER',
@@ -126,7 +136,8 @@ const options = [
       ],
       ['property', 'RAFFLE_RETRY_SECS', 'Wait between retries (seconds)', null, ''],
 
-      ['space', 15],
+      ['space', 22],
+
       [
         'property',
         'TWITTER_CLOSE_TASK_PAGE',
@@ -142,6 +153,9 @@ const options = [
         null,
         '',
       ],
+
+      ['space', 22],
+
       [
         'property',
         'RAFFLE_KEEP_ROLED_DISCORD_TASK_OPEN',
@@ -153,7 +167,7 @@ const options = [
   },
 
   {
-    header: 'General Settings',
+    header: 'Discord',
     hiddenKey: '',
     options: [
       /*
@@ -170,6 +184,13 @@ const options = [
         '',
         'If enabled, Premint Helper will auto join Discord invite links and then try to click all buttons that turn up while joining server.',
       ],
+    ],
+  },
+
+  {
+    header: 'Twitter',
+    hiddenKey: '',
+    options: [
       [
         'property',
         'TWITTER_ENABLE_MANUAL',
@@ -177,13 +198,33 @@ const options = [
         '',
         'If enabled, Premint Helper will auto click OK button on Twitter intent pages.',
       ],
-      ['property', 'DISCORD_ENABLE', 'DISCORD_ENABLE', '', ''],
-      ['property', 'TWITTER_ENABLE', 'TWITTER_ENABLE', '', ''],
+      ['space', 10],
+      [
+        'property',
+        'TWITTER_FOLLOWERS_CACHE_HOURS',
+        'Hours to cache Twitter followers',
+        '',
+        'Premint Helper can fetch follower counts for Twitter links on Alphabot pages. Best practice is to cache this to avoid fetching it too often from Twitter.',
+      ],
+      ['space', 10],
+      [
+        'property',
+        'TWITTER_AUTO_UPDATE_FOLLOWERS',
+        'Auto update Twitter follower count when opening Twitter links',
+        '',
+        'Update follower count on Alphabot pages when opening Twitter links.',
+      ],
+      ['space', 10],
+      [
+        'description',
+        'Since Twitter is getting more aggresive in rate limiting users it is good practice to use a burner Twitter user account for looking up follower counts. Otherwise you risk your main account have to wait a day before you can enter raffles with it again. Even so, using a burner account will likely hit rate limits on page views per 15 minutes, meaning you might have to wait up to 15 minutes before you can switch from burner to main account again.',
+      ],
+      ['property', 'TWITTER_FETCH_FOLLOWERS_USER', 'Twitter user for fetching followers', '', ''],
     ],
   },
 
   {
-    header: 'Auto-Start Settings',
+    header: 'Auto-Start',
     hiddenKey: '',
     options: [
       [
@@ -210,35 +251,7 @@ const options = [
   },
 
   {
-    header: 'Twitter Lookup Settings',
-    hiddenKey: '',
-    options: [
-      [
-        'property',
-        'TWITTER_FOLLOWERS_CACHE_HOURS',
-        'Hours to cache Twitter followers',
-        '',
-        'Premint Helper can fetch follower counts for Twitter links on Alphabot pages. Best practice is to cache this to avoid fetching it too often from Twitter.',
-      ],
-      ['space', 10],
-      [
-        'property',
-        'TWITTER_AUTO_UPDATE_FOLLOWERS',
-        'Auto update Twitter follower count when opening Twitter links',
-        '',
-        'Update follower count on Alphabot pages when opening Twitter links.',
-      ],
-      ['space', 10],
-      [
-        'description',
-        'Since Twitter is getting more aggresive in rate limiting users it is good practice to use a burner Twitter user account for looking up follower counts. Otherwise you risk your main account have to wait a day before you can enter raffles with it again. Even so, using a burner account will likely hit rate limits on page views per 15 minutes, meaning you might have to wait up to 15 minutes before you can switch from burner to main account again.',
-      ],
-      ['property', 'TWITTER_FETCH_FOLLOWERS_USER', 'Twitter user for fetching followers', '', ''],
-    ],
-  },
-
-  {
-    header: 'Cloud Settings',
+    header: 'Cloud',
     hiddenKey: '',
     options: [
       [
@@ -260,7 +273,7 @@ const options = [
   },
 
   {
-    header: 'Alias Settings',
+    header: 'Aliases',
     hiddenKey: '',
     options: [
       ['property', 'WALLET_ALIAS', 'Wallet aliases', null, 'Use aliases for wallet addresses'],
@@ -281,7 +294,7 @@ const options = [
   },
 
   {
-    header: 'Custom Data Settings',
+    header: 'Custom Data',
     hiddenKey: '',
     options: [
       [

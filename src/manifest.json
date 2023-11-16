@@ -85,15 +85,15 @@
     {
       "matches": ["https://luckygo.io/r/*"],
       "exclude_matches": [],
-      "css": ["styles/luckyRafflePage.css"],
-      "js": ["luckyRafflePage.js"],
+      "css": ["styles/luckygoRafflePage.css"],
+      "js": ["luckygoRafflePage.js"],
       "run_at": "document_start"
     },
     {
       "matches": ["https://luckygo.io/myraffles"],
       "exclude_matches": [],
       "css": [],
-      "js": ["luckyPage.js"],
+      "js": ["luckygoPage.js"],
       "run_at": "document_start"
     }
   ]

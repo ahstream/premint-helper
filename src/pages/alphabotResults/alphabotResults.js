@@ -2,10 +2,10 @@ console.info('alphabotResults.js begin', window?.location?.href);
 
 import './alphabotResults.scss';
 import {
-  trimMintAddress,
+  trimWallet,
   accountToAlias,
   walletToAlias,
-  sortMintAddresses,
+  sortWallets,
   createStatusbarButtons,
   checkIfSubscriptionEnabled,
   reloadOptions,
@@ -529,7 +529,7 @@ async function createProjectWinners(winners) {
     const startDate = maxOrNull(...subWinners.map((x) => x.startDate).filter((x) => x));
     const mintDate = maxOrNull(...subWinners.map((x) => x.mintDate).filter((x) => x));
     const picked = maxOrNull(...subWinners.map((x) => x.picked).filter((x) => x));
-    const wallets = noDuplicates(subWinners.map((x) => x.mintAddress.toLowerCase()));
+    const wallets = noDuplicates(subWinners.map((x) => x.wallet.toLowerCase()));
     data.push({
       name: handle,
       twitterHandle: handle,
@@ -547,7 +547,7 @@ async function createProjectWinners(winners) {
     .forEach((winner) => {
       const subWinners = [winner];
       const dateKey = winner.hxSortKey;
-      const wallets = [winner.mintAddress.toLowerCase()];
+      const wallets = [winner.wallet.toLowerCase()];
       data.push({
         name: '',
         twitterHandle: '',
@@ -619,7 +619,7 @@ function convertWinners(accountName, winners) {
       mintDateHasTime: x.mintDateHasTime,
       twitterHandle: extractTwitterHandle(x.twitterUrl),
       discordUrl: x.discordUrl,
-      mintAddress: x.entry.mintAddress,
+      wallet: x.entry.mintAddress,
       teamName: x.alphaTeam.name,
       teamId: x.teamId,
       blockchain: x.blockchain,
@@ -1107,24 +1107,23 @@ function createProjectsTable(projects, mountOnElementId) {
       )
     );
 
-    const sortedMintAddresses = sortMintAddresses(
-      p.winners.map((x) => x.mintAddress),
+    const sortedWallets = sortWallets(
+      p.winners.map((x) => x.wallet),
       storage.options
     );
-    // const sortedMintAddresses = p.winners.map((x) => x.mintAddress);
-    const mintAddresses = noDuplicates(
-      sortedMintAddresses.map((addr) => {
+    const wallets = noDuplicates(
+      sortedWallets.map((addr) => {
         const walletAlias = walletToAlias(addr, storage.options);
         const suffix = walletAlias; // ? ` (${walletAlias})` : '';
-        return { addr: trimMintAddress(addr.toLowerCase()), alias: suffix };
+        return { addr: trimWallet(addr.toLowerCase()), alias: suffix };
       })
     );
 
-    // row.appendChild(createCell(createMultiTexts(mintAddresses, { className: 'mint-address' })));
+    // row.appendChild(createCell(createMultiTexts(wallets, { className: 'mint-address' })));
     row.appendChild(
       createCell(
         createMultiTexts(
-          mintAddresses.map((x) => x.addr),
+          wallets.map((x) => x.addr),
           { className: 'mint-address' }
         )
       )
@@ -1132,14 +1131,14 @@ function createProjectsTable(projects, mountOnElementId) {
     row.appendChild(
       createCell(
         createMultiTexts(
-          mintAddresses.map((x) => x.alias),
+          wallets.map((x) => x.alias),
           { className: 'mint-aliases' }
         )
       )
     );
 
     const accountAddresses = noDuplicates(
-      p.winners.map((x) => accountToAlias(x.hxAccount, storage.options) || trimMintAddress(x.hxAccount))
+      p.winners.map((x) => accountToAlias(x.hxAccount, storage.options) || trimWallet(x.hxAccount))
     );
 
     row.appendChild(createCell(createMultiTexts(accountAddresses, { className: 'account-name' })));

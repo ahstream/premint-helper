@@ -1,8 +1,8 @@
-console.info('luckyPage.js begin', window?.location?.href);
+console.info('luckygoPage.js begin', window?.location?.href);
 
-import '../styles/luckyPage.css';
+import '../styles/luckygoPage.css';
 
-import { getRaffleTwitterHandle } from './luckyLib';
+import { getRaffleTwitterHandle } from './luckygoLib';
 
 import {
   JOIN_BUTTON_TEXT,
@@ -36,7 +36,7 @@ const SLEEP_BEFORE_NEXT_FORCE_REGISTER = 10000;
 let storage = null;
 
 const config = {
-  name: 'LUCKY',
+  name: 'LUCKYGO',
   enableForceRegister: true,
   storageKeys: ['runtime', 'options'],
   SLEEP_BETWEEN_WAIT_FOR_REGISTERED: 2000,
@@ -103,7 +103,7 @@ async function createObserver() {
 async function waitForRafflePageLoaded() {
   debug.log('waitForRafflePageLoaded');
 
-  const stopTime = millisecondsAhead(storage.options.LUCKY_WAIT_FOR_RAFFLE_PAGE_LOADED);
+  const stopTime = millisecondsAhead(storage.options.LUCKYGO_WAIT_FOR_RAFFLE_PAGE_LOADED);
   while (Date.now() <= stopTime) {
     if (hasRegistered()) {
       return true;
@@ -188,12 +188,12 @@ function isAllTasksCompleted() {
 
 async function getRegisterButton(maxWait = 1000, interval = 10) {
   console.log('getRegisterButton');
-  return await waitForTextEquals(storage.options.LUCKY_REG_BTN_SEL, 'div', maxWait, interval);
+  return await waitForTextEquals(storage.options.LUCKYGO_REG_BTN_SEL, 'div', maxWait, interval);
 }
 
 function getRegisterButtonSync() {
   return [...document.querySelectorAll('div')].filter(
-    (x) => x.innerText === storage.options.LUCKY_REG_BTN_SEL
+    (x) => x.innerText === storage.options.LUCKYGO_REG_BTN_SEL
   )[0];
 }
 

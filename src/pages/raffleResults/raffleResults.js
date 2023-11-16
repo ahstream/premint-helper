@@ -4,7 +4,7 @@ import './raffleResults.scss';
 
 import { getAccount as getAtlasAccount, getWins as getAtlasWins } from '../../js/atlasLib';
 
-import { getAccount as getLuckyAccount, getWins as getLuckyWins } from '../../js/luckyLib';
+import { getAccount as getLuckygoAccount, getWins as getLuckygoWins } from '../../js/luckygoLib.js';
 
 import {
   getAccount as getAlphabotAccount,
@@ -24,8 +24,8 @@ import {
   STATUSBAR_DEFAULT_TEXT,
   toShortWallet,
   walletToAlias,
-  sortMintAddresses,
-  trimMintAddress,
+  sortWallets,
+  trimWallet,
   accountToAlias,
   reloadOptions,
   getMyTabIdFromExtension,
@@ -78,7 +78,7 @@ const debug = createLogger();
 const ALPHABOT_INTERVAL = 1500;
 const ATLAS_INTERVAL = 1500;
 const PREMINT_INTERVAL = 520;
-const LUCKY_INTERVAL = 1500;
+const LUCKYGO_INTERVAL = 1500;
 
 const SHORTENED_TEXT_SUFFIX = '...';
 
@@ -124,10 +124,10 @@ function initStorage() {
   storage.atlas.cloudWins = storage.atlas.cloudWins || [];
   storage.atlas.wins = storage.atlas.wins || [];
 
-  storage.lucky = storage.lucky || {};
-  storage.lucky.myWins = storage.lucky.myWins || [];
-  storage.lucky.cloudWins = storage.lucky.cloudWins || [];
-  storage.lucky.wins = storage.lucky.wins || [];
+  storage.luckygo = storage.luckygo || {};
+  storage.luckygo.myWins = storage.luckygo.myWins || [];
+  storage.luckygo.cloudWins = storage.luckygo.cloudWins || [];
+  storage.luckygo.wins = storage.luckygo.wins || [];
 
   storage.wins = storage.wins || [];
   storage.projectWins = storage.projectWins || [];
@@ -144,7 +144,7 @@ async function runPage() {
     'alphabot',
     'premint',
     'atlas',
-    'lucky',
+    'luckygo',
   ]);
   debug.log('storage:', storage);
 
@@ -189,7 +189,9 @@ async function runPage() {
     .getElementById('show-premint')
     .addEventListener('click', () => showProviderClickHandler('premint'));
   document.getElementById('show-atlas').addEventListener('click', () => showProviderClickHandler('atlas'));
-  document.getElementById('show-lucky').addEventListener('click', () => showProviderClickHandler('lucky'));
+  document
+    .getElementById('show-luckygo')
+    .addEventListener('click', () => showProviderClickHandler('luckygo'));
   document.getElementById('show-debug').addEventListener('click', () => showProviderClickHandler('debug'));
 
   if (pageState.hashArgs.has('action', 'update')) {
@@ -233,12 +235,12 @@ async function updateWins() {
     }
   }
 
-  const lucky = await updateLuckyWins(checkTime, cloudWins);
+  const luckygo = await updateLuckygoWins(checkTime, cloudWins);
   const alphabot = await updateAlphabotWins(checkTime, cloudWins);
   const premint = await updatePremintWins(checkTime, cloudWins);
   const atlas = await updateAtlasWins(checkTime, cloudWins);
 
-  const mergedWins = mergeAllWins({ atlas, alphabot, premint, lucky });
+  const mergedWins = mergeAllWins({ atlas, alphabot, premint, lucky: luckygo });
   storage.wins = mergedWins;
   debug.log('mergedWins:', mergedWins);
 
@@ -335,7 +337,7 @@ async function showPage(customWins = null, customHeader = '') {
   appendWinsTable(createWinsTable(storage.alphabot?.wins, 'Alphabot raffles', 'alphabot'));
   appendWinsTable(createWinsTable(storage.premint?.wins, 'Premint raffles', 'premint'));
   appendWinsTable(createWinsTable(storage.atlas?.wins, 'Atlas raffles', 'atlas'));
-  appendWinsTable(createWinsTable(storage.lucky?.wins, 'LuckyGo raffles', 'lucky'));
+  appendWinsTable(createWinsTable(storage.luckygo?.wins, 'LuckyGo raffles', 'luckygo'));
   appendWinsTable(createWinsTable(storage.wins, 'All raffles, all columns', 'debug', true));
 
   await updateTwitterFollowers();
@@ -382,7 +384,7 @@ async function updateAlphabotWins(checkTime, allCloudWins) {
   updateMainStatus(`Get ${providerName} account info...`);
   const account = await getAlphabotAccount();
   console.log('account', account);
-  if (!account?.userId) {
+  if (!account?.id) {
     statusLogger.sub(`Failed getting ${providerName} account. Check if logged in to website.`);
     return [];
   }
@@ -431,7 +433,7 @@ async function updateAlphabotWins(checkTime, allCloudWins) {
   await setStorageData(storage);
 
   if (storage.options.ALPHABOT_ENABLE_CLOUD && storage.options.CLOUD_MODE === 'save') {
-    const ct = await countWins(providerKey, account.userId, storage.options);
+    const ct = await countWins(providerKey, account.id, storage.options);
     console.log('Count wins:', ct);
     // if no wins in cloud, upload everything we got!
     const winsToUpload = ct > 0 ? myWinsNew : raffleStorage.myWins;
@@ -467,7 +469,7 @@ async function updatePremintWins(checkTime, allCloudWins) {
   updateMainStatus(`Get ${providerName} account info`);
   const account = await getPremintAccount();
   console.log('account', account);
-  if (!account?.userId) {
+  if (!account?.id) {
     statusLogger.sub(`Failed getting ${providerName} account. Check if logged in to website.`);
     return [];
   }
@@ -503,7 +505,7 @@ async function updatePremintWins(checkTime, allCloudWins) {
   await setStorageData(storage);
 
   if (storage.options.PREMINT_ENABLE_CLOUD && storage.options.CLOUD_MODE === 'save') {
-    const ct = await countWins(providerKey, account.userId, storage.options);
+    const ct = await countWins(providerKey, account.id, storage.options);
     console.log('Count wins:', ct);
     // if no wins in cloud, upload everything we got!
     const winsToUpload = ct > 0 ? myWinsNew : raffleStorage.myWins;
@@ -539,7 +541,7 @@ async function updateAtlasWins(checkTime, allCloudWins) {
   updateMainStatus(`Get ${providerName} account info`);
   const account = await getAtlasAccount();
   console.log('account', account);
-  if (!account?.userId) {
+  if (!account?.id) {
     statusLogger.sub(`Failed getting ${providerName} account. Check if logged in to website.`);
     return [];
   }
@@ -569,7 +571,7 @@ async function updateAtlasWins(checkTime, allCloudWins) {
   await setStorageData(storage);
 
   if (storage.options.ATLAS_ENABLE_CLOUD && storage.options.CLOUD_MODE === 'save') {
-    const ct = await countWins(providerKey, account.userId, storage.options);
+    const ct = await countWins(providerKey, account.id, storage.options);
     console.log('Count wins:', ct);
     // if no wins in cloud, upload everything we got!
     const winsToUpload = ct > 0 ? myWinsNew : raffleStorage.myWins;
@@ -588,38 +590,38 @@ async function updateAtlasWins(checkTime, allCloudWins) {
 
 // LUCKY ------------------------------
 
-async function updateLuckyWins(checkTime, allCloudWins) {
-  debug.log('updateLuckyWins', checkTime);
+async function updateLuckygoWins(checkTime, allCloudWins) {
+  debug.log('updateLuckygoWins', checkTime);
 
   const providerName = 'LuckyGo';
-  const providerKey = 'lucky'; // providerName.toLowerCase();
-  const raffleStorage = storage.lucky;
+  const providerKey = providerName.toLowerCase();
+  const raffleStorage = storage.luckygo;
 
   await reloadOptions(storage); // options may have changed, reload them!
 
-  if (!storage.options.LUCKY_ENABLE_RESULTS) {
+  if (!storage.options.LUCKYGO_ENABLE_RESULTS) {
     statusLogger.sub(`Skip fetching new ${providerName} results (disabled in Options)`);
     return [];
   }
 
   updateMainStatus(`Get ${providerName} account info`);
-  const account = await getLuckyAccount();
+  const account = await getLuckygoAccount();
   console.log('account', account);
-  if (!account?.userId) {
+  if (!account?.id) {
     statusLogger.sub(`Failed getting ${providerName} account. Check if logged in to website.`);
     return [];
   }
 
-  const authKey = await getLuckyAuth();
+  const authKey = await getLuckygoAuth();
   if (!authKey) {
     statusLogger.sub(`Failed getting ${providerName} authentication key. Check if logged in to website.`);
     return [];
   }
 
   const skip = []; //  [...raffleStorage.myWins.map((x) => x.id)];
-  const wins = await getLuckyWins(account, authKey, {
-    interval: LUCKY_INTERVAL,
-    max: storage.options.LUCKY_RESULTS_MAX_FETCH_WINS,
+  const wins = await getLuckygoWins(account, authKey, {
+    interval: LUCKYGO_INTERVAL,
+    max: storage.options.LUCKYGO_RESULTS_MAX_FETCH_WINS,
     skip,
     statusLogger,
   });
@@ -630,7 +632,7 @@ async function updateLuckyWins(checkTime, allCloudWins) {
   statusLogger.sub(`Fetched ${myWinsNew.length} new or updated winners from ${providerName}`);
 
   let cloudWins = [];
-  if (storage.options.LUCKY_ENABLE_CLOUD && storage.options.CLOUD_MODE === 'load') {
+  if (storage.options.LUCKYGO_ENABLE_CLOUD && storage.options.CLOUD_MODE === 'load') {
     cloudWins = allCloudWins.filter((x) => x.provider === providerKey);
     console.log('cloudWins', cloudWins);
     raffleStorage.cloudWins = mergeWins(cloudWins, raffleStorage.cloudWins, 'hxId', checkTime);
@@ -643,8 +645,8 @@ async function updateLuckyWins(checkTime, allCloudWins) {
 
   await setStorageData(storage);
 
-  if (storage.options.LUCKY_ENABLE_CLOUD && storage.options.CLOUD_MODE === 'save') {
-    const ct = await countWins(providerKey, account.userId, storage.options);
+  if (storage.options.LUCKYGO_ENABLE_CLOUD && storage.options.CLOUD_MODE === 'save') {
+    const ct = await countWins(providerKey, account.id, storage.options);
     console.log('Count wins:', ct);
     // if no wins in cloud, upload everything we got!
     const winsToUpload = ct > 0 ? myWinsNew : raffleStorage.myWins;
@@ -661,7 +663,7 @@ async function updateLuckyWins(checkTime, allCloudWins) {
   return raffleStorage.wins;
 }
 
-async function getLuckyAuth() {
+async function getLuckygoAuth() {
   await getMyTabIdFromExtension(pageState, 5000);
   if (!pageState.myTabId) {
     console.error('Invalid myTabId');
@@ -1067,28 +1069,27 @@ function createWinsTable(wins, header, id, allColumns = false) {
     row.appendChild(createCell(createMultiTexts(entryCounts, { className: 'entry-count', hideDups: false })));
 
     // CELL: mint-address
-    const sortedMintAddresses = sortMintAddresses(wins.map((x) => x.wallets).flat(), storage.options);
-    // const sortedMintAddresses = p.winners.map((x) => x.mintAddress);
-    const mintAddresses = noDuplicates(
-      sortedMintAddresses.map((addr) => {
+    const sortedWallets = sortWallets(wins.map((x) => x.wallets).flat(), storage.options);
+    const wallets = noDuplicates(
+      sortedWallets.map((addr) => {
         const walletAlias = walletToAlias(addr, storage.options);
         const suffix = walletAlias; // ? ` (${walletAlias})` : '';
-        return { addr, shortAddr: trimMintAddress(addr.toLowerCase()), alias: suffix };
+        return { addr, shortAddr: trimWallet(addr.toLowerCase()), alias: suffix };
       })
     );
-    // row.appendChild(createCell(createMultiTexts(mintAddresses, { className: 'mint-address' })));
-    const shortAddrs = mintAddresses.map((x) => x.shortAddr);
+    // row.appendChild(createCell(createMultiTexts(wallets, { className: 'mint-address' })));
+    const shortAddrs = wallets.map((x) => x.shortAddr);
     row.appendChild(
       createCell(
         createMultiTexts(shortAddrs, {
           className: 'mint-address',
-          fullTexts: mintAddresses.map((x) => x.addr),
+          fullTexts: wallets.map((x) => x.addr),
         })
       )
     );
 
     // CELL: mint-aliases
-    const aliases = mintAddresses.map((x) => x.alias);
+    const aliases = wallets.map((x) => x.alias);
     row.appendChild(createCell(createMultiTexts(aliases, { className: 'mint-aliases' })));
 
     // CELL: account-name
@@ -1303,7 +1304,7 @@ function updateShownProvider() {
   update('alphabot', storage.alphabot?.wins?.length);
   update('premint', storage.premint?.wins?.length);
   update('atlas', storage.atlas?.wins?.length);
-  update('lucky', storage.lucky?.wins?.length);
+  update('luckygo', storage.luckygo?.wins?.length);
   update('debug', storage.wins?.length);
 }
 

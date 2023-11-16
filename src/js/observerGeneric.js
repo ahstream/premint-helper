@@ -1,4 +1,4 @@
-import { trimMintAddress, walletToAlias, sortMintAddresses } from './premintHelperLib';
+import { trimWallet, walletToAlias, sortWallets } from './premintHelperLib';
 import {
   timestampToLocaleString,
   sleep,
@@ -513,21 +513,21 @@ export async function createObserver({
 
     const hidden = permissions?.enabled ? '' : '[ PREMIUM FEATURE HIDDEN ]';
 
-    const mintAddresses = sortMintAddresses(walletsWon, storage.options);
-    const mintAddress = mintAddresses[0];
-    const walletAliasFirst = walletToAlias(mintAddress, storage.options);
+    const wallets = sortWallets(walletsWon, storage.options);
+    const wallet = wallets[0];
+    const walletAliasFirst = walletToAlias(wallet, storage.options);
 
     debug.log('walletAliasFirst', walletAliasFirst);
     const walletAliasTextFirst = walletAliasFirst ? ` &nbsp;(${walletAliasFirst})` : '';
-    let html = hidden || `${trimMintAddress(mintAddress)}${walletAliasTextFirst}`;
-    if (mintAddresses.length > 1) {
-      html = `<span class='times-won'>[x${mintAddresses.length}]</span> ` + html;
+    let html = hidden || `${trimWallet(wallet)}${walletAliasTextFirst}`;
+    if (wallets.length > 1) {
+      html = `<span class='times-won'>[x${wallets.length}]</span> ` + html;
       if (showAll) {
-        mintAddresses.shift();
-        for (const addr of mintAddresses) {
+        wallets.shift();
+        for (const addr of wallets) {
           const walletAlias = walletToAlias(addr, storage.options);
           const walletAliasText = walletAlias ? ` (${walletAlias})` : '';
-          const mintAddrText = hidden || `${trimMintAddress(addr)}${walletAliasText}`;
+          const mintAddrText = hidden || `${trimWallet(addr)}${walletAliasText}`;
           html = html + `<br>${mintAddrText}`;
         }
       }
@@ -535,11 +535,11 @@ export async function createObserver({
     const div = document.createElement('div');
     div.classList.add('hx-already-won');
     div.innerHTML = html;
-    const text = mintAddresses
+    const text = wallets
       .map((x) => {
         const walletAlias = walletToAlias(x, storage.options);
         const walletAliasText = walletAlias ? ` (${walletAlias})` : '';
-        return `${trimMintAddress(x)}${walletAliasText}`;
+        return `${trimWallet(x)}${walletAliasText}`;
       })
       .join('\n');
     div.title = `Wallets with previous wins:\n\n` + (hidden || text);

@@ -1,6 +1,4 @@
-console.info('luckyPage.js begin', window?.location?.href);
-
-// import { getAccount as getLuckyAccount, getWins as getLuckyWins } from './luckyLib.js';
+console.info('luckygoPage.js begin', window?.location?.href);
 
 import { getStorageItems, createLogger, sleep, createHashArgs, dispatch } from 'hx-lib';
 import { getCookie } from './premintHelperLib';

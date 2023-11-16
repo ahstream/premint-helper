@@ -1,4 +1,4 @@
-import { trimMintAddress, walletToAlias, sortMintAddresses } from './premintHelperLib';
+import { trimWallet, walletToAlias, sortWallets } from './premintHelperLib';
 import {
   timestampToLocaleString,
   sleep,
@@ -61,11 +61,17 @@ export async function createObserver({
   }
 
   pageState.cacheTwitterHours =
-    typeof cacheTwitterHours === 'undefined' ? storage.options.TWITTER_FOLLOWERS_CACHE_HOURS : cacheTwitterHours;
-  pageState.cacheProjectMins = typeof cacheProjectMins === 'undefined' ? storage.options.RAFFLE_ODDS_CACHE_MINS : cacheProjectMins;
+    typeof cacheTwitterHours === 'undefined'
+      ? storage.options.TWITTER_FOLLOWERS_CACHE_HOURS
+      : cacheTwitterHours;
+  pageState.cacheProjectMins =
+    typeof cacheProjectMins === 'undefined' ? storage.options.RAFFLE_ODDS_CACHE_MINS : cacheProjectMins;
   pageState.trimAlphabotWhiteSpace =
-    typeof trimAlphabotWhiteSpace === 'undefined' ? storage.options.RAFFLE_TRIM_WHITESPACE : trimAlphabotWhiteSpace;
-  pageState.autoFollowers = typeof autoFollowers === 'undefined' ? storage.options.RAFLE_AUTO_SHOW_FOLLOWERS : autoFollowers;
+    typeof trimAlphabotWhiteSpace === 'undefined'
+      ? storage.options.RAFFLE_TRIM_WHITESPACE
+      : trimAlphabotWhiteSpace;
+  pageState.autoFollowers =
+    typeof autoFollowers === 'undefined' ? storage.options.RAFLE_AUTO_SHOW_FOLLOWERS : autoFollowers;
   pageState.autoOdds = typeof autoOdds === 'undefined' ? storage.options.RAFLE_AUTO_SHOW_ODDS : autoOdds;
   pageState.autoWins = typeof autoWins === 'undefined' ? storage.options.RAFLE_AUTO_SHOW_WINS : autoWins;
 
@@ -192,7 +198,9 @@ export async function createObserver({
   function updateTwitterFollowers(user, linkHref) {
     debug.log('updateTwitterFollowers', user, linkHref);
     const linkHrefLow = linkHref.toLowerCase();
-    const elems = [...document.querySelectorAll(`a`)].filter((e) => e.href.toLowerCase().startsWith(linkHrefLow));
+    const elems = [...document.querySelectorAll(`a`)].filter((e) =>
+      e.href.toLowerCase().startsWith(linkHrefLow)
+    );
     debug.log('elems', elems);
     for (let elem of elems) {
       const followers = user.followers || 0;
@@ -210,13 +218,22 @@ export async function createObserver({
       [...document.querySelectorAll('h5')].forEach((h) => (h.style.whiteSpace = 'normal'));
     }
 
-    document.documentElement.style.setProperty('--raffle-followers-background-color', storage.options.RAFFLE_FOLLOWERS_BACKGROUND_COLOR);
-    document.documentElement.style.setProperty('--raffle-followers-color', storage.options.RAFFLE_FOLLOWERS_COLOR);
+    document.documentElement.style.setProperty(
+      '--raffle-followers-background-color',
+      storage.options.RAFFLE_FOLLOWERS_BACKGROUND_COLOR
+    );
+    document.documentElement.style.setProperty(
+      '--raffle-followers-color',
+      storage.options.RAFFLE_FOLLOWERS_COLOR
+    );
     document.documentElement.style.setProperty(
       '--raffle-expired-followers-background-color',
       storage.options.RAFFLE_EXPIRED_FOLLOWERS_BACKGROUND_COLOR
     );
-    document.documentElement.style.setProperty('--raffle-expired-followers-color', storage.options.RAFFLE_EXPIRED_FOLLOWERS_COLOR);
+    document.documentElement.style.setProperty(
+      '--raffle-expired-followers-color',
+      storage.options.RAFFLE_EXPIRED_FOLLOWERS_COLOR
+    );
   }
 
   async function waitForTwitterProfileResult(maxWait = 30000, interval = 10) {
@@ -415,13 +432,19 @@ export async function createObserver({
         p.classList.toggle('hx-revealed-expired', true);
       }
 
-      document.documentElement.style.setProperty('--raffle-odds-background-color', storage.options.RAFFLE_ODDS_BACKGROUND_COLOR);
+      document.documentElement.style.setProperty(
+        '--raffle-odds-background-color',
+        storage.options.RAFFLE_ODDS_BACKGROUND_COLOR
+      );
       document.documentElement.style.setProperty('--raffle-odds-color', storage.options.RAFFLE_ODDS_COLOR);
       document.documentElement.style.setProperty(
         '--raffle-expired-odds-background-color',
         storage.options.RAFFLE_EXPIRED_ODDS_BACKGROUND_COLOR
       );
-      document.documentElement.style.setProperty('--raffle-expired-odds-color', storage.options.RAFFLE_EXPIRED_ODDS_COLOR);
+      document.documentElement.style.setProperty(
+        '--raffle-expired-odds-color',
+        storage.options.RAFFLE_EXPIRED_ODDS_COLOR
+      );
     }
   }
 
@@ -456,7 +479,10 @@ export async function createObserver({
     debug.trace('div', div);
     if (div) {
       raffleBox.append(div);
-      document.documentElement.style.setProperty('--raffle-wins-background-color', storage.options.RAFFLE_WINS_BACKGROUND_COLOR);
+      document.documentElement.style.setProperty(
+        '--raffle-wins-background-color',
+        storage.options.RAFFLE_WINS_BACKGROUND_COLOR
+      );
       document.documentElement.style.setProperty('--raffle-wins-color', storage.options.RAFFLE_WINS_COLOR);
     }
   }
@@ -482,21 +508,21 @@ export async function createObserver({
 
     const hidden = permissions?.enabled ? '' : '[ PREMIUM FEATURE HIDDEN ]';
 
-    const mintAddresses = sortMintAddresses(walletsWon, storage.options);
-    const mintAddress = mintAddresses[0];
-    const walletAliasFirst = walletToAlias(mintAddress, storage.options);
+    const wallets = sortWallets(walletsWon, storage.options);
+    const wallet = wallets[0];
+    const walletAliasFirst = walletToAlias(wallet, storage.options);
 
     debug.log('walletAliasFirst', walletAliasFirst);
     const walletAliasTextFirst = walletAliasFirst ? ` &nbsp;(${walletAliasFirst})` : '';
-    let html = hidden || `${trimMintAddress(mintAddress)}${walletAliasTextFirst}`;
-    if (mintAddresses.length > 1) {
-      html = `<span class='times-won'>[x${mintAddresses.length}]</span> ` + html;
+    let html = hidden || `${trimWallet(wallet)}${walletAliasTextFirst}`;
+    if (wallets.length > 1) {
+      html = `<span class='times-won'>[x${wallets.length}]</span> ` + html;
       if (showAll) {
-        mintAddresses.shift();
-        for (const addr of mintAddresses) {
+        wallets.shift();
+        for (const addr of wallets) {
           const walletAlias = walletToAlias(addr, storage.options);
           const walletAliasText = walletAlias ? ` (${walletAlias})` : '';
-          const mintAddrText = hidden || `${trimMintAddress(addr)}${walletAliasText}`;
+          const mintAddrText = hidden || `${trimWallet(addr)}${walletAliasText}`;
           html = html + `<br>${mintAddrText}`;
         }
       }
@@ -504,11 +530,11 @@ export async function createObserver({
     const div = document.createElement('div');
     div.classList.add('hx-already-won');
     div.innerHTML = html;
-    const text = mintAddresses
+    const text = wallets
       .map((x) => {
         const walletAlias = walletToAlias(x, storage.options);
         const walletAliasText = walletAlias ? ` (${walletAlias})` : '';
-        return `${trimMintAddress(x)}${walletAliasText}`;
+        return `${trimWallet(x)}${walletAliasText}`;
       })
       .join('\n');
     div.title = `Wallets with previous wins:\n\n` + (hidden || text);
@@ -550,14 +576,18 @@ export function getPreviousWalletsWon(twitterHandle) {
     return [];
   }
 
-  const elem = storage?.alphabotProjectWinners?.length ? storage.alphabotProjectWinners.find((x) => x.name === twitterHandle) : null;
+  const elem = storage?.alphabotProjectWinners?.length
+    ? storage.alphabotProjectWinners.find((x) => x.name === twitterHandle)
+    : null;
   if (!elem) {
     return [];
   }
   debug.log('getPreviousWalletsWon; elem:', elem);
 
   const minMintDate = millisecondsAhead(-(storage.options.ALPHABOT_PREV_WINS_LIFETIME_MINT_DAYS * ONE_DAY));
-  const minPickedDate = millisecondsAhead(-(storage.options.ALPHABOT_PREV_WINS_LIFETIME_PICKED_DAYS * ONE_DAY));
+  const minPickedDate = millisecondsAhead(
+    -(storage.options.ALPHABOT_PREV_WINS_LIFETIME_PICKED_DAYS * ONE_DAY)
+  );
 
   debug.log(
     'getPreviousWalletsWon minMintDate:',
@@ -583,7 +613,7 @@ export function getPreviousWalletsWon(twitterHandle) {
       }
       return winner.picked >= minPickedDate;
     })
-    .map((x) => x.mintAddress);
+    .map((x) => x.wallet);
   debug.log('getPreviousWalletsWonwallets', wallets);
 
   const noDupsWallets = noDuplicates(wallets.map((x) => x.toLowerCase()));
@@ -609,7 +639,12 @@ function makeRaffleOdds(entries, winners) {
 
 async function reloadStorage(key = null) {
   if (!key) {
-    storage = await getStorageItems(['options', 'twitterObserver', 'projectObserver', 'alphabotProjectWinners']);
+    storage = await getStorageItems([
+      'options',
+      'twitterObserver',
+      'projectObserver',
+      'alphabotProjectWinners',
+    ]);
   } else {
     const storageTemp = await getStorageItems([key]);
     storage[key] = storageTemp[key];

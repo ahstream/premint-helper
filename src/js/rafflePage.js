@@ -400,15 +400,15 @@ async function joinRaffle() {
       chrome.runtime.sendMessage({ cmd: 'openTab', url });
     }
 
-    if (isTwitter && storage.options.TWITTER_OPEN_LINKS_IN_SEQUENCE) {
-      console.log('Open rest of twitter links in sequence!');
+    if (isTwitter && storage.options.TWITTER_QUEUE_TASK_LINKS) {
+      console.log('Open rest of twitter links in queue!');
       break;
     }
 
     if (i + 1 < reqLinks.length) {
       const delayMs = Math.round(
         isTwitter
-          ? storage.options.RAFFLE_OPEN_TWITTER_LINK_DELAY
+          ? storage.options.RAFFLE_OPEN_AT_ONCE_TWITTER_LINK_DELAY
           : storage.options.RAFFLE_OPEN_DISCORD_LINK_DELAY
       );
       await sleep(delayMs, null, 0.2);

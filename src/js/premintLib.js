@@ -25,8 +25,11 @@ export async function getAccount() {
   const html = result?.data || '';
   const m = html.match(/<i class="fas fa-wallet mr-1 c-base-1-gradient"><\/i>\s*([^\s]+)\s+<\/button>/im);
   debug.log('m', m);
+  const id = m?.length === 2 ? m[1] : null;
   return {
-    userId: m?.length === 2 ? m[1] : null,
+    id,
+    address: null,
+    userId: id,
     userName: null,
   };
 }

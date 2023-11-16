@@ -161,8 +161,11 @@ function getAlphabotFilterParams() {
 export async function getAccount() {
   const result = await fetchHelper(ACCOUNT_URL, {});
   debug.log('getAccount:', result);
+  const id = result?.data?._id;
   return {
-    userId: result?.data?._id,
+    id,
+    address: null,
+    userId: id,
     userName:
       result?.data?.user?.name ||
       result?.data?.connections?.find((x) => x.provider === 'discord')?.name ||
@@ -283,6 +286,17 @@ async function fetchWins({ interval, max, sortBy, pageLength = 16, checkIfContin
   return wins;
 }
 
+function cleanTwitterUrl(str) {
+  if (typeof str !== 'string') {
+    return str;
+  }
+  let url = str;
+  if (url.startsWith('//twitter.com/')) {
+    url = url.replace('//twitter.com/', '');
+  }
+  return url;
+}
+
 function convertWins(wins, account) {
   debug.log('wins', wins);
   return wins.map((x) => {
@@ -301,7 +315,7 @@ function convertWins(wins, account) {
     const mintDate = x.mintDate;
     const mintTime = x.mintDateHasTime ? mintDate : null;
 
-    const twitterHandle = normalizeTwitterHandle(extractTwitterHandle(x.twitterUrl));
+    const twitterHandle = normalizeTwitterHandle(extractTwitterHandle(cleanTwitterUrl(x.twitterUrl)));
     const twitterHandleGuess = twitterHandle;
     const discordUrl = x.discordUrl;
     const websiteUrl = null;

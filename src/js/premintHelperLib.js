@@ -80,7 +80,7 @@ export function walletToAlias(wallet, options) {
   return items.length ? items[0].toLowerCase().replace(`${walletLow}`, '').replace(':', '').trim() : '';
 }
 
-export function trimMintAddress(text) {
+export function trimWallet(text) {
   if (typeof text !== 'string') {
     return '';
   }
@@ -104,11 +104,11 @@ export function toShortWallet(addr) {
   return r;
 }
 
-export function trimMintAddresses(texts) {
-  return texts.map((x) => trimMintAddress(x));
+export function trimWalletes(texts) {
+  return texts.map((x) => trimWallet(x));
 }
 
-export function sortMintAddresses(addrList, options) {
+export function sortWallets(addrList, options) {
   debug.trace('addrList', addrList);
   const sortData = addrList.map((x) => {
     debug.trace('x', x);
@@ -466,7 +466,7 @@ export async function finishUnlockedTwitterAccount(request, sender, context) {
     const nextLink = twitterLinks.shift();
     const nextLinkUrl = 'https://' + nextLink + context.pageState.twitterLinkSuffix;
     console.log('Open next twitter link:', nextLinkUrl);
-    await sleep(context.options.RAFFLE_OPEN_TWITTER_LINK_DELAY, null, 0.1);
+    await sleep(context.options.RAFFLE_OPEN_QUEUED_TWITTER_LINK_DELAY, null, 0.1);
 
     if (context.options.RAFFLE_OPEN_LINKS_IN_FOREGROUND) {
       window.open(nextLinkUrl, '_blank');
@@ -552,13 +552,13 @@ export async function finishTask(request, sender, context) {
 
   console.info('Not all required links finished yet!');
 
-  if (context.options.TWITTER_OPEN_LINKS_IN_SEQUENCE & request.twitter) {
+  if (context.options.TWITTER_QUEUE_TASK_LINKS & request.twitter) {
     const nextLink = context.pageState.pendingRequests.find((x) => isTwitterURL(x));
     if (nextLink) {
       const nextLinkUrl = 'https://' + nextLink + context.pageState.twitterLinkSuffix;
       console.log('Open next twitter link:', nextLinkUrl);
 
-      await sleep(context.options.RAFFLE_OPEN_TWITTER_LINK_DELAY, null, 0.1);
+      await sleep(context.options.RAFFLE_OPEN_QUEUED_TWITTER_LINK_DELAY, null, 0.1);
 
       if (context.options.RAFFLE_OPEN_LINKS_IN_FOREGROUND) {
         window.open(nextLinkUrl, '_blank');
