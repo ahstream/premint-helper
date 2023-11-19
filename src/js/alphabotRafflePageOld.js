@@ -288,7 +288,7 @@ function addPreviouslyWonWallets() {
   }
   debug.log('twitterHandle', twitterHandle);
 
-  const section = pageState.observer.createPreviousWonSection(twitterHandle, true, pageState.permissions);
+  const section = pageState.observer.createPreviousWonSection(twitterHandle, true);
   if (!section) {
     return;
   }

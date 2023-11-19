@@ -21,8 +21,8 @@ import {
 } from 'hx-lib';
 
 //import { createObserver as createRaffleObserver, getPreviousWalletsWon } from './observerGeneric';
-import { getPreviousWalletsWon } from './observerGeneric';
-import { createObserver as createRaffleObserver } from './observer2';
+import { createObserver as createRaffleObserver, getPreviousWalletsWon } from './observerGeneric';
+import { createObserver as createTwitterObserver } from './twitterObserver.js';
 
 const debug = createLogger();
 
@@ -36,6 +36,7 @@ const config = {
   storageKeys: ['runtime', 'options'],
   setStorage,
   createObserver,
+  createObserver2,
   waitForRafflePageLoaded,
   forceRegister,
   readyToRegister,
@@ -89,8 +90,12 @@ function setStorage(newStorage) {
 
 // OBSERVER ----------------------------------------------
 
-async function createObserver() {
-  return await createRaffleObserver();
+async function createObserver(config) {
+  return await createRaffleObserver(config);
+}
+
+async function createObserver2(config) {
+  return await createTwitterObserver(config);
 }
 
 // WAIT FOR LOADED ----------------------------------------------
@@ -352,7 +357,7 @@ function addPreviouslyWonWallets(pageState) {
   }
   debug.log('twitterHandle', twitterHandle);
 
-  const section = pageState.observer.createPreviousWonSection(twitterHandle, true, pageState.permissions);
+  const section = pageState.observer.createPreviousWonSection(twitterHandle, true);
   if (!section) {
     return;
   }

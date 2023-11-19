@@ -32,14 +32,14 @@ async function runNow() {
     return;
   }
 
-  const hashArgs = createHashArgs(window.location.hash);
-  parentTabId = hashArgs.getOne('id');
-  console.log('parentTabId', parentTabId);
-
   if (!storage.options.DISCORD_ENABLE && storage.options.DISCORD_ENABLE_MANUAL) {
     console.info('Disabled, exit!');
     return;
   }
+
+  const hashArgs = createHashArgs(window.location.hash);
+  parentTabId = hashArgs.getOne('id');
+  console.log('parentTabId', parentTabId);
 
   window.addEventListener('load', onLoad);
 }
@@ -153,7 +153,12 @@ async function joinDiscord() {
 }
 
 async function getJoinButton(waitMs = ONE_MINUTE * 10, interval = 250) {
-  return await waitForTextContains(storage.options.DISCORD_JOIN_BTN_TEXT, storage.options.DISCORD_JOIN_BTN_SEL, waitMs, interval);
+  return await waitForTextContains(
+    storage.options.DISCORD_JOIN_BTN_TEXT,
+    storage.options.DISCORD_JOIN_BTN_SEL,
+    waitMs,
+    interval
+  );
 }
 
 // MAIN LOOP -----------------------------------------------------------------------------------------
@@ -246,7 +251,9 @@ async function runWhatsNew() {
 }
 
 async function runMaybeLater() {
-  const maybeLaterElems = [...document.querySelectorAll('button')].filter((e) => e.innerText.toLowerCase().startsWith('maybe later'));
+  const maybeLaterElems = [...document.querySelectorAll('button')].filter((e) =>
+    e.innerText.toLowerCase().startsWith('maybe later')
+  );
   if (maybeLaterElems.length) {
     console.log('maybeLaterElems:', maybeLaterElems);
     await sleep(300, null, 0.2);
@@ -431,7 +438,9 @@ function isPendingDiscordJoin() {
 }
 
 function hasCaptcha() {
-  const elems = [...document.getElementsByTagName('iframe')].map((x) => x.src).filter((x) => x.includes('captcha'));
+  const elems = [...document.getElementsByTagName('iframe')]
+    .map((x) => x.src)
+    .filter((x) => x.includes('captcha'));
   if (elems.length) {
     console.log('DETECTED CAPTCHA:', elems);
     return true;

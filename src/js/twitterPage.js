@@ -1,6 +1,7 @@
 console.info('twitterPage.js begin', window?.location?.href);
 
 import { switchToUser, isEmptyPage, handleLockedTwitterAccount } from './twitterLib.js';
+
 import {
   getStorageItems,
   dispatch,
@@ -11,6 +12,8 @@ import {
   extractTwitterHandle,
   ONE_MINUTE,
 } from 'hx-lib';
+
+import { createObserver as createTwitterObserver } from './twitterObserver.js';
 
 const debug = createLogger();
 
@@ -39,7 +42,12 @@ async function runNow() {
   pageState = {
     hashArgs,
     parentTabId: hashArgs.getOne('id'),
+    twitterObserver: await createTwitterObserver({
+      permissions: pageState.permissions,
+      logger: {},
+    }),
   };
+
   debug.log('pageState', pageState);
 
   // window.addEventListener('load', onLoad);
@@ -151,7 +159,11 @@ async function runGetProfile() {
   const profile = await getUserProfile();
   debug.log('profile', profile);
 
-  await chrome.runtime.sendMessage({ cmd: 'sendTo', to: pageState.parentTabId, request: { cmd: 'profileResult', profile } });
+  await chrome.runtime.sendMessage({
+    cmd: 'sendTo',
+    to: pageState.parentTabId,
+    request: { cmd: 'profileResult', profile },
+  });
   await sleep(1);
   window.close();
 }

@@ -432,9 +432,9 @@ export async function getMyTabIdFromExtension(context, maxWait, intervall = 100)
     debug.log('sendMessage getMyTabId');
     const result = await chrome.runtime.sendMessage({ cmd: 'getMyTabIdAsync' });
     if (result) {
-      // context.myTabId = result;
+      // this is set elsewhere, not here! context.myTabId = result;
     }
-    debug.log('context.myTabId after fetch; result:', context.myTabId, result);
+    debug.log('context.myTabId after fetch; context.myTabId, result:', context.myTabId, result);
   }, 1);
 
   const stopTime = millisecondsAhead(maxWait);
@@ -627,4 +627,10 @@ export function getCookie(name) {
   const value = `; ${document.cookie}`;
   const parts = value.split(`; ${name}=`);
   if (parts.length === 2) return parts.pop().split(';').shift();
+}
+
+export function lookupTwitterFollowersClickEventHandler(event) {
+  event.preventDefault();
+  event.stopImmediatePropagation();
+  chrome.runtime.sendMessage({ cmd: 'lookupTwitterFollowersFromBtn' });
 }

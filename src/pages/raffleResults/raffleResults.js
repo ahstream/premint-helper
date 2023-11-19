@@ -16,7 +16,7 @@ import { getAccount as getPremintAccount, getWins as getPremintWins } from '../.
 
 import { readWins, writeWins, countWins } from '../../js/cloudLib';
 
-import { waitForUser } from '../../js/twitterLib';
+// import { waitForUser } from '../../js/twitterLib';
 
 import {
   createStatusbarButtons,
@@ -30,6 +30,7 @@ import {
   reloadOptions,
   getMyTabIdFromExtension,
   normalizeTwitterHandle,
+  lookupTwitterFollowersClickEventHandler,
 } from '../../js/premintHelperLib.js';
 
 import { trimPrice, trimText, trimTextNum } from '../../js/raffleResultsLib.js';
@@ -59,7 +60,7 @@ import {
   hoursBetween,
   minutesBetween,
   secondsBetween,
-  kFormatter,
+  // kFormatter,
   addPendingRequest,
 } from 'hx-lib';
 
@@ -67,7 +68,9 @@ import { getPermissions } from '../../js/permissions';
 
 import { createStatusbar } from 'hx-statusbar';
 
-import { createObserver } from '../../js/observerGeneric';
+// import { createObserver } from '../../js/observerGeneric';
+
+import { createObserver as createTwitterObserver } from '../../js/twitterObserver.js';
 
 const jht = require('json-html-table');
 
@@ -157,14 +160,15 @@ async function runPage() {
   debug.log('storage after checks:', storage);
 
   const hashArgs = createHashArgs(window.location.hash);
-
+  const permissions = await getPermissions();
   pageState = {
     ...pageState,
     hashArgs,
     statusbar: createStatusbar(STATUSBAR_DEFAULT_TEXT),
-    permissions: await getPermissions(),
-    observer: await createObserver({ autoFollowers: true }),
+    permissions,
+    observer: await createTwitterObserver({ permissions }),
   };
+
   debug.log('pageState', pageState);
 
   pageState.statusbar.buttons(
@@ -172,7 +176,7 @@ async function runPage() {
       options: true,
       results: 'disabled',
       reveal: 'disabled',
-      followers: lookupTwitterEventHandler,
+      followers: lookupTwitterFollowersClickEventHandler,
     })
   );
 
@@ -340,7 +344,7 @@ async function showPage(customWins = null, customHeader = '') {
   appendWinsTable(createWinsTable(storage.luckygo?.wins, 'LuckyGo raffles', 'luckygo'));
   appendWinsTable(createWinsTable(storage.wins, 'All raffles, all columns', 'debug', true));
 
-  await updateTwitterFollowers();
+  // await updateTwitterFollowers();
 
   window.preminthelper = {
     storage,
@@ -1531,15 +1535,9 @@ function filterNewWins(wins, storageWins, checkTime) {
 
 // TWITTER HELPERS -----------------------------------------------------
 
-async function getTwitterFollowerCount(username) {
-  return (await getObserver()).getTwitter(username, 999);
-}
-
-async function getObserver() {
-  if (!pageState.observer) {
-    pageState.observer = await createObserver({ autoFollowers: true });
-  }
-  return pageState.observer;
+/*
+async function getTwitterFollowerCount() {
+  // return (await getObserver()).getTwitter(username, 999);
 }
 
 async function updateTwitterFollowers() {
@@ -1552,6 +1550,7 @@ async function updateTwitterFollowers() {
     link.dataset.hxFollowers = kFormatter(followers);
   }
 }
+*/
 
 // PROJECT-WINS
 
@@ -1591,6 +1590,7 @@ function createProjectWins(packedWins) {
 
 // LOOKUP TWITTER FUNCS -----------------------------------------------------------------------------------------
 
+/*
 async function lookupTwitterEventHandler(event) {
   event.preventDefault();
   event.stopImmediatePropagation();
@@ -1612,7 +1612,7 @@ async function lookupTwitterEventHandler(event) {
 
   if (
     !window.confirm(
-      `Lookup follower count for ${storage.options.TWITTER_MAX_RESULTS_PAGE_LOOKUPS} of ${links.length} Twitter links on page?`
+      `Lookup follower count for ${storage.options.TWITTER_MAX_LOOKUPS} of ${links.length} Twitter links on page?`
     )
   ) {
     return;
@@ -1651,7 +1651,7 @@ async function lookupTwitter() {
   }
   debug.log('sortedLinks', sortedLinks);
 
-  const useLinks = sortedLinks.slice(0, storage.options.TWITTER_MAX_RESULTS_PAGE_LOOKUPS);
+  const useLinks = sortedLinks.slice(0, storage.options.TWITTER_MAX_LOOKUPS);
   debug.log('useLinks', useLinks);
 
   await getMyTabIdFromExtension(pageState, 5000);
@@ -1706,6 +1706,7 @@ function cleanTwitterLink(href) {
   const url = new URL(href);
   return url.protocol + '//' + url.host + url.pathname;
 }
+*/
 
 // MISC HELPERS -----------------------------------------------------
 

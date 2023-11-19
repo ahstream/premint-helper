@@ -70,26 +70,6 @@ p.hx-revealed-expired:after {
   padding: 2px 4px;
 }
 
-a.twitter-link:after {
-  color: var(--raffle-followers-color);
-  background-color: var(--raffle-followers-background-color);
-  content: attr(data-hx-followers);
-  display: inline-block;
-  font-size: 18px;
-  padding: 0 6px;
-  margin: 0 10px 0 3px;
-}
-
-a.twitter-link-expired:after {
-  color: var(--raffle-expired-followers-color);
-  background-color: var(--raffle-expired-followers-background-color);
-  content: attr(data-hx-followers);
-  display: inline-block;
-  font-size: 18px;
-  padding: 0 6px;
-  margin: 0 10px 0 3px;
-}
-
 .times-won {
   /* font-size: larger; */
   font-weight: bold;

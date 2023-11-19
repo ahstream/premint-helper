@@ -74,7 +74,11 @@ export async function initRafflePage(raffleProvider) {
 
   initEventHandlers();
 
-  pageState.observer = await provider.createObserver();
+  const permissions = await getPermissions();
+
+  pageState.permissions = permissions;
+  pageState.observer = await provider.createObserver({ permissions });
+  pageState.twitterObserver = await provider.createObserver2({ permissions });
 
   window.addEventListener('load', onLoad);
   window.addEventListener('DOMContentLoaded', onLoad);
@@ -101,7 +105,6 @@ async function onLoad() {
       isRegistering: false,
       statusbar: createStatusbar(STATUSBAR_DEFAULT_TEXT),
       history: await createHistory(),
-      permissions: await getPermissions(),
       lastURL: window.location.href,
       finishedTabsIds: [],
     },

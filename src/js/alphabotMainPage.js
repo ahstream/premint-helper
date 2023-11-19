@@ -2,17 +2,16 @@ console.info('alphabotMainPage.js begin', window?.location?.href);
 
 import '../styles/alphabotPage.css';
 import { createObserver } from './observerGeneric.js';
-import { waitForUser } from './twitterLib.js';
+import { createObserver as createTwitterObserver } from './twitterObserver.js';
 import { fetchProjects } from './alphabotLib.js';
 import {
   createStatusbarButtons,
   addRevealAlphabotRafflesRequest,
-  getMyTabIdFromExtension,
-  reloadOptions,
+  lookupTwitterFollowersClickEventHandler,
   STATUSBAR_DEFAULT_TEXT,
 } from './premintHelperLib';
 
-import { getStorageItems, createLogger, sleep, createHashArgs, noDuplicates, dispatch } from 'hx-lib';
+import { getStorageItems, createLogger, createHashArgs, dispatch } from 'hx-lib';
 import { createStatusbar } from 'hx-statusbar';
 import { getPermissions } from './permissions';
 
@@ -32,6 +31,7 @@ let pageState = {
   history: null,
   lastURL: '',
   observer: null,
+  twitterObserver: null,
 };
 
 // STARTUP ----------------------------------------------------------------------------
@@ -53,7 +53,11 @@ async function runNow() {
   }
 
   pageState.permissions = await getPermissions();
-  pageState.observer = await createObserver({ permissions: pageState.permissions });
+  pageState.observer = await createObserver({ permissions: pageState.permissions, autoFollowers: false });
+  pageState.twitterObserver = await createTwitterObserver({
+    permissions: pageState.permissions,
+    logger: { info: updateStatusbar, error: updateStatusbarError },
+  });
 
   window.addEventListener('load', onLoad);
   window.addEventListener('DOMContentLoaded', onLoad);
@@ -140,7 +144,7 @@ async function runPage() {
       options: true,
       results: true,
       reveal: revealRafflesEventHandler,
-      followers: lookupTwitterEventHandler,
+      followers: lookupTwitterFollowersClickEventHandler,
     })
   );
 
@@ -173,6 +177,7 @@ async function showMainPage() {
 
 // LOOKUP TWITTER FUNCS -----------------------------------------------------------------------------------------
 
+/*
 async function lookupTwitterEventHandler(event) {
   event.preventDefault();
   event.stopImmediatePropagation();
@@ -270,6 +275,7 @@ function cleanTwitterLink(href) {
   const url = new URL(href);
   return url.protocol + '//' + url.host + url.pathname;
 }
+*/
 
 // REVEAL RAFFLES  -----------------------------------------------------------------------------------------
 
@@ -333,10 +339,6 @@ function updateStatusbar(content, className = null) {
 
 function updateStatusbarError(content) {
   pageState.statusbar.error(content);
-}
-
-function updateStatusbarOk(content) {
-  pageState.statusbar.ok(content);
 }
 
 // HELPERS ---------------------------------------------------------------------------------------------------

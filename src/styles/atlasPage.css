@@ -26,23 +26,3 @@
 .ph-button:hover {
   background-color: var(--atlas-btn-hover-background-color) !important;
 }
-
-a.hx-twitter-link:after {
-  color: var(--raffle-followers-color);
-  background-color: var(--raffle-followers-background-color);
-  content: attr(data-hx-followers);
-  display: inline-block;
-  font-size: 0.8rem !important;
-  padding: 0 6px;
-  margin: 0 10px 0 6px;
-}
-
-a.hx-twitter-link-expired:after {
-  color: var(--raffle-expired-followers-color);
-  background-color: var(--raffle-expired-followers-background-color);
-  content: attr(data-hx-followers);
-  display: inline-block;
-  font-size: 0.8rem !important;
-  padding: 0 6px;
-  margin: 0 10px 0 6px;
-}

@@ -12,10 +12,14 @@
   --raffle-followers-background-color: cyan;
 
   --raffle-expired-followers-color: white;
+  --raffle-expired-followers-color: black;
+  --raffle-expired-followers-color: white;
+  --raffle-expired-followers-background-color: #f4ada4;
+  --raffle-expired-followers-background-color: #cce3f4;
   --raffle-expired-followers-background-color: #850404;
 
-  --raffle-odds-color: black;
-  --raffle-odds-background-color: cyan;
+  --raffle-odds-color: white;
+  --raffle-odds-background-color: #036b6b;
 
   --raffle-expired-odds-color: white;
   --raffle-expired-odds-background-color: #850404;
@@ -99,4 +103,19 @@
   --sans-font: -apple-system, BlinkMacSystemFont, 'Avenir Next', Avenir, 'Nimbus Sans L', Roboto, 'Noto Sans',
     'Segoe UI', Arial, Helvetica, 'Helvetica Neue', sans-serif;
   --mono-font: Consolas, Menlo, Monaco, 'Andale Mono', 'Ubuntu Mono', monospace;
+}
+
+a.hx-twitter-link:after {
+  color: var(--raffle-followers-color) !important;
+  background-color: var(--raffle-followers-background-color) !important;
+  content: attr(data-hx-followers);
+  display: inline-block;
+  font-size: 1rem !important;
+  padding: 0 6px;
+  margin: 0 10px 0 6px;
+}
+
+a.hx-twitter-link.expired:after {
+  color: var(--raffle-expired-followers-color);
+  background-color: var(--raffle-expired-followers-background-color);
 }

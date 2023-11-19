@@ -14,7 +14,7 @@ module.exports = {
     help: './src/pages/help/help.js',
     shortcuts: './src/pages/shortcuts/shortcuts.js',
     raffleResults: './src/pages/raffleResults/raffleResults.js',
-    alphabotResults: './src/pages/alphabotResults/alphabotResults.js',
+    genericPage: './src/js/genericPage.js',
     premintRafflePage: './src/js/premintRafflePage.js',
     alphabotRafflePage: './src/js/alphabotRafflePage.js',
     alphabotMainPage: './src/js/alphabotMainPage.js',

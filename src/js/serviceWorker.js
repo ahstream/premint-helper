@@ -46,6 +46,24 @@ function messageHandler(request, sender, sendResponse) {
   });
   */
 
+    case 'lookupTwitterFollowersFromMenu':
+      chrome.tabs.query({ active: true, currentWindow: true }, function (tabs) {
+        const currTab = tabs[0];
+        if (currTab && currTab.id) {
+          chrome.tabs.sendMessage(currTab.id, { cmd: 'lookupTwitterFollowers' });
+        }
+      });
+      break;
+
+    case 'lookupTwitterFollowersFromBtn':
+      chrome.tabs.query({ active: true, currentWindow: true }, function (tabs) {
+        const currTab = tabs[0];
+        if (currTab && currTab.id) {
+          chrome.tabs.sendMessage(currTab.id, { cmd: 'lookupTwitterFollowers' });
+        }
+      });
+      break;
+
     case 'closeRaffleWhenFinished2':
       chrome.tabs.query({}, (tabs) => {
         console.log('tabs', tabs);

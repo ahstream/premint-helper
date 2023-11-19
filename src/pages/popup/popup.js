@@ -15,19 +15,16 @@ mountPopupPage([
       window.close();
     },
   },
-  /*
   {
-    id: 'hx-show-alphabot-results',
+    id: 'hx-lookup-twitter-followers',
     callback: () => {
       console.log('callback');
       chrome.runtime.sendMessage({
-        cmd: 'openTab',
-        url: chrome.runtime.getURL('/alphabotResults.html'),
-        active: true,
+        cmd: 'lookupTwitterFollowersFromMenu',
       });
+      window.close();
     },
   },
-  */
   {
     id: 'hx-show-raffle-results',
     callback: () => {

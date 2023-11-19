@@ -437,6 +437,7 @@ export async function createObserver({
         p.classList.toggle('hx-revealed-expired', true);
       }
 
+      /*
       document.documentElement.style.setProperty(
         '--raffle-odds-background-color',
         storage.options.RAFFLE_ODDS_BACKGROUND_COLOR
@@ -450,6 +451,7 @@ export async function createObserver({
         '--raffle-expired-odds-color',
         storage.options.RAFFLE_EXPIRED_ODDS_COLOR
       );
+      */
     }
   }
 
@@ -480,7 +482,7 @@ export async function createObserver({
     const twitterHandle = extractTwitterHandle(twitterLink?.href);
     debug.trace('twitterHandle', twitterHandle);
 
-    const div = createPreviousWonSection(twitterHandle, false, pageState.permissions);
+    const div = createPreviousWonSection(twitterHandle, false);
     debug.trace('div', div);
     if (div) {
       raffleBox.append(div);
@@ -506,14 +508,15 @@ export async function createObserver({
     }
   }
 
-  function createPreviousWonSection(twitterHandle, showAll = false, permissions = null) {
+  function createPreviousWonSection(twitterHandle, showAll = false) {
     debug.trace('createPreviousWonSection', twitterHandle, showAll);
     const walletsWon = getPreviousWalletsWon(twitterHandle);
     if (!walletsWon.length) {
       return null;
     }
 
-    const hidden = permissions?.enabled ? '' : '[ PREMIUM FEATURE HIDDEN ]';
+    const hidden = pageState.permissions?.enabled ? '' : '[ PREMIUM FEATURE HIDDEN ]';
+    debug.trace('hidden', hidden);
 
     const wallets = sortWallets(walletsWon, storage.options);
     const wallet = wallets[0];

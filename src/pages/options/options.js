@@ -74,7 +74,7 @@ const options = [
       ],
       [
         'property',
-        'TWITTER_MAX_RESULTS_PAGE_LOOKUPS',
+        'TWITTER_MAX_LOOKUPS',
         'Batch Twitter lookups on results page',
         '',
         'Each lookup request will only lookup this many Twitter accounts to avoid bot detection',
