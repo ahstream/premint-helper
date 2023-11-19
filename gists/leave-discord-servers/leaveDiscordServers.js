@@ -27,6 +27,10 @@ async function showGui(doSort = false) {
     window.alert('No servers found! Remember to run in mobile device mode!');
   }
 
+  if (document.getElementById('hx-leave-discord')) {
+    document.getElementById('hx-leave-discord').remove();
+  }
+
   const div = document.createElement('div');
   div.id = 'hx-leave-discord';
   div.style.backgroundColor = '#b0edb4';
