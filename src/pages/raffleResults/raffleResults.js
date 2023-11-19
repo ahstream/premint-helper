@@ -618,7 +618,7 @@ async function updateLuckygoWins(checkTime, allCloudWins) {
     return [];
   }
 
-  const skip = []; //  [...raffleStorage.myWins.map((x) => x.id)];
+  const skip = [...raffleStorage.myWins.map((x) => x.id)];
   const wins = await getLuckygoWins(account, authKey, {
     interval: LUCKYGO_INTERVAL,
     max: storage.options.LUCKYGO_RESULTS_MAX_FETCH_WINS,

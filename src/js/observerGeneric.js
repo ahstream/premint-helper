@@ -23,6 +23,8 @@ let storage = null;
 
 // MAIN FUNCS ----------------------------------------------------------------------------------
 
+// [...document.querySelectorAll('a')].map(x => x.href).filter(x => x.match(/http(?:s)?:\/\/(?:www\.)?twitter\.com\/([a-zA-Z0-9_]+)$/))
+
 export async function createObserver({
   permissions,
   cacheTwitterHours,

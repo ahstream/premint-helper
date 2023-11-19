@@ -2,7 +2,12 @@ console.info('premintRafflePage.js begin', window?.location?.href);
 
 import '../styles/premintPage.css';
 
-import { JOIN_BUTTON_TEXT, JOIN_BUTTON_IN_PROGRESS_TEXT, JOIN_BUTTON_TITLE } from './premintHelperLib';
+import {
+  clickElement,
+  JOIN_BUTTON_TEXT,
+  JOIN_BUTTON_IN_PROGRESS_TEXT,
+  JOIN_BUTTON_TITLE,
+} from './premintHelperLib';
 import { initRafflePage } from './rafflePage';
 
 import {
@@ -14,6 +19,7 @@ import {
   noDuplicates,
   addToDate,
   normalizePendingLink,
+  //addPendingRequest,
 } from 'hx-lib';
 
 import { createObserver as createRaffleObserver } from './observerGeneric';
@@ -64,6 +70,7 @@ const config = {
   JOIN_BUTTON_TEXT,
   JOIN_BUTTON_TITLE,
   JOIN_BUTTON_IN_PROGRESS_TEXT,
+  register,
 };
 
 // STARTUP ----------------------------------------------------------------------------
@@ -94,6 +101,19 @@ async function waitForRafflePageLoaded() {
 }
 
 // REGISTER
+
+async function register(regBtn) {
+  /*
+  debug.log('provider.register:', regBtn, pageState, pageState.isAutoStarted);
+  if (pageState.isAutoStarted) {
+    debug.log('add pending request: wasAutoStarted, ', window.location.href);
+    await addPendingRequest(window.location.href, { action: 'wasAutoStarted' });
+    //console.log('storageAll', await getStorageData());
+    await sleep(100);
+  }
+  */
+  clickElement(regBtn);
+}
 
 function forceRegister() {
   return null;

@@ -229,6 +229,7 @@ export function exitActionMain(result, context, options) {
       'Selected wallet has already won a raffle! Change wallet before joining raffle.'
     );
     context.pageState.pause = true;
+    context.pageState.done = true;
   }
   if (result === 'raffleCaptcha') {
     context.updateStatusbarError('Raffle has captcha! First solve captcha, then click register button.');
@@ -348,6 +349,8 @@ function minimizeVerifiedRaffle(context) {
   if (context.pageState.action === 'verifyAlphabotRaffle') {
     console.log('do minimizeVerifiedRaffle');
     chrome.runtime.sendMessage({ cmd: 'minimizeWindow' });
+  } else {
+    console.log('do NOT minimizeVerifiedRaffle');
   }
 }
 
@@ -364,9 +367,14 @@ function closeTasksWhenFinished(context) {
 
 function minimizeRaffleWhenFinished(context) {
   console.log('minimizeRaffleWhenFinished', context);
-  if (context.options.RAFFLE_MINIMIZE_WHEN_FINISHED && context.pageState.isAutoStarted) {
+  if (
+    context.options.RAFFLE_MINIMIZE_WHEN_FINISHED &&
+    (context.pageState.isAutoStarted || context.pageState.isPendingReg)
+  ) {
     console.log('do minimizeRaffleWhenFinished');
     chrome.runtime.sendMessage({ cmd: 'minimizeWindow' });
+  } else {
+    console.log('do NOT minimizeRaffleWhenFinished');
   }
 }
 
@@ -386,6 +394,8 @@ function cleanupRaffleWhenFinished(context) {
   if (context.options.RAFFLE_CLEANUP_WHEN_FINISHED && context.pageState.isAutoStarted) {
     console.log('do cleanupRaffleWhenFinished');
     chrome.runtime.sendMessage({ cmd: 'cleanupRaffleWhenFinished', url: window.location.href });
+  } else {
+    console.log('do NOT cleanupRaffleWhenFinished');
   }
 }
 
@@ -451,7 +461,7 @@ export async function removeDoneLinks(user, links, pageState) {
 }
 
 export async function finishUnlockedTwitterAccount(request, sender, context) {
-  debug.log('finishUnlockedTwitterAccount; request, sender:', request, sender);
+  debug.log('finishUnlockedTwitterAccount; request, sender, context:', request, sender, context);
   const twitterLinks = [...context.pageState.pendingRequests.filter((x) => isTwitterURL(x))];
 
   if (context.pageState.handledUnlockedTwitterAccount) {
@@ -460,6 +470,7 @@ export async function finishUnlockedTwitterAccount(request, sender, context) {
   context.pageState.handledUnlockedTwitterAccount = true;
 
   context.updateStatusbar('Retry after unlocking Twitter account...');
+  context.pageState.abort = false;
 
   // eslint-disable-next-line no-constant-condition
   while (twitterLinks?.length) {

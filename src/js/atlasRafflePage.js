@@ -20,7 +20,9 @@ import {
   extractTwitterHandle,
 } from 'hx-lib';
 
-import { createObserver as createRaffleObserver, getPreviousWalletsWon } from './observerGeneric';
+//import { createObserver as createRaffleObserver, getPreviousWalletsWon } from './observerGeneric';
+import { getPreviousWalletsWon } from './observerGeneric';
+import { createObserver as createRaffleObserver } from './observer2';
 
 const debug = createLogger();
 

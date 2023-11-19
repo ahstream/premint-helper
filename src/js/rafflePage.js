@@ -62,6 +62,8 @@ export async function initRafflePage(raffleProvider) {
 
   await loadStorage();
 
+  //console.log('storageAll', await getStorageData());
+
   if (!storage?.options) {
     return debug.info('Options missing, exit!');
   }
@@ -132,6 +134,7 @@ function initEventHandlers() {
         exitAction,
         handleDiscordCaptcha,
         registerRaffle,
+        updateStatusbar,
         options: storage.options,
       });
     }
@@ -207,6 +210,10 @@ async function showPage() {
 
   pageState.statusbar.buttons(createStatusbarButtons(getStatusbarBtnOptions()));
 
+  if (provider.isPendingReg()) {
+    pageState.isPendingReg = true;
+  }
+
   if (!pageState.action) {
     await sleep(100);
     const request = await dispatch(window.location.href, 5 * 60);
@@ -217,11 +224,19 @@ async function showPage() {
 
   let runRaffle = false;
 
+  /*
+  if (pageState.action === 'wasAutoStarted') {
+    debug.log('wasAutoStarted, set isAutoStarted = true');
+    pageState.isAutoStarted = true;
+  }
+  */
+
   if (
     pageState.action === 'shortcut' ||
     pageState.action === 'retryJoin' ||
     pageState.action === 'verifyAlphabotRaffle'
   ) {
+    debug.log('set isAutoStarted = true');
     pageState.isAutoStarted = true;
     runRaffle = true;
   }
@@ -338,9 +353,14 @@ async function joinRaffle() {
   const discordLinks = skipDoneTasks
     ? await removeDoneLinks(reqs.discordUser, reqs.discordLinks, pageState)
     : reqs.discordLinks;
-  const twitterLinks = skipDoneTasks
+  let twitterLinks = skipDoneTasks
     ? await removeDoneLinks(reqs.twitterUser, reqs.twitterLinks, pageState)
     : reqs.twitterLinks;
+
+  if (provider.shouldOpenTwitterTasks && !provider.shouldOpenTwitterTasks()) {
+    debug.log('Should not open twitter tasks, empty link list');
+    twitterLinks = [];
+  }
 
   const reqLinks = [...discordLinks, ...twitterLinks];
   debug.log('reqLinks', reqLinks);
@@ -473,7 +493,11 @@ async function registerRaffle(focusTab = true, checkIfReady = true) {
       await sleep(1500);
     }
     debug.log('Click register button:', regBtn);
-    clickElement(regBtn);
+    if (provider.register) {
+      await provider.register(regBtn, pageState);
+    } else {
+      clickElement(regBtn);
+    }
     pageState.isRegistering = true;
   }
 
@@ -548,13 +572,20 @@ async function waitForRegistered(maxWait = 1 * ONE_MINUTE, interval = 100) {
 }
 
 async function waitAndTryRegisterOneLastTime() {
+  debug.log('waitAndTryRegisterOneLastTime', pageState);
+
   if (!provider.enableForceRegister) {
     return exitAction('notRegisterProperly');
   }
 
+  if (pageState.pause || pageState.done) {
+    debug.log('skip waitAndTryRegisterOneLastTime because pause or done', pageState);
+    return;
+  }
+
   // We have retried max number of times, now we can as well
   // wait for register button one last time and try to register!
-  debug.log('waitAndTryRegisterOneLastTime');
+  debug.log('waitAndTryRegisterOneLastTime', pageState);
 
   const waitSecs = 600;
 

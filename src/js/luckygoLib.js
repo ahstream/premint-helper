@@ -84,6 +84,7 @@ async function fetchWins(account, authKey, { interval, max, skip, statusLogger }
     count++; // count also non-wins, otherwise can be too many fetches!
     debug.log('Fetch count:', count);
 
+    // todo need id here to skip! urls arr cant be strings, has to be object {url, id}
     if (skip?.length && skip.find((id) => id === url.id)) {
       debug.log('Skip existing entry', url.id);
       continue;
@@ -557,6 +558,10 @@ export function getSelectedWallet() {
     console.error(e);
     return null;
   }
+}
+
+export function isAutomateTwitterTasksSelected() {
+  return !!document.querySelector('.automateBg.justify-end');
 }
 
 // HELPERS

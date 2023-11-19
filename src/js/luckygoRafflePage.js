@@ -2,7 +2,7 @@ console.info('luckygoPage.js begin', window?.location?.href);
 
 import '../styles/luckygoPage.css';
 
-import { getRaffleTwitterHandle } from './luckygoLib';
+import { getRaffleTwitterHandle, isAutomateTwitterTasksSelected } from './luckygoLib';
 
 import {
   JOIN_BUTTON_TEXT,
@@ -76,7 +76,12 @@ const config = {
   JOIN_BUTTON_TITLE,
   JOIN_BUTTON_IN_PROGRESS_TEXT,
   getRegisteringButtonSync,
+  shouldOpenTwitterTasks,
 };
+
+function shouldOpenTwitterTasks() {
+  return !isAutomateTwitterTasksSelected();
+}
 
 // STARTUP ----------------------------------------------------------------------------
 
