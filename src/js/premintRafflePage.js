@@ -8,6 +8,7 @@ import {
   JOIN_BUTTON_IN_PROGRESS_TEXT,
   JOIN_BUTTON_TITLE,
 } from './premintHelperLib';
+
 import { initRafflePage } from './rafflePage';
 
 import {

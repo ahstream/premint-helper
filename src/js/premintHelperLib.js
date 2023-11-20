@@ -449,10 +449,10 @@ export async function getMyTabIdFromExtension(context, maxWait, intervall = 100)
   return context.myTabId;
 }
 
-export async function removeDoneLinks(user, links, pageState) {
+export async function removeDoneLinks(handle, links, pageState) {
   const validLinks = [];
   for (const link of links) {
-    if (await pageState.history.has(user, link)) {
+    if (await pageState.history.has(handle, link)) {
       continue;
     }
     validLinks.push(link);
@@ -530,7 +530,7 @@ export async function finishTask(request, sender, context) {
 
   if (request.twitter) {
     console.log('Add url to history:', request.url);
-    await context.pageState.history.add(context.pageState.twitterUser, request.url);
+    await context.pageState.history.add(normalizeTwitterHandle(context.pageState.twitterUser), request.url);
     await context.pageState.history.save();
   }
 
@@ -608,21 +608,6 @@ export function removeBadStuffFromTwitterHandle(s) {
   return tokens.length <= 1 ? s : tokens[tokens.length - 1];
 }
 
-export function normalizeTwitterHandle(s) {
-  if (typeof s !== 'string') {
-    return s;
-  }
-
-  let handle = s;
-
-  const tokens = s.split('/');
-  if (tokens.length > 1) {
-    handle = tokens[tokens.length - 1];
-  }
-
-  return handle.trim().toLowerCase();
-}
-
 export function getCookie(name) {
   const value = `; ${document.cookie}`;
   const parts = value.split(`; ${name}=`);
@@ -633,4 +618,28 @@ export function lookupTwitterFollowersClickEventHandler(event) {
   event.preventDefault();
   event.stopImmediatePropagation();
   chrome.runtime.sendMessage({ cmd: 'lookupTwitterFollowersFromBtn' });
+}
+
+export function normalizeDiscordHandle(s) {
+  if (typeof s !== 'string') {
+    return s;
+  }
+  let handle = s;
+  const tokens = s.split('#');
+  if (tokens?.length) {
+    handle = tokens[0];
+  }
+  return handle.trim().toLowerCase();
+}
+
+export function normalizeTwitterHandle(s) {
+  if (typeof s !== 'string') {
+    return s;
+  }
+  let handle = s;
+  const tokens = s.split('/');
+  if (tokens.length > 1) {
+    handle = tokens[tokens.length - 1];
+  }
+  return handle.trim().toLowerCase();
 }

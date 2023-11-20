@@ -190,24 +190,23 @@ function getTwitterLinksFromMutations(nodes) {
     if (!node?.querySelectorAll) {
       continue;
     }
-    debug.log('node:', node); // todo trace
+    debug.trace('node:', node);
     const links = [...node.querySelectorAll('a')].filter(
       (x) =>
         x.href.match(/http(?:s)?:\/\/(?:www\.)?twitter\.com\/([a-zA-Z0-9_]+)(?:\?.*)*$/) ||
         x.href.match(/http(?:s)?:\/\/(?:www\.)?x\.com\/([a-zA-Z0-9_]+)(?:\?.*)*$/)
     );
-    debug.log('links:', links); // todo trace
-    debug.log('links all:', node.querySelectorAll('a')); // todo trace
+    debug.trace('links:', links);
     elems.push(...links);
   }
   return elems;
 }
 
 function handleTwitterLinkFromMutation(link) {
-  debug.log('handleTwitterLink', link); // todo trace
+  debug.trace('handleTwitterLink', link);
 
   if (link.classList.contains('hx-twitter-link')) {
-    return debug.log('twitter link already processed'); // todo trace
+    return debug.trace('twitter link already processed');
   }
 
   if (link.dataset && link.dataset.hxObserverDisabled) {
@@ -215,7 +214,7 @@ function handleTwitterLinkFromMutation(link) {
   }
 
   const user = getTwitterUserByUrl(link.href, pageState.cacheTwitterHours);
-  debug.log('user', user); // todo trace
+  debug.trace('user', user);
 
   updateTwitterUserLinksOnPage(user, link.href);
 }
@@ -378,7 +377,7 @@ function getTwitterUserByUrl(url, cacheHours) {
 }
 
 function getTwitterUser(handle, cacheHours) {
-  debug.log('getTwitterUser, handle:', handle); // todo trace
+  debug.trace('getTwitterUser, handle:', handle);
   if (!handle) {
     debug.trace('Skip invalid handle!');
     return null;

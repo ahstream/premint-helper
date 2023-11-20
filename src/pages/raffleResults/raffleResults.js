@@ -251,7 +251,17 @@ async function updateWins() {
   storage.results.lastProviderUpdate = checkTime;
   storage.results.lastWinsUpdate = checkTime;
 
-  storage.projectWins = createProjectWins(packWins(storage.wins));
+  const packedWins = packWins(storage.wins);
+  storage.projectWins = createProjectWins(packedWins.filter((x) => x.twitterHandle));
+  /*
+  storage.projectWinsAll = createProjectWins(packedWins);
+  console.log(
+    'foobar',
+    packedWins
+      .filter((x) => x.twitterHandle && x.hxSortKey)
+      .map((x) => new Date(x.hxSortKey).toLocaleDateString('sv-SE'))
+  );
+  */
 
   await setStorageData(storage);
 
@@ -753,11 +763,6 @@ function packWins(wins) {
   });
 
   const sortedWins = winsToSort.sort(dynamicSortMultiple('twitterHandleGuess', '-hxSortKey'));
-
-  console.log(
-    'foobar',
-    sortedWins.filter((x) => x.twitterHandleGuess && x.twitterHandleGuess.toLowerCase() === 'kuramaverse')
-  );
 
   const winsWithTwitter = [];
   const winsWithoutTwitterRaw = [];

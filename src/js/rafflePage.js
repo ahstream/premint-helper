@@ -9,6 +9,8 @@ import {
   finishTask,
   finishUnlockedTwitterAccount,
   clickElement,
+  normalizeTwitterHandle,
+  normalizeDiscordHandle,
 } from './premintHelperLib';
 
 import {
@@ -354,10 +356,10 @@ async function joinRaffle() {
 
   const skipDoneTasks = pageState.action === 'retryJoin' || storage.options.RAFFLE_SKIP_DONE_TASKS;
   const discordLinks = skipDoneTasks
-    ? await removeDoneLinks(reqs.discordUser, reqs.discordLinks, pageState)
+    ? await removeDoneLinks(reqs.discordUserNorm, reqs.discordLinks, pageState)
     : reqs.discordLinks;
   let twitterLinks = skipDoneTasks
-    ? await removeDoneLinks(reqs.twitterUser, reqs.twitterLinks, pageState)
+    ? await removeDoneLinks(reqs.twitterUserNorm, reqs.twitterLinks, pageState)
     : reqs.twitterLinks;
 
   if (provider.shouldOpenTwitterTasks && !provider.shouldOpenTwitterTasks()) {
@@ -405,7 +407,9 @@ async function joinRaffle() {
     const url = reqLink + pageState.twitterLinkSuffix;
 
     const isTwitter = isTwitterURL(reqLink);
-    const user = isTwitter ? reqs.twitterUser : reqs.discordUser;
+    const userNorm = isTwitter
+      ? normalizeTwitterHandle(reqs.twitterUser)
+      : normalizeDiscordHandle(reqs.discordUser);
 
     if (isTwitter) {
       pageState.twitterUser = reqs.twitterUser;
@@ -413,7 +417,7 @@ async function joinRaffle() {
 
     if (!isTwitter) {
       // Only add discord links to history at once; add twitter links when they are finished!
-      await pageState.history.add(user, reqLink);
+      await pageState.history.add(userNorm, reqLink);
     }
 
     debug.log('Open URL:', url);
@@ -788,7 +792,9 @@ function getRequirements() {
 
   const result = {
     twitterUser,
+    twitterUserNorm: normalizeTwitterHandle(twitterUser),
     discordUser,
+    discordUserNorm: normalizeDiscordHandle(discordUser),
     mustFollowLinks,
     mustLikeLinks,
     mustRetweetLinks,

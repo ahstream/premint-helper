@@ -56,41 +56,40 @@ async function fetchWins(account, authKey, { interval, max, skip, statusLogger }
     statusLogger.main(`Get LuckyGo entries...`);
   }
 
-  const entryUrls = await fetchEntryUrls(authKey, { interval, max, skip, statusLogger });
+  const entries = await fetchEntries(authKey, { interval, max, skip, statusLogger });
   await sleep(interval);
 
-  if (entryUrls?.error) {
-    console.error('Failed getting LuckyGo entries. Error:', entryUrls);
+  if (entries?.error) {
+    console.error('Failed getting LuckyGo entries. Error:', entries);
     if (statusLogger) {
-      statusLogger.sub('Failed getting LuckyGo entries. Error:' + entryUrls.error.toString());
+      statusLogger.sub('Failed getting LuckyGo entries. Error:' + entries.error.toString());
     }
     return wins;
   }
 
   const maxText = max ? ` (max ${max})` : '';
 
-  for (const url of entryUrls) {
+  for (const baseEntry of entries) {
     if (statusLogger) {
-      statusLogger.main(`Get LuckyGo results for raffle ${count + 1} of ${entryUrls.length}${maxText}`);
+      statusLogger.main(`Get LuckyGo results for raffle ${count + 1} of ${entries.length}${maxText}`);
     }
     if (max && count > max) {
       debug.log('Max wins fetched:', count, '>=', max);
       return wins;
     }
-    if (url.live) {
-      debug.log('Skip live entry', url.url);
+    if (baseEntry.live) {
+      debug.log('Skip live entry', baseEntry.url);
       continue;
     }
     count++; // count also non-wins, otherwise can be too many fetches!
     debug.log('Fetch count:', count);
 
-    // todo need id here to skip! urls arr cant be strings, has to be object {url, id}
-    if (skip?.length && skip.find((id) => id === url.id)) {
-      debug.log('Skip existing entry', url.id);
+    if (skip?.length && skip.find((id) => id === baseEntry.id)) {
+      debug.log('Skip existing entry', baseEntry.id);
       continue;
     }
 
-    const entry = await fetchEntry(url, account);
+    const entry = await fetchEntry(baseEntry.url, account);
     debug.log('entry', entry);
 
     debug.log(`sleep ${interval} ms before next fetch`);
@@ -114,7 +113,7 @@ async function fetchWins(account, authKey, { interval, max, skip, statusLogger }
   return wins;
 }
 
-async function fetchEntryUrls(
+async function fetchEntries(
   authKey,
   { pageLength = 20, interval, max, statusLogger },
   checkIfContinueFn = null
@@ -147,7 +146,7 @@ async function fetchEntryUrls(
       return entries;
     }
 
-    entries.push(...makeEntryUrls(result.data.data.list));
+    entries.push(...makeEntry(result.data.data.list));
 
     if (result.data.data.list.length < pageLength) {
       return entries;
@@ -234,9 +233,15 @@ function parsePropsFromSource(html) {
   }
 }
 
-function makeEntryUrls(entries) {
+function makeEntry(entries) {
   debug.log('makeEntryUrls', entries);
-  return entries.map((x) => `https://luckygo.io/r/${x.vanity_url}`);
+  return entries.map((x) => {
+    return {
+      id: x.id,
+      live: x.live,
+      url: `https://luckygo.io/r/${x.vanity_url}`,
+    };
+  });
 }
 
 function convertWin(html, account) {
