@@ -15,7 +15,7 @@ import {
 
 import {
   ONE_MINUTE,
-  createLogger,
+  myConsole,
   createLogLevelArg,
   getStorageItems,
   setStorageData,
@@ -36,7 +36,7 @@ import { createHistory } from './history';
 import { getPermissions } from './permissions';
 import { createStatusbar } from 'hx-statusbar';
 
-const debug = createLogger();
+const console2 = myConsole();
 
 // DATA ----------------------------------------------------------------------------------
 
@@ -59,19 +59,19 @@ let pageState = {
 // INIT ----------------------------------------------------------------------------
 
 export async function initRafflePage(raffleProvider) {
-  console.log('initRafflePage, provider:', raffleProvider?.name);
+  console2.log('initRafflePage, provider:', raffleProvider?.name);
   provider = raffleProvider;
 
   await loadStorage();
 
-  //console.log('storageAll', await getStorageData());
+  //console2.log('storageAll', await getStorageData());
 
   if (!storage?.options) {
-    return debug.info('Options missing, exit!');
+    return console2.info('Options missing, exit!');
   }
 
   if (!isEnabled()) {
-    return debug.info('Raffle provider disabled, exit!');
+    return console2.info('Raffle provider disabled, exit!');
   }
 
   initEventHandlers();
@@ -87,10 +87,10 @@ export async function initRafflePage(raffleProvider) {
 }
 
 async function onLoad() {
-  debug.log('onLoad');
+  console2.log('onLoad');
 
   if (pageState.loaded) {
-    return debug.log('Page already loaded, ignore load event!');
+    return console2.log('Page already loaded, ignore load event!');
   }
   pageState.loaded = true;
 
@@ -112,14 +112,14 @@ async function onLoad() {
     },
   };
 
-  debug.log('pageState', pageState);
+  console2.log('pageState', pageState);
 
   showPage();
 }
 
 function initEventHandlers() {
   chrome.runtime.onMessage.addListener(async (request, sender, sendResponse) => {
-    debug.log('Received message:', request, sender);
+    console2.log('Received message:', request, sender);
 
     if (request.cmd === 'switchedToTwitterUser') {
       if (request.error) {
@@ -145,17 +145,17 @@ function initEventHandlers() {
     }
 
     if (request.cmd === 'onHistoryStateUpdated') {
-      debug.log('onHistoryStateUpdated in content');
+      console2.log('onHistoryStateUpdated in content');
       const lastURL = pageState.lastURL;
       const currentURL = window.location.href;
       pageState.lastURL = currentURL;
       if (currentURL.includes('?') && lastURL.includes('?')) {
-        debug.log('Only search args changed, do not rerun page!');
+        console2.log('Only search args changed, do not rerun page!');
       } else if (lastURL && currentURL !== lastURL) {
-        debug.log('Page navigation, reload page!');
+        console2.log('Page navigation, reload page!');
         window.location.reload();
       } else {
-        debug.log('No new navigation, skip reload');
+        console2.log('No new navigation, skip reload');
       }
     }
 
@@ -211,7 +211,7 @@ function getStatusbarBtnOptions() {
 // PAGE FUNCS ----------------------------------------------------------------------------------
 
 async function showPage() {
-  debug.log('showPage; pageState:', pageState);
+  console2.log('showPage; pageState:', pageState);
 
   pageState.statusbar.buttons(createStatusbarButtons(getStatusbarBtnOptions()));
 
@@ -222,7 +222,7 @@ async function showPage() {
   if (!pageState.action) {
     await sleep(100);
     const request = await dispatch(window.location.href, 5 * 60);
-    debug.log('Dispatched request:', request);
+    console2.log('Dispatched request:', request);
     pageState.request = request;
     pageState.action = request?.action;
   }
@@ -231,7 +231,7 @@ async function showPage() {
 
   /*
   if (pageState.action === 'wasAutoStarted') {
-    debug.log('wasAutoStarted, set isAutoStarted = true');
+    console2.log('wasAutoStarted, set isAutoStarted = true');
     pageState.isAutoStarted = true;
   }
   */
@@ -241,7 +241,7 @@ async function showPage() {
     pageState.action === 'retryJoin' ||
     pageState.action === 'verifyAlphabotRaffle'
   ) {
-    debug.log('set isAutoStarted = true');
+    console2.log('set isAutoStarted = true');
     pageState.isAutoStarted = true;
     runRaffle = true;
   }
@@ -258,7 +258,7 @@ async function showPage() {
 // RAFFLE FUNCS -----------------------------------------------------------------------------------------
 
 async function showRafflePage(runPage) {
-  debug.log('showRafflePage', runPage);
+  console2.log('showRafflePage', runPage);
 
   if (!isEnabled()) {
     return exitAction('providerDisabled');
@@ -285,7 +285,7 @@ async function showRafflePage(runPage) {
   }
 
   if (provider.isIgnored(pageState)) {
-    console.log('ignored 2');
+    console2.log('ignored 2');
     return exitAction('ignoredRaffle');
   }
 
@@ -301,7 +301,7 @@ async function showRafflePage(runPage) {
 }
 
 async function runRafflePage() {
-  debug.log('runRafflePage');
+  console2.log('runRafflePage');
 
   if (!isEnabled()) {
     return exitAction('providerDisabled');
@@ -320,7 +320,7 @@ async function runRafflePage() {
   await sleep(100);
 
   if (provider.isIgnored(pageState)) {
-    console.log('ignored 1');
+    console2.log('ignored 1');
     return exitAction('ignoredRaffle');
   }
 
@@ -332,7 +332,7 @@ async function runRafflePage() {
 }
 
 async function joinRaffle() {
-  debug.log('joinRaffle');
+  console2.log('joinRaffle');
 
   if (!checkIfSubscriptionEnabled(pageState.permissions, true, pageState.statusbar.warn)) {
     return;
@@ -346,13 +346,13 @@ async function joinRaffle() {
   startQuickRegBtn();
 
   if (provider.skipReqsIfReady && provider.skipReqsIfReady()) {
-    console.log('ready to register, skip reqs');
+    console2.log('ready to register, skip reqs');
     registerRaffle();
     return waitForRegistered();
   }
 
   const reqs = getRequirements();
-  debug.log('reqs', reqs);
+  console2.log('reqs', reqs);
 
   const skipDoneTasks = pageState.action === 'retryJoin' || storage.options.RAFFLE_SKIP_DONE_TASKS;
   const discordLinks = skipDoneTasks
@@ -363,17 +363,17 @@ async function joinRaffle() {
     : reqs.twitterLinks;
 
   if (provider.shouldOpenTwitterTasks && !provider.shouldOpenTwitterTasks()) {
-    debug.log('Should not open twitter tasks, empty link list');
+    console2.log('Should not open twitter tasks, empty link list');
     twitterLinks = [];
   }
 
   const reqLinks = [...discordLinks, ...twitterLinks];
-  debug.log('reqLinks', reqLinks);
+  console2.log('reqLinks', reqLinks);
 
   if (reqLinks.length) {
     await getMyTabIdFromExtension(pageState, 5000);
     if (!pageState.myTabId) {
-      console.error('Invalid myTabId');
+      console2.error('Invalid myTabId');
       return exitAction('invalidContext');
     }
   }
@@ -384,7 +384,7 @@ async function joinRaffle() {
   }
 
   reqLinks.forEach((link) => pageState.pendingRequests.push(normalizePendingLink(link)));
-  debug.log('pageState.pendingRequests:', pageState.pendingRequests);
+  console2.log('pageState.pendingRequests:', pageState.pendingRequests);
 
   pageState.twitterLinkSuffix = `#id=${pageState.myTabId}&user=${
     storage.options.RAFFLE_SWITCH_TWITTER_USER ? reqs.twitterUser : ''
@@ -400,8 +400,8 @@ async function joinRaffle() {
       pageState.haveRoleDiscordLink = true;
       pageState.roleDiscordLinks = pageState.roleDiscordLinks || [];
       pageState.roleDiscordLinks.push(reqLink);
-      debug.log('pageState.haveRoleDiscordLink', pageState.haveRoleDiscordLink);
-      debug.log('pageState.roleDiscordLinks', pageState.roleDiscordLinks);
+      console2.log('pageState.haveRoleDiscordLink', pageState.haveRoleDiscordLink);
+      console2.log('pageState.roleDiscordLinks', pageState.roleDiscordLinks);
     }
 
     const url = reqLink + pageState.twitterLinkSuffix;
@@ -420,7 +420,7 @@ async function joinRaffle() {
       await pageState.history.add(userNorm, reqLink);
     }
 
-    debug.log('Open URL:', url);
+    console2.log('Open URL:', url);
     if (storage.options.RAFFLE_OPEN_LINKS_IN_FOREGROUND) {
       window.open(url, '_blank');
     } else {
@@ -428,7 +428,7 @@ async function joinRaffle() {
     }
 
     if (isTwitter && storage.options.TWITTER_QUEUE_TASK_LINKS) {
-      console.log('Open rest of twitter links in queue!');
+      console2.log('Open rest of twitter links in queue!');
       break;
     }
 
@@ -460,7 +460,7 @@ async function joinRaffle() {
 // REGISTER ----------------------------------------------------------------------------------
 
 async function registerRaffle(focusTab = true, checkIfReady = true) {
-  console.info('Register raffle; focusTab:', focusTab);
+  console2.info('Register raffle; focusTab:', focusTab);
 
   pageState.pause = false;
 
@@ -474,7 +474,7 @@ async function registerRaffle(focusTab = true, checkIfReady = true) {
 
   updateStatusbarRunning('Joining raffle...');
   if (focusTab) {
-    console.info('focusTab');
+    console2.info('focusTab');
     chrome.runtime.sendMessage({ cmd: 'focusMyTab' });
   }
 
@@ -482,24 +482,24 @@ async function registerRaffle(focusTab = true, checkIfReady = true) {
   if (!regBtn) {
     return exitAction('noRaffleRegisterBtn');
   }
-  debug.log('registerRaffle; regBtn:', regBtn);
+  console2.log('registerRaffle; regBtn:', regBtn);
 
   if (provider.hasCaptcha()) {
     return handleRaffleCaptcha();
   }
 
   while (checkIfReady && provider.readyToRegister && !provider.readyToRegister()) {
-    console.log('wait until ready to register');
+    console2.log('wait until ready to register');
     await sleep(500);
   }
 
   if (regBtn && !regBtn.disabled) {
     await provider.setPendingReg();
     if (pageState.request?.retries) {
-      debug.log('Wait some time before clicking reg button when retrying');
+      console2.log('Wait some time before clicking reg button when retrying');
       await sleep(1500);
     }
-    debug.log('Click register button:', regBtn);
+    console2.log('Click register button:', regBtn);
     if (provider.register) {
       await provider.register(regBtn, pageState);
     } else {
@@ -509,7 +509,7 @@ async function registerRaffle(focusTab = true, checkIfReady = true) {
   }
 
   if (pageState.request?.retries) {
-    debug.log('Wait some time to let prev errors clear first when retrying register after errors!');
+    console2.log('Wait some time to let prev errors clear first when retrying register after errors!');
     await sleep(1500);
     await waitForRegistered();
   }
@@ -518,7 +518,7 @@ async function registerRaffle(focusTab = true, checkIfReady = true) {
 }
 
 async function waitForRegistered(maxWait = 1 * ONE_MINUTE, interval = 100) {
-  debug.info('Wait for registered...');
+  console2.info('Wait for registered...');
 
   const stopTime = millisecondsAhead(getWaitForRegistered() || maxWait);
 
@@ -575,24 +575,24 @@ async function waitForRegistered(maxWait = 1 * ONE_MINUTE, interval = 100) {
   }
   pageState.pause = false;
 
-  debug.log('Stop waiting for registered!');
+  console2.log('Stop waiting for registered!');
 }
 
 async function waitAndTryRegisterOneLastTime() {
-  debug.log('waitAndTryRegisterOneLastTime', pageState);
+  console2.log('waitAndTryRegisterOneLastTime', pageState);
 
   if (!provider.enableForceRegister) {
     return exitAction('notRegisterProperly');
   }
 
   if (pageState.pause || pageState.done) {
-    debug.log('skip waitAndTryRegisterOneLastTime because pause or done', pageState);
+    console2.log('skip waitAndTryRegisterOneLastTime because pause or done', pageState);
     return;
   }
 
   // We have retried max number of times, now we can as well
   // wait for register button one last time and try to register!
-  debug.log('waitAndTryRegisterOneLastTime', pageState);
+  console2.log('waitAndTryRegisterOneLastTime', pageState);
 
   const waitSecs = 600;
 
@@ -600,10 +600,10 @@ async function waitAndTryRegisterOneLastTime() {
 
   const stopTime = millisecondsAhead(waitSecs * 1000);
   while (Date.now() <= stopTime && storage.options.RAFFLE_FORCE_REGISTER) {
-    debug.log('try to forceRegister');
+    console2.log('try to forceRegister');
     const regBtn = await provider.forceRegister(pageState);
     if (regBtn) {
-      debug.log('forceRegister ok!');
+      console2.log('forceRegister ok!');
       return waitForRegisteredMainLoop(regBtn);
     }
     if (provider.SLEEP_BETWEEN_WAIT_FOR_REGISTERED) {
@@ -624,15 +624,15 @@ async function waitAndTryRegisterBeforeRetry(retries) {
   if (!provider.enableForceRegister) {
     return;
   }
-  debug.log('waitAndTryRegisterBeforeRetry; retries:', retries);
+  console2.log('waitAndTryRegisterBeforeRetry; retries:', retries);
 
   const stopTime = millisecondsAhead(storage.options.RAFFLE_RETRY_SECS * 1000);
   while (Date.now() <= stopTime) {
     if (storage.options.RAFFLE_FORCE_REGISTER) {
-      debug.log('try to forceRegister');
+      console2.log('try to forceRegister');
       const regBtn = await provider.forceRegister(pageState);
       if (regBtn) {
-        debug.log('forceRegister ok!');
+        console2.log('forceRegister ok!');
         return waitForRegisteredMainLoop(regBtn);
       } else {
         if (provider.hasRegistered()) {
@@ -656,19 +656,19 @@ async function waitAndTryRegisterBeforeRetry(retries) {
 }
 
 async function waitForRegisteredMainLoop(regBtn = null, maxWait = 300 * ONE_MINUTE, interval = 1000) {
-  debug.log('Wait for registered main loop...');
+  console2.log('Wait for registered main loop...');
 
   const stopTime = millisecondsAhead(maxWait);
 
   while (Date.now() <= stopTime) {
     if (regBtn) {
       if (provider.hasDoingItTooOften()) {
-        return debug.log('hasDoingItTooOften');
+        return console2.log('hasDoingItTooOften');
       }
       if (provider.isAllRegBtnsEnabled(pageState)) {
         clickElement(regBtn);
       } else {
-        console.log('Not isAllRegBtnsEnabled');
+        console2.log('Not isAllRegBtnsEnabled');
       }
     }
     if (provider.hasRegistered()) {
@@ -687,7 +687,7 @@ async function waitForRegisteredMainLoop(regBtn = null, maxWait = 300 * ONE_MINU
     }
   }
 
-  debug.log('Stop waiting for registered in main loop');
+  console2.log('Stop waiting for registered in main loop');
 }
 
 // HANDLERS ----------------------------------------------------------------------------------
@@ -718,12 +718,12 @@ function exitAction(result, options = {}) {
 // GUI -----------------------------------------------------------------------------------------
 
 async function addQuickRegButton() {
-  debug.log('addQuickRegButton');
+  console2.log('addQuickRegButton');
 
   const quickRegBtn = getQuickRegBtn();
-  debug.log('quickRegBtn', quickRegBtn);
+  console2.log('quickRegBtn', quickRegBtn);
   if (quickRegBtn) {
-    return debug.log('quickRegBtn already present, do nothing');
+    return console2.log('quickRegBtn already present, do nothing');
   }
 
   provider.addQuickRegButton(quickRegClickHandler);
@@ -878,16 +878,16 @@ function updateStatusbarRunning(content) {
 // WON WALLETS
 
 function checkForJoinWithWonWallet() {
-  debug.log('checkForJoinWithWonWallet');
+  console2.log('checkForJoinWithWonWallet');
 
   const wonWallets = getWonWallets().map((x) => x.toLowerCase());
-  debug.log('wonWallets', wonWallets);
+  console2.log('wonWallets', wonWallets);
   if (!wonWallets.length) {
     return false;
   }
 
   const selectedWallet = provider.getSelectedWallet();
-  debug.log('selectedWallet', selectedWallet);
+  console2.log('selectedWallet', selectedWallet);
   if (!selectedWallet) {
     return false;
   }
@@ -898,12 +898,12 @@ function checkForJoinWithWonWallet() {
   selectedWallet.shortSuffix = selectedWallet.shortSuffix.toLowerCase();
 
   if (wonWallets.includes(selectedWallet.shortWallet)) {
-    console.log('checkForJoinWithWonWallet shortWallet hit!', selectedWallet, wonWallets);
+    console2.log('checkForJoinWithWonWallet shortWallet hit!', selectedWallet, wonWallets);
     return true;
   }
 
   if (wonWallets.includes(selectedWallet.longWallet)) {
-    console.log('checkForJoinWithWonWallet longWallet hit!', selectedWallet, wonWallets);
+    console2.log('checkForJoinWithWonWallet longWallet hit!', selectedWallet, wonWallets);
     return true;
   }
 
@@ -913,11 +913,11 @@ function checkForJoinWithWonWallet() {
         (x) => x.startsWith(selectedWallet.shortPrefix) && x.endsWith(selectedWallet.shortSuffix)
       )
     ) {
-      console.log('checkForJoinWithWonWallet prefix/suffix hit!', selectedWallet, wonWallets);
+      console2.log('checkForJoinWithWonWallet prefix/suffix hit!', selectedWallet, wonWallets);
       return true;
     }
   }
-  console.log('checkForJoinWithWonWallet no hit!');
+  console2.log('checkForJoinWithWonWallet no hit!');
 
   return false;
 }
@@ -926,14 +926,14 @@ function getWonWallets() {
   const w1 = provider.getWonWalletsByThisAccount();
   const w2 = provider.getWonWalletsByAllAccounts();
   const wonWallets = noDuplicates([...w1, ...w2].map((x) => x.toLowerCase()));
-  console.log('getWonWallets:', w1, w2, wonWallets);
+  console2.log('getWonWallets:', w1, w2, wonWallets);
   return wonWallets;
 }
 
 // CAPTCHA -------------------------------------
 
 async function handleRaffleCaptcha() {
-  debug.log('handleRaffleCaptcha');
+  console2.log('handleRaffleCaptcha');
 
   if (pageState.hasHandledRaffleCaptcha) {
     return;
@@ -947,12 +947,12 @@ async function handleRaffleCaptcha() {
 
   const stopTime = millisecondsAhead(60 * 1000);
   while (Date.now() <= stopTime) {
-    debug.log('try to handleRaffleCaptcha with forceRegister');
+    console2.log('try to handleRaffleCaptcha with forceRegister');
     if (await provider.forceRegister()) {
-      debug.log('forceRegister ok!');
+      console2.log('forceRegister ok!');
       return waitForRegisteredMainLoop();
     } else {
-      debug.log('forceRegister NOK!');
+      console2.log('forceRegister NOK!');
     }
     await sleep(1500);
   }
@@ -975,5 +975,5 @@ async function loadStorage(key = null) {
     storage[key] = storageTemp[key];
   }
   provider.setStorage(storage);
-  debug.log('loadStorage:', key, storage);
+  console2.log('loadStorage:', key, storage);
 }

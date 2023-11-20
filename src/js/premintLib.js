@@ -1,15 +1,8 @@
-import {
-  sleep,
-  fetchHelper,
-  rateLimitHandler,
-  createLogger,
-  noDuplicates,
-  convertTextToMonthNum,
-} from 'hx-lib';
+import { sleep, fetchHelper, rateLimitHandler, noDuplicates, convertTextToMonthNum, myConsole } from 'hx-lib';
 
 import { normalizeTwitterHandle } from './premintHelperLib.js';
 
-const debug = createLogger();
+const console2 = myConsole();
 
 // DATA ----------------------------------------------------------------------------------
 
@@ -21,10 +14,10 @@ const WINS_BASE_URL = 'https://www.premint.xyz/collectors/entries/';
 
 export async function getAccount() {
   const result = await fetchHelper(ACCOUNT_URL, {});
-  debug.log('getAccount:', result);
+  console2.log('getAccount:', result);
   const html = result?.data || '';
   const m = html.match(/<i class="fas fa-wallet mr-1 c-base-1-gradient"><\/i>\s*([^\s]+)\s+<\/button>/im);
-  debug.log('m', m);
+  console2.trace('m', m);
   const id = m?.length === 2 ? m[1] : null;
   return {
     id,
@@ -39,7 +32,7 @@ export async function getAccount() {
 // WINS ----------------------------------------------------------------------------------
 
 export async function getWins(account, { interval = 1500, max = null, skip = [], statusLogger = null } = {}) {
-  debug.log('getWins', account, interval, max, skip);
+  console2.log('getWins', account, interval, max, skip);
   const { wins, lost } = await fetchWins({ interval, max, skip, statusLogger });
   const lastSortKey = skip.length;
   return {
@@ -49,7 +42,7 @@ export async function getWins(account, { interval = 1500, max = null, skip = [],
 }
 
 async function fetchWins({ interval, max, skip, statusLogger }) {
-  debug.log('fetchWins; max, interval, skip:', max, interval, skip);
+  console2.log('fetchWins; max, interval, skip:', max, interval, skip);
 
   const wins = [];
   const lost = [];
@@ -63,7 +56,7 @@ async function fetchWins({ interval, max, skip, statusLogger }) {
   await sleep(interval);
 
   if (entries?.error) {
-    console.error('Failed getting Premint entries. Error:', entries);
+    console2.error('Failed getting Premint entries. Error:', entries);
     if (statusLogger) {
       statusLogger.sub('Failed getting Premint entries. Error:' + entries.error.toString());
     }
@@ -77,37 +70,37 @@ async function fetchWins({ interval, max, skip, statusLogger }) {
     }
 
     if (max && count > max) {
-      debug.log('Max entries fetched:', count, '>=', max);
+      console2.log('Max entries fetched:', count, '>=', max);
       return { wins, lost };
     }
 
     if (entryMetadata.live) {
-      debug.log('Skip live entry', entryMetadata.url);
+      console2.log('Skip live entry', entryMetadata.url);
       continue;
     }
 
     count++; // count also non-wins, otherwise can be too many fetches!
-    debug.log('Fetch count:', count);
+    console2.log('Fetch count:', count);
 
     if (skip?.length && skip.find((id) => id === entryMetadata.id)) {
-      debug.log('Skip existing entry', entryMetadata.id);
+      console2.log('Skip existing entry', entryMetadata.id);
       continue;
     }
 
     const entry = await fetchEntry(entryMetadata);
-    debug.log(`sleep ${interval} ms before next fetch`);
+    console2.info(`sleep ${interval} ms before next fetch`);
     await sleep(interval);
 
-    // debug.log('entry', entry);
+    console2.trace('entry', entry);
 
     if (entry.error) {
-      debug.log('skip error entry:', entry);
+      console2.log('skip error entry:', entry);
       continue;
     }
 
     if (!entry.isWin) {
       lost.push(entry);
-      // debug.log('lost entry:', entry);
+      console2.log('lost entry:', entry);
       continue;
     }
 
@@ -118,12 +111,12 @@ async function fetchWins({ interval, max, skip, statusLogger }) {
 }
 
 async function fetchEntries() {
-  debug.log('fetchEntries');
+  console2.log('fetchEntries');
 
   const entries = [];
 
   const result = await fetchHelper(WINS_BASE_URL, { method: 'GET' }, rateLimitHandler);
-  debug.log('result', result);
+  console2.log('result', result);
 
   if (result.error) {
     return { error: true, result, entries };
@@ -138,12 +131,12 @@ async function fetchEntries() {
       /<div class="card-body text-truncate">[^<]*<a href="([^"]+)[^>]*>([^<]*)<\/a>[^<]*<div[^>]*>([^<]*)<\/div>[^<]*<span[^>]*>[^<]*<a href="\/collectors\/entries\/[0-9]+\/(hide|unregister)/gim
     ),
   ];
-  debug.log('matches', matches);
+  console2.trace('matches', matches);
 
   for (const entry of matches) {
-    //console.log('entry', entry);
+    console2.trace('entry', entry);
     if (entry.length !== 5) {
-      debug.log('ERROR? Entry length != 5');
+      console2.log('ERROR? Entry length != 5');
       continue;
     }
     entries.push({
@@ -162,10 +155,10 @@ async function fetchEntries() {
 }
 
 async function fetchEntry(entry) {
-  debug.log('fetchEntry:', entry.url);
+  console2.log('fetchEntry:', entry.url);
 
   const result = await fetchHelper(entry.url, { method: 'GET' }, rateLimitHandler);
-  debug.log('result', result);
+  console2.log('result', result);
 
   if (result.error) {
     return { error: true, result };
@@ -196,7 +189,7 @@ async function fetchEntry(entry) {
 
 function parseJoinDate(html) {
   const m = html.match(/Joined ([a-z][a-z][a-z])\. ([0-9]+), ([0-9][0-9][0-9][0-9])/i);
-  //console.log('m', m);
+  console2.trace('m', m);
   return createDateFromTextMatch(m);
 }
 
@@ -204,7 +197,7 @@ function getMintDate(html) {
   const m = html.match(
     /<i class="fas fa-calendar-alt text-muted mr-1"><\/i>\s*([a-z][a-z][a-z])\. ([0-9]+), ([0-9][0-9][0-9][0-9])\s*<\/span>/i
   );
-  //console.log('m', m);
+  console2.trace('m', m);
   return createDateFromTextMatch(m);
 }
 
@@ -219,7 +212,7 @@ function getRaffleDate(html) {
   const m = html.match(
     /This is when the project has said they'd pick winners.">\s*([a-z][a-z][a-z])\. ([0-9]+), ([0-9][0-9][0-9][0-9])/i
   );
-  //console.log('m', m);
+  console2.trace('m', m);
   return createDateFromTextMatch(m);
 }
 
@@ -245,8 +238,8 @@ function getTwitterHandles(html) {
     ),
   ];
   const m2 = [...html.matchAll(/Twitter: https:\/\/twitter\.com\/([a-z0-9-_]+)</gim)];
-  //console.log('m1', m1);
-  //console.log('m2', m2);
+  console2.trace('m1', m1);
+  console2.trace('m2', m2);
 
   const data = [];
 
@@ -269,8 +262,8 @@ function getDiscordUrls(html) {
     ),
   ];
   const m2 = [];
-  //console.log('m1', m1);
-  //console.log('m2', m2);
+  console2.trace('m1', m1);
+  console2.trace('m2', m2);
 
   const data = [];
 
@@ -293,7 +286,7 @@ function getWallets(html) {
       /<span class="text-sm text-uppercase text-muted">Wallet Address<\/span>\s*([^<]*)<\/div>/gim
     ),
   ];
-  //console.log(m1);
+  console2.trace(m1);
 
   const data = [];
 

@@ -1,4 +1,4 @@
-console.info('premintRafflePage.js begin', window?.location?.href);
+console2.info('premintRafflePage.js begin', window?.location?.href);
 
 import '../styles/premintPage.css';
 
@@ -15,7 +15,7 @@ import {
   ONE_SECOND,
   sleep,
   waitForSelector,
-  createLogger,
+  myConsole,
   setStorageData,
   noDuplicates,
   addToDate,
@@ -26,7 +26,7 @@ import {
 import { createObserver as createRaffleObserver } from './observerGeneric';
 import { createObserver as createTwitterObserver } from './twitterObserver.js';
 
-const debug = createLogger();
+const console2 = myConsole();
 
 // DATA ----------------------------------------------------------------------------
 
@@ -111,11 +111,11 @@ async function waitForRafflePageLoaded() {
 
 async function register(regBtn) {
   /*
-  debug.log('provider.register:', regBtn, pageState, pageState.isAutoStarted);
+  console2.log('provider.register:', regBtn, pageState, pageState.isAutoStarted);
   if (pageState.isAutoStarted) {
-    debug.log('add pending request: wasAutoStarted, ', window.location.href);
+    console2.log('add pending request: wasAutoStarted, ', window.location.href);
     await addPendingRequest(window.location.href, { action: 'wasAutoStarted' });
-    //console.log('storageAll', await getStorageData());
+    //console2.log('storageAll', await getStorageData());
     await sleep(100);
   }
   */
@@ -138,7 +138,7 @@ function getRegisterButtonSync() {
 
 function isAllRegBtnsEnabled() {
   const regBtn = getRegisterButtonSync();
-  console.log('regBtn', regBtn);
+  console2.log('regBtn', regBtn);
   if (regBtn?.disabled) {
     return false;
   }
@@ -147,7 +147,7 @@ function isAllRegBtnsEnabled() {
 
 async function addQuickRegButton(clickHandler) {
   const regBtnContainer = await getRegisterButton();
-  debug.log('regBtn', regBtnContainer);
+  console2.log('regBtn', regBtnContainer);
   if (!regBtnContainer) {
     return;
   }
@@ -190,7 +190,7 @@ function hasDoingItTooOften() {
 
 async function hasRaffleTrigger() {
   const elem = await waitForSelector(storage.options.PREMINT_MAIN_REGION_SEL, 10 * ONE_SECOND, 50);
-  debug.log('hasRaffleTrigger:', elem);
+  console2.log('hasRaffleTrigger:', elem);
   return !!elem;
 }
 
@@ -205,10 +205,10 @@ function isIgnored() {
 // PENDING REG --------------------------------
 
 function isPendingReg() {
-  debug.log('isPendingReg');
+  console2.log('isPendingReg');
   const url = normalizePendingLink(window.location.href);
   if (!storage.pendingPremintReg[url]) {
-    debug.log('No pending register!');
+    console2.log('No pending register!');
     return false;
   }
   const pendingDate = new Date(JSON.parse(storage.pendingPremintReg[url]));
@@ -216,7 +216,7 @@ function isPendingReg() {
   const nowDate = new Date();
   const isPending = toDate > nowDate;
 
-  debug.log('pendingDate, toDate, nowDate, isPending:', pendingDate, toDate, nowDate, isPending);
+  console2.log('pendingDate, toDate, nowDate, isPending:', pendingDate, toDate, nowDate, isPending);
 
   if (!isPending) {
     delete storage.pendingPremintReg[url];
@@ -229,7 +229,7 @@ function isPendingReg() {
 async function setPendingReg() {
   const url = normalizePendingLink(window.location.href);
   storage.pendingPremintReg[url] = JSON.stringify(new Date());
-  debug.log('storage.pendingPremintReg set:', storage.pendingPremintReg, url);
+  console2.log('storage.pendingPremintReg set:', storage.pendingPremintReg, url);
   await setStorageData({ pendingPremintReg: storage.pendingPremintReg });
 }
 
@@ -239,7 +239,7 @@ function getTwitterUser() {
   try {
     return document.querySelector('#step-twitter').querySelector('span').innerText?.trim();
   } catch (e) {
-    console.error('Failed getting Twitter user! Error:', e);
+    console2.error('Failed getting Twitter user! Error:', e);
     return null;
   }
 }
@@ -248,7 +248,7 @@ function getDiscordUser() {
   try {
     return document.querySelector('#step-discord').querySelector('span').innerText?.trim();
   } catch (e) {
-    console.error('Failed getting Twitter user! Error:', e);
+    console2.error('Failed getting Twitter user! Error:', e);
     return null;
   }
 }
@@ -277,23 +277,23 @@ function parseMustFollowLinks() {
 
 function parseTwitterLinks(prefix) {
   try {
-    debug.log('parseTwitterLinks; prefix', prefix);
+    console2.log('parseTwitterLinks; prefix', prefix);
     const baseElem = document.querySelector('#step-twitter');
     if (!baseElem) {
       return [];
     }
     const baseElems = baseElem.querySelectorAll('div[class*="text-md"]');
-    debug.log('baseElems', baseElems);
+    console2.log('baseElems', baseElems);
     if (!baseElems?.length) {
       return [];
     }
     const elems = [...baseElems].filter((e) => e.innerText.toLowerCase().trim().startsWith(prefix));
-    debug.log('elems', elems);
+    console2.log('elems', elems);
     const arr = elems.length < 1 ? [] : Array.from(elems[0].getElementsByTagName('a')).map((a) => a.href);
-    debug.log('arr', arr);
+    console2.log('arr', arr);
     return noDuplicates(arr);
   } catch (e) {
-    console.error('Failed parsing twitter links. Error:', e);
+    console2.error('Failed parsing twitter links. Error:', e);
     return [];
   }
 }
@@ -307,7 +307,7 @@ function parseMustJoinLinks(mustHaveRole = false) {
     .flat()
     .map((e) => e.href);
     */
-  debug.log('parseMustJoinLinks');
+  console2.log('parseMustJoinLinks');
   const selectors = mustHaveRole
     ? storage.options.PREMINT_JOIN_DISCORD_WITH_ROLE_SEL
     : storage.options.PREMINT_JOIN_DISCORD_SEL;
@@ -317,13 +317,13 @@ function parseMustJoinLinks(mustHaveRole = false) {
       el.textContent.trim().toLowerCase().startsWith(selectors[1]) &&
       el.textContent.trim().toLowerCase().includes(selectors[2])
   );
-  debug.log('selectors', selectors);
-  debug.log('allElems', allElems);
-  debug.log('allElems[0]', allElems[0]);
+  console2.log('selectors', selectors);
+  console2.log('allElems', allElems);
+  console2.log('allElems[0]', allElems[0]);
   const validElems = allElems.length ? [allElems[0].querySelector(selectors[3])] : [];
-  debug.log('validElems', validElems);
+  console2.log('validElems', validElems);
   const links = validElems.filter((e) => !!e).map((x) => x.href);
-  debug.log('links', links);
+  console2.log('links', links);
   return links;
 }
 
@@ -359,7 +359,7 @@ async function handleSimpleErrors(exitFn) {
   const errors = getErrors();
   if (errors?.length) {
     await sleep(1000);
-    debug.log('Has errors:', errors);
+    console2.log('Has errors:', errors);
     if (hasCaptcha()) {
       exitFn('raffleCaptcha');
       return true;
@@ -377,15 +377,15 @@ async function handleComplexErrors() {
 // CUSTOM CONTENT ----------------------------------------------------------------------------------
 
 function loadRafflePageWithCustomContent() {
-  debug.log('loadRafflePageWithCustomContent...');
+  console2.log('loadRafflePageWithCustomContent...');
   if (!storage.options.PREMINT_ENABLE) {
-    return debug.log('Premint automation disabled, do nothing!');
+    return console2.log('Premint automation disabled, do nothing!');
   }
   fillPremintCustomField();
 }
 
 function fillPremintCustomField() {
-  debug.log('fillPremintCustomField');
+  console2.log('fillPremintCustomField');
 
   const premintData = getPremintData();
 
@@ -430,7 +430,7 @@ function getPremintData() {
     customFieldText = document.querySelector(storage.options.PREMINT_CUSTOM_FIELD_SEL)?.value ?? '';
   }
   const customFieldProperties = getPremintCustomFieldProperties();
-  debug.log('customFieldProperties', customFieldProperties);
+  console2.log('customFieldProperties', customFieldProperties);
   return { customFieldText, ...customFieldProperties };
 }
 
@@ -438,7 +438,7 @@ function getPremintCustomFieldProperties() {
   const customFieldLabel = document
     .querySelector(storage.options.PREMINT_CUSTOM_FIELD_LABEL_SEL)
     ?.textContent.trim();
-  debug.log('customFieldLabel', customFieldLabel);
+  console2.log('customFieldLabel', customFieldLabel);
   if (customFieldLabel) {
     return {
       customFieldLabel: customFieldLabel,
@@ -461,9 +461,9 @@ function getPremintCustomFieldProperties() {
 }
 
 function setPremintCustomField(text) {
-  debug.log('setPremintCustomField', text);
+  console2.log('setPremintCustomField', text);
   if (typeof text !== 'string') {
-    debug.log('Custom field value not a string!');
+    console2.log('Custom field value not a string!');
     return;
   }
   const elem = document.querySelector(storage.options.PREMINT_CUSTOM_FIELD_SEL);

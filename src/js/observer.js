@@ -10,12 +10,12 @@ import {
   noDuplicates,
   getStorageItems,
   setStorageData,
-  createLogger,
+  myConsole,
   createLogLevelArg,
   isTwitterURL,
 } from 'hx-lib';
 
-const debug = createLogger();
+const console2 = myConsole();
 
 // DATA ----------------------------------------------------------------------------------
 
@@ -32,7 +32,7 @@ export async function createObserver({
   autoOdds,
   autoWins,
 } = {}) {
-  debug.log('createObserver:', ...arguments);
+  console2.log('createObserver:', ...arguments);
 
   let pageState = {
     saveTwitterTimeout: null,
@@ -53,10 +53,10 @@ export async function createObserver({
     storage.projectObserver = {};
     pageState.projectsModified = true;
   }
-  debug.log('storage:', storage);
+  console2.log('storage:', storage);
 
   if (pageState.projectsModified) {
-    debug.log('save storage');
+    console2.log('save storage');
     await setStorageData(storage);
   }
 
@@ -75,10 +75,10 @@ export async function createObserver({
   pageState.autoOdds = typeof autoOdds === 'undefined' ? storage.options.RAFLE_AUTO_SHOW_ODDS : autoOdds;
   pageState.autoWins = typeof autoWins === 'undefined' ? storage.options.RAFLE_AUTO_SHOW_WINS : autoWins;
 
-  debug.log('pageState', pageState);
+  console2.log('pageState', pageState);
 
   if (!pageState.autoFollowers && !pageState.autoOdds && !pageState.autoWins) {
-    debug.log('No mutations needed');
+    console2.log('No mutations needed');
     return;
   }
 
@@ -87,14 +87,14 @@ export async function createObserver({
 
   async function mutationHandler(mutationList) {
     for (const mutation of mutationList) {
-      debug.trace('mutation:', mutation);
+      console2.trace('mutation:', mutation);
       if (!mutation?.addedNodes?.length) {
         continue;
       }
 
       if (pageState.autoFollowers) {
         if (mutation.target.nodeName === 'A' && isTwitterURL(mutation.target.href)) {
-          debug.trace('handle mutation:', mutation);
+          console2.trace('handle mutation:', mutation);
           handleTwitterLink(mutation.target);
           return;
         }
@@ -127,12 +127,12 @@ export async function createObserver({
 
   chrome.runtime.onMessage.addListener(async (request, sender, sendResponse) => {
     if (request.cmd === 'profileResult') {
-      debug.log('Received profileResult');
+      console2.log('Received profileResult');
       pageState.twitterProfileResult = request.profile;
     }
 
     if (request.cmd === 'profileResultMainLoop') {
-      debug.log('Received profileResultMainLoop');
+      console2.log('Received profileResultMainLoop');
       handleProfileResult(request.profile);
       saveTwitter();
     }
@@ -145,17 +145,17 @@ export async function createObserver({
 
   function handleTwitterLink(link) {
     if (link.classList.contains('twitter-link')) {
-      debug.trace('twitter link already processed');
+      console2.trace('twitter link already processed');
       return;
     }
 
     if (link.dataset && link.dataset.hxDisabled) {
-      debug.trace('Target mutation observer disabled, skip!');
+      console2.trace('Target mutation observer disabled, skip!');
       return;
     }
 
     const user = getCachedUserByURL(link.href, pageState.cacheTwitterHours);
-    debug.trace('user', user);
+    console2.trace('user', user);
     if (user) {
       updateTwitterFollowers(user, link.href);
     }
@@ -166,15 +166,15 @@ export async function createObserver({
   }
 
   function getCachedUser(username, cacheHours) {
-    debug.trace('getCachedUser, username:', username);
+    console2.trace('getCachedUser, username:', username);
     if (!username) {
-      debug.trace('Skip invalid username!');
+      console2.trace('Skip invalid username!');
       return null;
     }
 
     if (storage.twitterObserver[username] && storage.twitterObserver[username].fetchedAt) {
       const liveTo = storage.twitterObserver[username].fetchedAt + cacheHours * 60 * 60 * 1000;
-      debug.trace('TTL (hours):', Math.round((liveTo - Date.now()) / (1000 * 60 * 60)));
+      console2.trace('TTL (hours):', Math.round((liveTo - Date.now()) / (1000 * 60 * 60)));
       if (liveTo >= Date.now()) {
         return storage.twitterObserver[username];
       } else {
@@ -182,7 +182,7 @@ export async function createObserver({
       }
     }
 
-    debug.trace('no cached user');
+    console2.trace('no cached user');
     return null;
   }
 
@@ -196,12 +196,12 @@ export async function createObserver({
   }
 
   function updateTwitterFollowers(user, linkHref) {
-    debug.log('updateTwitterFollowers', user, linkHref);
+    console2.log('updateTwitterFollowers', user, linkHref);
     const linkHrefLow = linkHref.toLowerCase();
     const elems = [...document.querySelectorAll(`a`)].filter((e) =>
       e.href.toLowerCase().startsWith(linkHrefLow)
     );
-    debug.log('elems', elems);
+    console2.log('elems', elems);
     for (let elem of elems) {
       const followers = user.followers || 0;
       elem.dataset.hxFollowersNum = followers;
@@ -259,12 +259,12 @@ export async function createObserver({
     }
 
     const url = `${baseUrl}#getProfile=true&id=${myTabId}&${createLogLevelArg()}`;
-    debug.log('open url:', url);
+    console2.log('open url:', url);
     window.open(url);
     const profile = await waitForTwitterProfileResult();
-    debug.log('profile', profile);
+    console2.log('profile', profile);
     if (!profile?.ok) {
-      console.warn('invalid profile');
+      console2.warn('invalid profile');
       return true;
     }
 
@@ -278,7 +278,7 @@ export async function createObserver({
       return;
     }
     const user = createUser(profile.username, profile.follows);
-    debug.log('user:', user);
+    console2.log('user:', user);
     updateTwitterFollowers(user, profile.url);
   }
 
@@ -289,15 +289,15 @@ export async function createObserver({
 
   function saveTwitter() {
     if (!pageState.twitterModified) {
-      debug.log('no modifications, skip save!');
+      console2.log('no modifications, skip save!');
       return;
     }
-    debug.log('start saveStorage timeout...');
+    console2.log('start saveStorage timeout...');
     if (pageState.saveTwitterTimeout) {
       clearTimeout(pageState.saveTwitterTimeout);
     }
     pageState.saveTwitterTimeout = setTimeout(function () {
-      debug.log('do save storage!');
+      console2.log('do save storage!');
       setStorageData({ twitterObserver: storage.twitterObserver });
       pageState.twitterModified = false;
     }, 2000);
@@ -312,11 +312,11 @@ export async function createObserver({
       if (!node.querySelectorAll) {
         continue;
       }
-      debug.trace('node:', node);
+      console2.trace('node:', node);
       const links = node.querySelectorAll('A[data-action="option-twitter"]');
       const link = links.length ? links[links.length - 1] : null;
       if (link) {
-        debug.trace('nodename:', node.nodeName);
+        console2.trace('nodename:', node.nodeName);
         elems.push(link);
       }
     }
@@ -338,30 +338,30 @@ export async function createObserver({
   }
 
   function getCachedProject(slug, cacheMins) {
-    debug.trace('getCachedProject; slug, cacheMins:', slug, cacheMins);
+    console2.trace('getCachedProject; slug, cacheMins:', slug, cacheMins);
     if (!slug) {
-      debug.log('Skip invalid slug!');
+      console2.log('Skip invalid slug!');
       return null;
     }
 
     if (storage.projectObserver[slug] && storage.projectObserver[slug].fetchedAt) {
       const liveTo = storage.projectObserver[slug].fetchedAt + cacheMins * 60 * 1000;
-      debug.trace('TTL (minutes):', Math.round((liveTo - Date.now()) / (1000 * 60)));
+      console2.trace('TTL (minutes):', Math.round((liveTo - Date.now()) / (1000 * 60)));
       if (liveTo >= Date.now()) {
-        debug.trace('cached result is alive', slug, storage.projectObserver[slug]);
+        console2.trace('cached result is alive', slug, storage.projectObserver[slug]);
         return storage.projectObserver[slug];
       } else {
-        debug.trace('cached result has expired!');
+        console2.trace('cached result has expired!');
         return { ...storage.projectObserver[slug], expired: true };
       }
     }
 
-    debug.trace('no cached project');
+    console2.trace('no cached project');
     return null;
   }
 
   function createProject(slug, project) {
-    debug.log('storage:', storage);
+    console2.log('storage:', storage);
     storage.projectObserver[slug] = {
       ...project,
       fetchedAt: Date.now(),
@@ -371,7 +371,7 @@ export async function createObserver({
   }
 
   function updateProject(slug, project) {
-    debug.trace('updateProject', slug, project);
+    console2.trace('updateProject', slug, project);
     createProject(slug, project);
     updateProjectDOM(slug);
   }
@@ -384,7 +384,7 @@ export async function createObserver({
   }
 
   function getProjectLinkElems(nodes, lastOnly = true, skipNonDivs = true) {
-    debug.trace('getProjectLinkElems, nodes:', nodes);
+    console2.trace('getProjectLinkElems, nodes:', nodes);
     const elems = [];
     for (const node of nodes) {
       if (skipNonDivs && node.nodeName !== 'DIV') {
@@ -393,7 +393,7 @@ export async function createObserver({
       if (!node.querySelectorAll) {
         continue;
       }
-      debug.trace('node:', node);
+      console2.trace('node:', node);
       const links = getAllProjectLinkElems(node);
       if (!links.length) {
         continue;
@@ -410,7 +410,7 @@ export async function createObserver({
   function handleOdds(link) {
     const paragraphs = link.getElementsByTagName('p');
     if (!paragraphs.length) {
-      debug.trace('No paragraphs items, skip!', paragraphs);
+      console2.trace('No paragraphs items, skip!', paragraphs);
       return;
     }
 
@@ -418,10 +418,10 @@ export async function createObserver({
     const project = getProject(slug);
     if (project) {
       const p = paragraphs[0];
-      debug.trace('p', p);
+      console2.trace('p', p);
 
       const odds = makeRaffleOdds(project.entryCount, project.winnerCount);
-      debug.trace('odds', odds);
+      console2.trace('odds', odds);
 
       p.dataset.hxRevealed = `${project.entryCount || '?'} / ${odds}%`;
       if (!project.expired) {
@@ -449,34 +449,34 @@ export async function createObserver({
   }
 
   function handleWins(link) {
-    debug.trace('handleWins', link);
+    console2.trace('handleWins', link);
 
     const parent1 = link?.parentElement;
     const parent2 = parent1?.parentElement;
-    debug.trace('parent1', parent1);
-    debug.trace('parent2', parent2);
+    console2.trace('parent1', parent1);
+    console2.trace('parent2', parent2);
 
     const twitterLink = parent1.querySelector('a[data-action="option-twitter"]');
-    debug.trace('twitterLink', twitterLink);
+    console2.trace('twitterLink', twitterLink);
 
     if (parent2?.querySelector('.hx-already-won')) {
-      debug.log('alreadyWon info already shown, ignore!');
+      console2.log('alreadyWon info already shown, ignore!');
       return;
     }
 
     const raffleBox = parent1; //  parent2.querySelector('.MuiCardContent-root');
-    debug.trace('raffleBox', raffleBox);
+    console2.trace('raffleBox', raffleBox);
 
     if (!raffleBox) {
-      debug.log('Parent elem is null, skip prev won section!');
+      console2.log('Parent elem is null, skip prev won section!');
       return;
     }
 
     const twitterHandle = extractTwitterHandle(twitterLink?.href);
-    debug.trace('twitterHandle', twitterHandle);
+    console2.trace('twitterHandle', twitterHandle);
 
     const div = createPreviousWonSection(twitterHandle, false, pageState.permissions);
-    debug.trace('div', div);
+    console2.trace('div', div);
     if (div) {
       raffleBox.append(div);
       document.documentElement.style.setProperty(
@@ -512,7 +512,7 @@ export async function createObserver({
     const wallet = wallets[0];
     const walletAliasFirst = walletToAlias(wallet, storage.options);
 
-    debug.log('walletAliasFirst', walletAliasFirst);
+    console2.log('walletAliasFirst', walletAliasFirst);
     const walletAliasTextFirst = walletAliasFirst ? ` &nbsp;(${walletAliasFirst})` : '';
     let html = hidden || `${trimWallet(wallet)}${walletAliasTextFirst}`;
     if (wallets.length > 1) {
@@ -544,15 +544,15 @@ export async function createObserver({
 
   function saveProjects() {
     if (!pageState.projectsModified) {
-      debug.log('no modifications, skip save!');
+      console2.log('no modifications, skip save!');
       return;
     }
-    debug.log('start saveProjectStorage timeout...');
+    console2.log('start saveProjectStorage timeout...');
     if (pageState.saveProjectsTimeout) {
       clearTimeout(pageState.saveProjectsTimeout);
     }
     pageState.saveProjectsTimeout = setTimeout(function () {
-      debug.log('do save projectStorage!');
+      console2.log('do save projectStorage!');
       setStorageData({ projectObserver: storage.projectObserver });
       pageState.projectsModified = false;
     }, 2000);
@@ -582,20 +582,20 @@ export function getPreviousWalletsWon(twitterHandle) {
   if (!elem) {
     return [];
   }
-  debug.log('getPreviousWalletsWon; elem:', elem);
+  console2.log('getPreviousWalletsWon; elem:', elem);
 
   const minMintDate = millisecondsAhead(-(storage.options.ALPHABOT_PREV_WINS_LIFETIME_MINT_DAYS * ONE_DAY));
   const minPickedDate = millisecondsAhead(
     -(storage.options.ALPHABOT_PREV_WINS_LIFETIME_PICKED_DAYS * ONE_DAY)
   );
 
-  debug.log(
+  console2.log(
     'getPreviousWalletsWon minMintDate:',
     minMintDate,
     storage.options.ALPHABOT_PREV_WINS_LIFETIME_MINT_DAYS,
     timestampToLocaleString(minMintDate)
   );
-  debug.log(
+  console2.log(
     'getPreviousWalletsWon minPickedDate:',
     minPickedDate,
     storage.options.ALPHABOT_PREV_WINS_LIFETIME_PICKED_DAYS,
@@ -606,18 +606,18 @@ export function getPreviousWalletsWon(twitterHandle) {
     .filter((winner) => {
       if (winner.mintDate) {
         if (winner.mintDate >= minMintDate) {
-          debug.log('getPreviousWalletsWonmintDate still valid, keep:', winner);
+          console2.log('getPreviousWalletsWonmintDate still valid, keep:', winner);
           return true;
         }
-        debug.log('getPreviousWalletsWonmintDate too early:', winner);
+        console2.log('getPreviousWalletsWonmintDate too early:', winner);
       }
       return winner.picked >= minPickedDate;
     })
     .map((x) => x.wallet);
-  debug.log('getPreviousWalletsWonwallets', wallets);
+  console2.log('getPreviousWalletsWonwallets', wallets);
 
   const noDupsWallets = noDuplicates(wallets.map((x) => x.toLowerCase()));
-  debug.log('getPreviousWalletsWonnoDupsWallets', noDupsWallets);
+  console2.log('getPreviousWalletsWonnoDupsWallets', noDupsWallets);
 
   return noDupsWallets;
 }
@@ -649,5 +649,5 @@ async function reloadStorage(key = null) {
     const storageTemp = await getStorageItems([key]);
     storage[key] = storageTemp[key];
   }
-  debug.log('reloadStorage:', storage);
+  console2.log('reloadStorage:', storage);
 }

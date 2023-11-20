@@ -11,20 +11,20 @@ import {
   sleep,
   waitForSelector,
   waitForTextEquals,
-  createLogger,
   //setStorageData,
   noDuplicates,
   //addToDate,
   //normalizePendingLink,
   millisecondsAhead,
   extractTwitterHandle,
+  myConsole,
 } from 'hx-lib';
 
 //import { createObserver as createRaffleObserver, getPreviousWalletsWon } from './observerGeneric';
 import { createObserver as createRaffleObserver, getPreviousWalletsWon } from './observerGeneric';
 import { createObserver as createTwitterObserver } from './twitterObserver.js';
 
-const debug = createLogger();
+const console2 = myConsole();
 
 // DATA ----------------------------------------------------------------------------
 
@@ -101,13 +101,13 @@ async function createObserver2(config) {
 // WAIT FOR LOADED ----------------------------------------------
 
 async function waitForRafflePageLoaded() {
-  debug.log('waitForRafflePageLoaded');
+  console2.log('waitForRafflePageLoaded');
 
   const stopTime = millisecondsAhead(storage.options.ATLAS_WAIT_FOR_RAFFLE_PAGE_LOADED);
   while (Date.now() <= stopTime) {
     const du = getDiscordUser();
     const tu = getTwitterUser();
-    console.log('du, tu:', du, tu);
+    console2.log('du, tu:', du, tu);
     if (du || tu) {
       await sleep(1000);
       return true;
@@ -115,7 +115,7 @@ async function waitForRafflePageLoaded() {
     await sleep(1000);
   }
 
-  debug.log('Raffle page has NOT loaded!');
+  console2.log('Raffle page has NOT loaded!');
   return false;
 }
 
@@ -140,10 +140,10 @@ function isAllTasksCompleted() {
   }
   const matches = s.matchAll(/([0-9]+) of ([0-9]+) TASKS COMPLETED/gi);
   const matchesArr = [...matches].flat();
-  console.log('matches', matches, matchesArr);
+  console2.log('matches', matches, matchesArr);
 
   const r = (matchesArr.length === 3) & (matchesArr[1] === matchesArr[2]);
-  console.log('r', r);
+  console2.log('r', r);
 
   return r;
 }
@@ -151,7 +151,7 @@ function isAllTasksCompleted() {
 // REGISTER BTN FUNCS ----------------------------------------------
 
 async function getRegisterButton(maxWait = 1000, interval = 10) {
-  console.log('getRegisterButton');
+  console2.log('getRegisterButton');
   return await waitForTextEquals(storage.options.ATLAS_REG_BTN_SEL, 'button', maxWait, interval);
 }
 
@@ -163,7 +163,7 @@ function getRegisterButtonSync() {
 
 function isAllRegBtnsEnabled() {
   const regBtn = getRegisterButtonSync();
-  console.log('regBtn', regBtn);
+  console2.log('regBtn', regBtn);
   if (regBtn?.disabled) {
     return false;
   }
@@ -172,7 +172,7 @@ function isAllRegBtnsEnabled() {
 
 async function addQuickRegButton(clickHandler) {
   const regBtnContainer = await getRegisterButton();
-  debug.log('regBtn', regBtnContainer);
+  console2.log('regBtn', regBtnContainer);
   if (!regBtnContainer) {
     return;
   }
@@ -186,7 +186,7 @@ async function addQuickRegButton(clickHandler) {
   btn.addEventListener('click', clickHandler);
 
   const container = getEntryContainer();
-  console.log('container', container);
+  console2.log('container', container);
   container.after(btn);
 }
 
@@ -226,7 +226,7 @@ function hasDoingItTooOften() {
 
 async function hasRaffleTrigger() {
   const elem = await waitForSelector(storage.options.ATLAS_MAIN_REGION_SEL, 10 * ONE_SECOND, 50);
-  debug.log('hasRaffleTrigger:', elem);
+  console2.log('hasRaffleTrigger:', elem);
   return !!elem;
 }
 
@@ -278,48 +278,48 @@ function parseMustJoinLinks(mustHaveRole = false) {
 }
 
 function parseTaskLinks(prefix) {
-  debug.log('parseTaskLinks; prefix:', prefix);
+  console2.log('parseTaskLinks; prefix:', prefix);
   try {
     const baseElems = getMainTaskElements();
     if (!baseElems?.length) {
       return [];
     }
     const mainElems = baseElems.filter((e) => e.innerText.toLowerCase().trim().startsWith(prefix));
-    debug.log('elems', mainElems);
+    console2.log('elems', mainElems);
 
     const arr = mainElems.map((x) => x.getElementsByTagName('a')).map((x) => Array.from(x));
-    debug.log('arr', arr);
+    console2.log('arr', arr);
     const noDups = noDuplicates(arr.flat().map((x) => x.href));
-    debug.log('noDups', noDups);
+    console2.log('noDups', noDups);
     const badLinks = noDups.filter((x) => isCorruptTaskLink(x));
     const useLinks = noDups.filter((x) => !isCorruptTaskLink(x));
-    debug.log('badLinks, useLinks', badLinks, useLinks);
+    console2.log('badLinks, useLinks', badLinks, useLinks);
     // return noDuplicates(arr);
     return useLinks;
   } catch (e) {
-    console.error('Failed parsing task links. Error:', e);
+    console2.error('Failed parsing task links. Error:', e);
     return [];
   }
 }
 
 function parseTaskTexts(prefix) {
-  debug.log('parseTaskText; prefix:', prefix);
+  console2.log('parseTaskText; prefix:', prefix);
   try {
     const baseElems = getMainTaskElements();
     if (!baseElems?.length) {
       return [];
     }
     const mainElems = baseElems.filter((e) => e.innerText.trim().startsWith(prefix));
-    debug.log('elems', mainElems);
+    console2.log('elems', mainElems);
     return mainElems;
   } catch (e) {
-    console.error('Failed parsing task texts. Error:', e);
+    console2.error('Failed parsing task texts. Error:', e);
     return [];
   }
 }
 
 function getMainTaskElements() {
-  debug.log('getMainTaskElements');
+  console2.log('getMainTaskElements');
   const mainElems = [...document.querySelectorAll('p')].filter(
     (x) => x.innerText === storage.options.ATLAS_MAIN_REGION_SEL
   );
@@ -327,7 +327,7 @@ function getMainTaskElements() {
     return [];
   }
   const baseElems = document.querySelectorAll('div.flex.py-5');
-  debug.log('baseElems', baseElems);
+  console2.log('baseElems', baseElems);
   if (!baseElems?.length) {
     return [];
   }
@@ -337,7 +337,7 @@ function getMainTaskElements() {
 function isCorruptTaskLink(s) {
   // eslint-disable-next-line no-useless-escape
   const n = countOccurances(s, /https\:\/\//gi);
-  console.log('isCorruptTaskLink', s, n, n > 1);
+  console2.log('isCorruptTaskLink', s, n, n > 1);
   return n > 1;
   // return s.includes('https://twitter.com/any/status/');
 }
@@ -355,22 +355,22 @@ function addPreviouslyWonWallets(pageState) {
   if (!twitterHandle) {
     return;
   }
-  debug.log('twitterHandle', twitterHandle);
+  console2.log('twitterHandle', twitterHandle);
 
   const section = pageState.observer.createPreviousWonSection(twitterHandle, true);
   if (!section) {
     return;
   }
-  debug.log('section', section);
+  console2.log('section', section);
   document.body.appendChild(section);
 
   /*
   const tasksElem = getElementByText('Tasks', 'h5', { contains: true });
   if (!tasksElem) {
-    console.error('Missing Tasks elem!');
+    console2.error('Missing Tasks elem!');
     return;
   }
-  debug.log('tasksElem', tasksElem);
+  console2.log('tasksElem', tasksElem);
   tasksElem.after(section);
   */
 }
@@ -393,7 +393,7 @@ async function handleSimpleErrors(exitFn) {
   const errors = getErrors();
   if (errors?.length) {
     await sleep(1000);
-    debug.log('Has errors:', errors);
+    console2.log('Has errors:', errors);
     if (hasCaptcha()) {
       exitFn('raffleCaptcha');
       return true;
@@ -410,7 +410,7 @@ async function handleComplexErrors(pageState, context) {
   }
   await sleep(500);
   const regBtn = getRegisterButtonSync();
-  console.log('Wait for regbtn not disabled');
+  console2.log('Wait for regbtn not disabled');
   while (regBtn && regBtn.disabled) {
     await sleep(10);
   }
@@ -445,7 +445,7 @@ function getSelectedWallet() {
 
     return { shortWallet, longWallet, shortPrefix, shortSuffix };
   } catch (e) {
-    console.error(e);
+    console2.error(e);
     return null;
   }
 }
@@ -456,7 +456,7 @@ function getWonWalletsByThisAccount() {
 
 function getRaffleTwitterHandle() {
   const mustFollowLinks = parseMustFollowLinks();
-  console.log('mustFollowLinks', mustFollowLinks);
+  console2.log('mustFollowLinks', mustFollowLinks);
   if (!mustFollowLinks?.length) {
     return null;
   }
@@ -464,7 +464,7 @@ function getRaffleTwitterHandle() {
   if (!twitterHandle) {
     return null;
   }
-  debug.log('twitterHandle', twitterHandle);
+  console2.log('twitterHandle', twitterHandle);
 
   return twitterHandle;
 }
@@ -472,13 +472,13 @@ function getRaffleTwitterHandle() {
 function getTwitterUser() {
   try {
     const elems = parseTaskTexts(storage.options.ATLAS_TWITTER_USER_SEL);
-    console.log('getTwitterUser elems', elems);
+    console2.log('getTwitterUser elems', elems);
     if (!elems?.length) {
       return null;
     }
     return elems[0].innerText.replace(storage.options.ATLAS_TWITTER_USER_SEL, '').replace('@', '').trim();
   } catch (e) {
-    console.error('Failed getTwitterUser! Error:', e);
+    console2.error('Failed getTwitterUser! Error:', e);
     return null;
   }
 }
@@ -486,13 +486,13 @@ function getTwitterUser() {
 function getDiscordUser() {
   try {
     const elems = parseTaskTexts(storage.options.ATLAS_DISCORD_USER_SEL);
-    console.log('getDiscordUser elems', elems);
+    console2.log('getDiscordUser elems', elems);
     if (!elems?.length) {
       return null;
     }
     return elems[0].innerText.replace(storage.options.ATLAS_DISCORD_USER_SEL, '').trim();
   } catch (e) {
-    console.error('Failed getDiscordUser! Error:', e);
+    console2.error('Failed getDiscordUser! Error:', e);
     return null;
   }
 }

@@ -49,6 +49,10 @@ a.show-provider {
   display: block;
 }
 
+.show-provider.show {
+  font-weight: bold;
+}
+
 table tr td {
   vertical-align: top;
 }

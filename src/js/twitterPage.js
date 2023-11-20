@@ -5,17 +5,17 @@ import { switchToUser, isEmptyPage, handleLockedTwitterAccount } from './twitter
 import {
   getStorageItems,
   dispatch,
-  createLogger,
   sleep,
   createHashArgs,
   waitForEitherSelector,
   extractTwitterHandle,
+  myConsole,
   ONE_MINUTE,
 } from 'hx-lib';
 
 import { createObserver as createTwitterObserver } from './twitterObserver.js';
 
-const debug = createLogger();
+const console2 = myConsole();
 
 // DATA ----------------------------------------------------------------------------------
 
@@ -32,10 +32,10 @@ runNow();
 
 async function runNow() {
   storage = await getStorageItems(['options']);
-  debug.log('storage', storage);
+  console2.log('storage', storage);
 
   if (!storage?.options) {
-    return debug.info('Options missing, exit!');
+    return console2.info('Options missing, exit!');
   }
 
   const hashArgs = createHashArgs(window.location.hash);
@@ -48,21 +48,21 @@ async function runNow() {
     }),
   };
 
-  debug.log('pageState', pageState);
+  console2.log('pageState', pageState);
 
   // window.addEventListener('load', onLoad);
   window.addEventListener('DOMContentLoaded', onLoad);
 }
 
 function onLoad() {
-  debug.log('onLoad');
+  console2.log('onLoad');
   runPage();
 }
 
 // PAGE FUNCTIONS ----------------------------------------------------------------------------
 
 async function runPage() {
-  debug.log('runPage');
+  console2.info('runPage');
 
   if (window.location.href.endsWith('/account/access')) {
     return await handleLockedTwitterAccount({ pageState });
@@ -86,14 +86,14 @@ async function runPage() {
 
   await runMainLoop();
 
-  debug.log('Exit runPage!');
+  console2.info('Exit runPage!');
 }
 
 async function runSwitchToUser() {
-  debug.log('runSwitchToUser');
+  console2.log('runSwitchToUser');
 
   const user = pageState.hashArgs.getOne('switchToUser');
-  debug.log('user', user);
+  console2.log('user', user);
 
   if (user) {
     const result = await switchToUser(user, pageState.parentTabId);
@@ -103,10 +103,10 @@ async function runSwitchToUser() {
         to: pageState.parentTabId,
         request: { cmd: 'switchedToTwitterUser', user, error: result.error },
       });
-      debug.log('Cannot switch to Twitter user! User, error:', user, result);
+      console2.error('Cannot switch to Twitter user! User, error:', user, result);
       return;
     }
-    debug.log('Twitter user already selected:', user, result);
+    console2.info('Twitter user already selected:', user, result);
     await chrome.runtime.sendMessage({
       cmd: 'sendTo',
       to: pageState.parentTabId,
@@ -123,17 +123,17 @@ async function runSwitchToUser() {
 }
 
 async function runHomePage() {
-  debug.log('runHomePage');
+  console2.info('runHomePage');
 
   const request = await dispatch(window.location.href, 60, true);
   //const request2 = await dispatch(urlWithoutArgs(window.location.href), 60, true);
   //const request = request1?.action ? request1 : request2;
 
-  debug.log('request:', request);
+  console2.log('request:', request);
 
   if (request?.action === 'switchedUser') {
     if (request.redirectTo) {
-      debug.log('Redirect to:', request.redirectTo);
+      console2.info('Redirect to:', request.redirectTo);
       window.location.href = request.redirectTo;
       return;
     }
@@ -154,10 +154,10 @@ async function runHomePage() {
 }
 
 async function runGetProfile() {
-  debug.log('runGetProfile');
+  console2.info('runGetProfile');
 
   const profile = await getUserProfile();
-  debug.log('profile', profile);
+  console2.log('profile', profile);
 
   await chrome.runtime.sendMessage({
     cmd: 'sendTo',
@@ -169,11 +169,11 @@ async function runGetProfile() {
 }
 
 async function runMainLoop() {
-  debug.log('runMainLoop');
+  console2.info('runMainLoop');
 
   if (storage.options.TWITTER_AUTO_UPDATE_FOLLOWERS) {
     const profile = await getUserProfile(ONE_MINUTE, 250);
-    debug.log('profile', profile);
+    console2.log('profile', profile);
     if (profile) {
       await chrome.runtime.sendMessage({ cmd: 'profileResultMainLoop', profile });
     }
@@ -184,7 +184,7 @@ async function getUserProfile(maxWait = 10 * 1000, interval = 10) {
   const selectors = ['[data-testid="emptyState"]', '[data-testid="UserProfileSchema-test"]'];
 
   const elem = await waitForEitherSelector(selectors, maxWait, interval);
-  debug.log('elem:', elem);
+  console2.log('elem:', elem);
 
   if (elem && (await isEmptyPage(10, 10))) {
     return {

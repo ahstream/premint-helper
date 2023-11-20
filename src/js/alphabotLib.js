@@ -1,8 +1,8 @@
-import { createLogger, sleep, fetchHelper, rateLimitHandler, extractTwitterHandle } from 'hx-lib';
+import { sleep, fetchHelper, rateLimitHandler, extractTwitterHandle, myConsole } from 'hx-lib';
 
 import { normalizeTwitterHandle } from './premintHelperLib.js';
 
-const debug = createLogger();
+const console2 = myConsole();
 
 // DATA ----------------------------------------------------------------------------------
 
@@ -64,10 +64,10 @@ export async function fetchProjects({
   delayMs = 1000,
   callback = null,
 } = {}) {
-  debug.log('fetchProjects', pageSize, maxPages, all, delayMs);
+  console2.log('fetchProjects', pageSize, maxPages, all, delayMs);
 
   const params = getAlphabotFilterParams();
-  debug.log('params:', params);
+  console2.log('params:', params);
 
   const alphas = all ? '' : params.alphas.map((a) => `alpha=${a}`).join('&');
   const filters = params.filters.map((a) => `filter=${a}`).join('&') || 'filter=unregistered';
@@ -86,7 +86,7 @@ export async function fetchProjects({
   // eslint-disable-next-line no-constant-condition
   while (true) {
     if (maxPages && pageNum >= maxPages) {
-      debug.log('Max result!', maxPages, pageNum);
+      console2.log('Max result!', maxPages, pageNum);
       return projects;
     }
 
@@ -95,13 +95,13 @@ export async function fetchProjects({
     }
 
     const url = `https://www.alphabot.app/api/projects?sort=${sort}&scope=${scope}&sortDir=${sortDir}&showHidden=${hidden}&pageSize=${pageSize}&pageNum=${pageNum}&search=${search}&${filters}&${reqFilters}&${alphas}`;
-    debug.log('url:', url);
+    console2.log('url:', url);
 
     const result = await fetchHelper(url);
-    debug.log('result', result);
+    console2.log('result', result);
 
     if (result.error || !result.data) {
-      console.error(result);
+      console2.error(result);
       return null;
     }
 
@@ -133,7 +133,7 @@ function getUrlParams(url = window?.location) {
 
 function getAlphabotFilterParams() {
   const params = getUrlParams();
-  debug.log('params', params);
+  console2.log('params', params);
 
   if (!params.filters) {
     params.filters = [];
@@ -160,7 +160,7 @@ function getAlphabotFilterParams() {
 
 export async function getAccount() {
   const result = await fetchHelper(ACCOUNT_URL, {});
-  debug.log('getAccount:', result);
+  console2.log('getAccount:', result);
   const id = result?.data?._id;
   return {
     id,
@@ -176,14 +176,14 @@ export async function getAccount() {
 
 export async function getUserId() {
   const result = await fetchHelper(ACCOUNT_URL, {});
-  debug.log('fetchAccountAddress:', result);
+  console2.log('fetchAccountAddress:', result);
   return result?.data?._id;
 }
 
 // obsolete, replace with getAccount()
 export async function fetchAccountAddress() {
   const result = await fetchHelper(ACCOUNT_URL, {});
-  debug.log('fetchAccountAddress:', result);
+  console2.log('fetchAccountAddress:', result);
   return result?.data?.address;
 }
 
@@ -197,21 +197,21 @@ export async function getWinsByNewest(
     ? null
     : (partResult) => {
         if (!partResult?.data?.length) {
-          console.log('getWinsByNewest do not continue (!length)');
+          console2.trace('getWinsByNewest do not continue (!length)');
           return false;
         }
         const endDate = partResult.data[0].endDate;
-        console.log(
+        console2.trace(
           'getWinsByNewest endDate, lastEndDate, endDate < lastEndDate:',
           endDate,
           lastEndDate,
           endDate < lastEndDate
         );
         if (endDate && endDate < lastEndDate) {
-          console.log('getWinsByNewest do not continue (endDate < lastEndDate)');
+          console2.trace('getWinsByNewest do not continue (endDate < lastEndDate)');
           return false;
         }
-        console.log('getWinsByNewest continue');
+        console2.trace('getWinsByNewest continue');
         return true;
       };
   return getWins(account, {
@@ -239,7 +239,7 @@ async function getWins(account, { interval, max, sortBy, checkIfContinueFn, stat
 }
 
 async function fetchWins({ interval, max, sortBy, pageLength = 16, checkIfContinueFn = null, statusLogger }) {
-  debug.log('fetchWins; pageLength:', pageLength);
+  console2.log('fetchWins; pageLength:', pageLength);
 
   const wins = [];
   let pageNum = 0;
@@ -252,9 +252,9 @@ async function fetchWins({ interval, max, sortBy, pageLength = 16, checkIfContin
     const url = WINS_BASE_URL.replace('{PAGE_NUM}', pageNum)
       .replace('{PAGE_SIZE}', pageLength)
       .replace('{SORT_BY}', sortBy);
-    debug.log(`fetchWins page: ${pageNum}, ${url}`);
+    console2.info(`fetchWins page: ${pageNum}, ${url}`);
     const result = await fetchHelper(url, { method: 'GET' }, rateLimitHandler);
-    debug.log('result', result);
+    console2.log('result', result);
 
     if (result.error) {
       return { error: true, result, wins };
@@ -268,16 +268,16 @@ async function fetchWins({ interval, max, sortBy, pageLength = 16, checkIfContin
 
     count += result.data.length;
     if (max && count > max) {
-      debug.log('Max wins fetched:', count, '>=', max);
+      console2.info('Max wins fetched:', count, '>=', max);
       return wins;
     }
 
     if (checkIfContinueFn && !checkIfContinueFn(result)) {
-      debug.log('checkIfContinueFn() says to stop');
+      console2.log('checkIfContinueFn() says to stop');
       return wins;
     }
 
-    debug.log(`sleep ${interval} ms before next fetch`);
+    console2.info(`sleep ${interval} ms before next fetch`);
     await sleep(interval);
 
     pageNum++;
@@ -298,9 +298,8 @@ function cleanTwitterUrl(str) {
 }
 
 function convertWins(wins, account) {
-  debug.log('wins', wins);
+  console2.trace('wins', wins);
   return wins.map((x) => {
-    //debug.log('win', x);
     const provider = 'alphabot';
 
     const raffleId = x._id;

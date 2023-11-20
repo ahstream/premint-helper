@@ -1,4 +1,4 @@
-console.info('alphabotResults.js begin', window?.location?.href);
+console2.info('alphabotResults.js begin', window?.location?.href);
 
 import './alphabotResults.scss';
 import {
@@ -56,13 +56,13 @@ import {
   getStorageItems,
   setStorageData,
   removeStorageItem,
-  createLogger,
+  myConsole,
 } from 'hx-lib';
 import { getPermissions } from '../../js/permissions';
 
 import { createStatusbar } from 'hx-statusbar';
 
-const debug = createLogger();
+const console2 = myConsole();
 
 // DATA ----------------------------------------------------------------------------
 
@@ -85,17 +85,17 @@ async function runNow() {
 }
 
 async function runPage() {
-  debug.log('runPage');
+  console2.log('runPage');
 
   storage = await getStorageItems(['options', 'alphabot', 'alphabotProjectWinners']);
-  debug.log('storage:', storage);
+  console2.log('storage:', storage);
 
   if (!storage?.options) {
-    return debug.log('Options missing, exit!');
+    return console2.log('Options missing, exit!');
   }
 
   if (!storage?.alphabot) {
-    debug.log('!storage.alphabot');
+    console2.log('!storage.alphabot');
     storage.alphabot = {};
   }
 
@@ -107,7 +107,7 @@ async function runPage() {
     storage.alphabotProjectWinners = [];
   }
 
-  debug.log('storage after checks:', storage);
+  console2.log('storage after checks:', storage);
 
   const hashArgs = createHashArgs(window.location.hash);
 
@@ -117,7 +117,7 @@ async function runPage() {
     statusbar: createStatusbar(STATUSBAR_DEFAULT_TEXT),
     permissions: await getPermissions(),
   };
-  debug.log('pageState', pageState);
+  console2.log('pageState', pageState);
 
   pageState.statusbar.buttons(
     createStatusbarButtons({
@@ -143,7 +143,7 @@ async function runPage() {
 // PAGE FUNCTIONS ---------------------------------------------------
 
 async function updatePage({ cloud = false } = {}) {
-  debug.log('updatePage; cloud:', cloud);
+  console2.log('updatePage; cloud:', cloud);
 
   await reloadOptions(storage);
   resetStatus();
@@ -155,7 +155,7 @@ async function updatePage({ cloud = false } = {}) {
     showPage();
     return;
   }
-  debug.log('accountName:', accountName);
+  console2.log('accountName:', accountName);
 
   if (!(await updateMyWinners(accountName))) {
     return;
@@ -172,11 +172,11 @@ async function updatePage({ cloud = false } = {}) {
   const newData = JSON.stringify(projectWinners);
 
   if (oldData !== newData) {
-    debug.log('projectWinners is new');
+    console2.log('projectWinners is new');
     storage.alphabotProjectWinners = projectWinners;
     await setStorageData({ alphabotProjectWinners: projectWinners });
   } else {
-    debug.log('projectWinners is old');
+    console2.log('projectWinners is old');
   }
 
   showPage();
@@ -189,10 +189,10 @@ function getAllWinners() {
 }
 
 async function showPage() {
-  debug.log('showPage:');
+  console2.log('showPage:');
 
   const allWinners = getAllWinners();
-  debug.log('allWinners:', allWinners);
+  console2.log('allWinners:', allWinners);
 
   const nowDate = new Date();
 
@@ -243,13 +243,13 @@ async function showPage() {
   }
 
   const projectWinners = await createProjectWinners(allWinners);
-  debug.log('projectWinners', projectWinners);
+  console2.log('projectWinners', projectWinners);
 
   const minMintDate = millisecondsAhead(-storage.options.ALPHABOT_RESULTS_DAYS_TO_KEEP_MINTED_WINS * ONE_DAY);
-  debug.log('minMintDate', minMintDate);
+  console2.log('minMintDate', minMintDate);
 
   const projectWinnersMin = projectWinners.filter((x) => isWinnerToShow(x, minMintDate));
-  debug.log('projectWinnersMin', projectWinnersMin);
+  console2.log('projectWinnersMin', projectWinnersMin);
 
   createProjectsTable(projectWinnersMin, 'main-table');
 
@@ -257,7 +257,7 @@ async function showPage() {
 }
 
 async function resetPage() {
-  debug.log('resetPage');
+  console2.log('resetPage');
   document.getElementById('main-table').replaceChildren();
 }
 
@@ -269,14 +269,14 @@ async function updateMyWinners(accountName) {
   pageState.alphabotPage = 0;
 
   const oldWinners = storage.alphabot.myWinners || [];
-  debug.log('oldWinners', oldWinners);
+  console2.log('oldWinners', oldWinners);
 
   const myWinnersLastPickedDate = storage.alphabot.myWinnersLastPickedDate || null;
 
   const now = Date.now();
 
   const alphabotWinners = await getWinnersFromAlphabot(accountName, myWinnersLastPickedDate);
-  debug.log('alphabotWinners', alphabotWinners);
+  console2.log('alphabotWinners', alphabotWinners);
   if (alphabotWinners.error) {
     updateStatus(`Error: ${alphabotWinners.msg}`);
     return false;
@@ -284,7 +284,7 @@ async function updateMyWinners(accountName) {
 
   alphabotWinners.forEach((win) => {
     if (!oldWinners.find((x) => x.hxId === win.hxId)) {
-      debug.log('New winner from alphabot:', win);
+      console2.log('New winner from alphabot:', win);
       win.fetchedNew = now;
     }
   });
@@ -294,8 +294,8 @@ async function updateMyWinners(accountName) {
   storage.alphabot.myWinnersLastUpdateTime = now;
 
   const validWinners = filterValidWinners(alphabotWinners, oldWinners, now);
-  debug.log('validWinners', validWinners);
-  debug.log(
+  console2.log('validWinners', validWinners);
+  console2.log(
     'validWinners',
     validWinners.map((x) => x.name)
   );
@@ -303,15 +303,15 @@ async function updateMyWinners(accountName) {
   const newMyWinners = noDuplicatesByKey([...validWinners, ...oldWinners], 'id').sort(
     dynamicSort('-hxSortKey')
   );
-  debug.log('newMyWinners', newMyWinners);
+  console2.log('newMyWinners', newMyWinners);
 
   storage.alphabot.myWinners = newMyWinners;
 
   await setStorageData(storage);
-  debug.log('storage', storage);
+  console2.log('storage', storage);
 
   const updatedWinners = newMyWinners.filter((x) => x.hxUpdated >= now);
-  debug.log('updatedWinners', updatedWinners);
+  console2.log('updatedWinners', updatedWinners);
 
   updateStatus(`Fetched ${updatedWinners.length} new or updated winners from Alphabot`);
 
@@ -319,9 +319,9 @@ async function updateMyWinners(accountName) {
     // If cloud has no winners DB has likely been cleared and we need to upload all winners!
     const winnersToUpload =
       (await countWinners(accountName)) > 0 ? updatedWinners : storage.alphabot.myWinners;
-    debug.log('winnersToUpload', winnersToUpload);
+    console2.log('winnersToUpload', winnersToUpload);
     const cloudResult = await saveWinnersToCloud(winnersToUpload);
-    debug.log('cloudResult', cloudResult);
+    console2.log('cloudResult', cloudResult);
     if (cloudResult.error) {
       updateStatus(`Error: ${cloudResult.msg}`);
     } else {
@@ -351,7 +351,7 @@ async function updateCloudWinners() {
 
   cloudWinners.forEach((win) => {
     if (!storage.alphabot.cloudWinners.find((x) => x.hxId === win.hxId)) {
-      debug.log('New winner from cloud:', win);
+      console2.log('New winner from cloud:', win);
       win.fetchedNew = now;
     }
   });
@@ -361,7 +361,7 @@ async function updateCloudWinners() {
   const allWinners = noDuplicatesByKey([...cloudWinners, ...storage.alphabot.cloudWinners], 'hxId');
   const numNewWinners = allWinners.length - numOldWinners;
 
-  debug.log(
+  console2.log(
     'numOldWinners, numFetchedWinners, numNewWinners:',
     numOldWinners,
     numFetchedWinners,
@@ -374,7 +374,7 @@ async function updateCloudWinners() {
   storage.alphabot.cloudWinners = allWinners;
 
   await setStorageData(storage);
-  debug.log('storage', storage);
+  console2.log('storage', storage);
 
   return true;
 }
@@ -382,42 +382,42 @@ async function updateCloudWinners() {
 // WINNERS FUNCS -----------------------------------------------------
 
 async function getWinnersFromAlphabot(accountName, lastPickedDate) {
-  debug.log(
+  console2.log(
     'getMyWinners; accountName, lastPickedDate:',
     accountName,
     timestampToLocaleString(new Date(lastPickedDate))
   );
 
   if (DEBUG_MODE && storage.alphabot.myWinnersCache) {
-    debug.log('return storage.alphabot.myWinnersCache');
+    console2.log('return storage.alphabot.myWinnersCache');
     return storage.alphabot.myWinnersCache;
   }
 
   const winnersByNewest = await fetchMyWinnersSortedByNewest(lastPickedDate);
   if (winnersByNewest.error) {
-    console.error(winnersByNewest.error);
+    console2.error(winnersByNewest.error);
     return {
       error: winnersByNewest.error,
       msg: 'Failed getting raffle wins from Alphabot website. Try again later.',
     };
   }
-  debug.log('winnersByNewest', winnersByNewest);
+  console2.log('winnersByNewest', winnersByNewest);
 
   const winnersByMinting = await fetchMyWinnersSortedByMinting();
   if (winnersByMinting.error) {
-    console.error(winnersByMinting.error);
+    console2.error(winnersByMinting.error);
     return {
       error: winnersByMinting.error,
       msg: 'Failed getting raffle wins from Alphabot website. Try again later.',
     };
   }
-  debug.log('winnersByMinting', winnersByMinting);
+  console2.log('winnersByMinting', winnersByMinting);
 
   const allWinners = convertWinners(accountName, [...winnersByNewest, ...winnersByMinting]);
-  debug.log('allWinners', allWinners);
+  console2.log('allWinners', allWinners);
 
   const winners = noDuplicatesByKey(allWinners, 'id').sort(dynamicSort('-hxSortKey'));
-  debug.log('winners', winners);
+  console2.log('winners', winners);
 
   if (DEBUG_MODE && storage.alphabot.myWinnersCache) {
     storage.alphabot.myWinnersCache = winners;
@@ -429,7 +429,7 @@ async function getWinnersFromAlphabot(accountName, lastPickedDate) {
 
 async function resetWinners() {
   if (!window.confirm('Do you want to reset Alphabot results?')) {
-    debug.log('no');
+    console2.log('no');
     return;
   }
 
@@ -446,7 +446,7 @@ async function resetWinners() {
   removeStorageItem('alphabotCloudRaffles');
 
   await setStorageData(storage);
-  debug.log('storage', storage);
+  console2.log('storage', storage);
 
   resetStatus();
   resetPage();
@@ -463,14 +463,14 @@ function isWinnerDeleted(winner) {
 }
 
 function filterValidWinners(winners, oldWinners, updateDate) {
-  console.log('filterValidWinners; winners', winners);
+  console2.log('filterValidWinners; winners', winners);
   const minMintDate = millisecondsAhead(-storage.options.ALPHABOT_RESULTS_DAYS_TO_KEEP_MINTED_WINS * ONE_DAY);
   // const filteredWinners = winners.filter((x) => !x.mintDate || x.mintDate >= minMintDate).filter((x) => !isWinnerDeleted(x));
   const filteredWinners = winners
     .filter((x) => isWinnerToShow(x, minMintDate))
     .filter((x) => !isWinnerDeleted(x));
 
-  debug.log(
+  console2.log(
     'filterValidWinners; minMintDate::',
     timestampToLocaleString(minMintDate, null, DEFAULT_LOCALE),
     winners.length,
@@ -490,26 +490,26 @@ function filterValidWinners(winners, oldWinners, updateDate) {
 }
 
 function isWinnerToShow(project, minMintDate) {
-  console.log('isWinnerToShow', project.name, project, minMintDate);
+  console2.log('isWinnerToShow', project.name, project, minMintDate);
   if (!project) {
-    console.log('!project');
+    console2.log('!project');
     return false;
   }
   if (!project.mintDate) {
     // no mint date set -> include in result set!
-    console.log('!project.mintDate');
+    console2.log('!project.mintDate');
     return true;
   }
   if (project.mintDate >= minMintDate) {
-    console.log('project.mintDate >= minMintDate');
+    console2.log('project.mintDate >= minMintDate');
     return true;
   }
   if (project.startDate && project.mintDate && project.startDate >= project.mintDate) {
-    console.log('already minted but new raffle');
+    console2.log('already minted but new raffle');
     // already minted but new raffle, probably restarted drop -> include in result set!
     return true;
   }
-  console.log('do not show winner');
+  console2.log('do not show winner');
   return false;
 }
 
@@ -520,7 +520,7 @@ async function createProjectWinners(winners) {
       .filter((x) => !!x)
       .sort()
   );
-  debug.log('twitterHandles', twitterHandles);
+  console2.log('twitterHandles', twitterHandles);
 
   const data = [];
   twitterHandles.forEach((handle) => {
@@ -560,19 +560,19 @@ async function createProjectWinners(winners) {
     });
 
   data.sort(dynamicSortMultiple('-mintDate', '-picked'));
-  debug.log('data:', data);
+  console2.log('data:', data);
 
   const pivotTodayStr = new Date().toLocaleDateString(SORT_ORDER_LOCALE);
   const pivotTodayDate = new Date(pivotTodayStr);
-  debug.log('pivotTodayStr, pivotTodayDate:', pivotTodayStr, pivotTodayDate);
+  console2.log('pivotTodayStr, pivotTodayDate:', pivotTodayStr, pivotTodayDate);
 
   const pivotTomorrowStr = new Date(millisecondsAhead(1 * ONE_DAY)).toLocaleDateString(SORT_ORDER_LOCALE);
   const pivotTomorrowDate = new Date(pivotTomorrowStr);
-  debug.log('pivotTomorrowStr, pivotTomorrowStr:', pivotTomorrowStr, pivotTomorrowDate);
+  console2.log('pivotTomorrowStr, pivotTomorrowStr:', pivotTomorrowStr, pivotTomorrowDate);
 
   const pivotYesterdayStr = new Date(millisecondsAhead(-1 * ONE_DAY)).toLocaleDateString(SORT_ORDER_LOCALE);
   const pivotYesterdayDate = new Date(pivotYesterdayStr);
-  debug.log('pivotYesterdayStr, pivotYesterdayDate:', pivotYesterdayStr, pivotYesterdayDate);
+  console2.log('pivotYesterdayStr, pivotYesterdayDate:', pivotYesterdayStr, pivotYesterdayDate);
 
   if (!data.length) {
     return [];
@@ -580,7 +580,7 @@ async function createProjectWinners(winners) {
 
   for (let i = data.length - 1; i--; i >= 0) {
     const item = data[i];
-    // debug.trace('item:', new Date(item.mintDate), pivotTomorrowDate, item.mintDate >= pivotTomorrowDate, item);
+    // console2.trace('item:', new Date(item.mintDate), pivotTomorrowDate, item.mintDate >= pivotTomorrowDate, item);
 
     if (!item.mintDate) {
       continue;
@@ -589,12 +589,12 @@ async function createProjectWinners(winners) {
 
     if (itemDateStr >= pivotTomorrowStr) {
       item.isTomorrowish = true;
-      debug.log('isTomorrowish:', item);
+      console2.log('isTomorrowish:', item);
       break;
     }
     if (itemDateStr < pivotTodayStr && itemDateStr >= pivotYesterdayStr) {
       item.isYesterdayish = true;
-      debug.log('isYesterdayish:', item);
+      console2.log('isYesterdayish:', item);
     }
   }
 
@@ -642,7 +642,7 @@ async function fetchMyWinnersSortedByNewest(lastPickedDate) {
     lastPickedDate ||
     millisecondsAhead(-storage.options.ALPHABOT_RESULTS_FETCH_MINE_PICKED_LAST_DAYS * ONE_DAY);
 
-  debug.log(
+  console2.log(
     'fetchMyWinnersSortedByNewest; lastPickedDate, minPickedDate:',
     lastPickedDate,
     timestampToISOString(minPickedDate)
@@ -650,22 +650,22 @@ async function fetchMyWinnersSortedByNewest(lastPickedDate) {
 
   const checkIfContinue = (result) => {
     updateStatus(`Update Alphabot winners... (page ${pageState.alphabotPage})`, true);
-    debug.log('result', result);
+    console2.log('result', result);
     if (!result?.data?.length) {
-      debug.log('no data, stop');
+      console2.log('no data, stop');
       return false;
     }
     if (!minPickedDate) {
-      debug.log('continue');
+      console2.log('continue');
       return true;
     }
     const thisPickedDate = result.data[result.data.length - 1].picked;
 
     if (thisPickedDate < minPickedDate) {
-      debug.log('stop');
+      console2.log('stop');
       return false;
     }
-    debug.log('continue');
+    console2.log('continue');
     return true;
   };
 
@@ -674,28 +674,28 @@ async function fetchMyWinnersSortedByNewest(lastPickedDate) {
 }
 
 async function fetchMyWinnersSortedByMinting() {
-  debug.log('fetchMyWinnersSortedByMinting');
+  console2.log('fetchMyWinnersSortedByMinting');
 
   const baseUrl = winnersSortedByMintingURL;
   return fetchMyWinners(baseUrl);
 }
 
 async function fetchMyWinners(baseUrl, checkIfContinueFn = null) {
-  debug.log('fetchMyWinners; baseUrl:', baseUrl);
+  console2.log('fetchMyWinners; baseUrl:', baseUrl);
 
   const projects = [];
   let pageNum = 0;
 
   while (pageNum >= 0) {
-    debug.log(`Get results from Alphabot website (page ${pageNum + 1})`);
+    console2.log(`Get results from Alphabot website (page ${pageNum + 1})`);
     pageState.alphabotPage++;
     updateStatus(`Update Alphabot winners... (page ${pageState.alphabotPage})`, true);
 
     const url = `${baseUrl}&pageNum=${pageNum}`;
-    debug.log('url', url);
+    console2.log('url', url);
 
     const result = await fetchHelper(url, { method: 'GET' }, rateLimitHandler);
-    debug.log('result', result);
+    console2.log('result', result);
 
     if (result?.ok && !result.data?.length) {
       return projects;
@@ -709,11 +709,11 @@ async function fetchMyWinners(baseUrl, checkIfContinueFn = null) {
     pageNum++;
 
     if (checkIfContinueFn && !checkIfContinueFn(result)) {
-      debug.log('checkIfContinueFn() says to stop');
+      console2.log('checkIfContinueFn() says to stop');
       break;
     }
 
-    debug.log(`Sleep ${storage.options.ALPHABOT_FETCH_RESULTS_DELAY} ms before next fetch`);
+    console2.log(`Sleep ${storage.options.ALPHABOT_FETCH_RESULTS_DELAY} ms before next fetch`);
     await sleep(storage.options.ALPHABOT_FETCH_RESULTS_DELAY);
   }
 
@@ -724,7 +724,7 @@ async function fetchMyWinners(baseUrl, checkIfContinueFn = null) {
 
 async function saveWinnersToCloud(winners) {
   if (!winners?.length) {
-    debug.log('No new winners');
+    console2.log('No new winners');
     return { ok: true, numSaved: 0 };
   }
 
@@ -737,7 +737,7 @@ async function saveWinnersToCloud(winners) {
   }
 
   winners.forEach((winner) => (winner.hxTag = storage.options.CLOUD_TAG));
-  debug.log('winners', winners);
+  console2.log('winners', winners);
 
   const result = await fetchHelper(storage.options.CLOUD_SAVE_URL, {
     method: 'POST',
@@ -745,18 +745,18 @@ async function saveWinnersToCloud(winners) {
       winners,
     }),
   });
-  debug.log('result:', result);
+  console2.log('result:', result);
 
   if (result.error || !result.data) {
-    console.error(result);
+    console2.error(result);
     return { error: true, msg: result.msg || 'Invalid data returned when saving to cloud' };
   }
 
   const data = JSON.parse(result.data);
-  debug.log('data:', data);
+  console2.log('data:', data);
 
   if (!data.ok) {
-    console.error(data.msg);
+    console2.error(data.msg);
     return { error: true, msg: `Invalid response when saving to cloud: ${data.msg}` };
   }
 
@@ -764,7 +764,7 @@ async function saveWinnersToCloud(winners) {
 }
 
 async function fetchWinnersFromCloud() {
-  debug.log('fetchWinnersFromCloud; mode:', storage.options.CLOUD_MODE);
+  console2.log('fetchWinnersFromCloud; mode:', storage.options.CLOUD_MODE);
 
   if (!storage.options.CLOUD_LOAD_URL) {
     return { error: true, msg: 'Load from cloud URL property missing in Options' };
@@ -784,10 +784,10 @@ async function fetchWinnersFromCloud() {
     }),
   });
 
-  debug.log('result:', result);
+  console2.log('result:', result);
 
   if (result.error) {
-    console.error(result);
+    console2.error(result);
     return { error: true, msg: result.msg || 'Invalid data returned when loading from cloud' };
   }
 
@@ -797,13 +797,13 @@ async function fetchWinnersFromCloud() {
 async function countWinners(account) {
   const result = await fetchCountWinners(account);
   if (!result.ok) {
-    console.error('Failed getting winner count from cloud. Error:', result);
+    console2.error('Failed getting winner count from cloud. Error:', result);
   }
   return result.ok ? result.count : -1;
 }
 
 async function fetchCountWinners(account) {
-  debug.log('fetchCountWinners; account:', account);
+  console2.log('fetchCountWinners; account:', account);
 
   if (!storage.options.CLOUD_HAS_URL) {
     return { error: true, msg: 'CLOUD_HAS_URL property missing in Options' };
@@ -821,10 +821,10 @@ async function fetchCountWinners(account) {
     }),
   });
 
-  debug.log('result:', result);
+  console2.log('result:', result);
 
   if (result.error) {
-    console.error(result);
+    console2.error(result);
     return { error: true, msg: result.msg || 'Invalid data returned from cloud' };
   }
 
@@ -994,7 +994,7 @@ function createProjectsTable(projects, mountOnElementId) {
   table.appendChild(createTableHeaderRow());
 
   for (const p of projects) {
-    debug.trace('project', p);
+    console2.trace('project', p);
 
     const row = document.createElement('TR');
     if (p.mintDate && isToday(new Date(p.mintDate))) {
@@ -1176,7 +1176,7 @@ function resetStatus() {
 function updateStatus(html, reuseLast = false) {
   const elem = document.getElementById('hx-status');
   if (!elem) {
-    console.error('Missing status element in HTML!');
+    console2.error('Missing status element in HTML!');
     return false;
   }
   let item;
@@ -1211,9 +1211,9 @@ async function getTwitterObserver() {
 }
 
 async function updateTwitterFollowers() {
-  debug.log('updateTwitterFollowers');
+  console2.log('updateTwitterFollowers');
   const elems = [...document.querySelectorAll('a.twitter-link')];
-  debug.log('elems', elems);
+  console2.log('elems', elems);
   for (let link of elems) {
     const followers = await getTwitterFollowerCount(link.dataset.username);
     link.dataset.hxFollowersNum = followers;

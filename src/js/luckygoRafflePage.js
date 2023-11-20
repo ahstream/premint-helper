@@ -1,4 +1,4 @@
-console.info('luckygoPage.js begin', window?.location?.href);
+console2.info('luckygoPage.js begin', window?.location?.href);
 
 import '../styles/luckygoPage.css';
 
@@ -16,7 +16,7 @@ import { initRafflePage } from './rafflePage';
 import {
   sleep,
   waitForTextEquals,
-  createLogger,
+  myConsole,
   //setStorageData,
   noDuplicates,
   //addToDate,
@@ -28,7 +28,7 @@ import {
 import { createObserver as createRaffleObserver, getPreviousWalletsWon } from './observerGeneric';
 import { createObserver as createTwitterObserver } from './twitterObserver.js';
 
-const debug = createLogger();
+const console2 = myConsole();
 
 // DATA ----------------------------------------------------------------------------
 
@@ -112,7 +112,7 @@ async function createObserver2(config) {
 // WAIT FOR LOADED ----------------------------------------------
 
 async function waitForRafflePageLoaded() {
-  debug.log('waitForRafflePageLoaded');
+  console2.log('waitForRafflePageLoaded');
 
   const stopTime = millisecondsAhead(storage.options.LUCKYGO_WAIT_FOR_RAFFLE_PAGE_LOADED);
   while (Date.now() <= stopTime) {
@@ -121,7 +121,7 @@ async function waitForRafflePageLoaded() {
     }
     const du = getDiscordUser();
     const tu = getTwitterUser();
-    console.log('du, tu:', du, tu);
+    console2.log('du, tu:', du, tu);
     if (du || tu) {
       await sleep(1000);
       return true;
@@ -129,7 +129,7 @@ async function waitForRafflePageLoaded() {
     await sleep(1000);
   }
 
-  debug.log('Raffle page has NOT loaded!');
+  console2.log('Raffle page has NOT loaded!');
   return false;
 }
 
@@ -137,32 +137,32 @@ async function waitForRafflePageLoaded() {
 
 async function forceRegister(pageState) {
   const regBtn = getRegisterButtonSync(true);
-  debug.log('forceRegister; regBtn:', regBtn);
+  console2.log('forceRegister; regBtn:', regBtn);
 
   if (!regBtn) {
-    debug.log('!regBtn');
+    console2.log('!regBtn');
     return null;
   }
 
   const errors = getErrors();
-  debug.log('errors:', errors);
+  console2.log('errors:', errors);
   if (errors.discord) {
-    debug.log('Do not force register when discord errors!');
+    console2.log('Do not force register when discord errors!');
     return null;
   }
 
   if (hasDoingItTooOften()) {
-    debug.log('hasDoingItTooOften');
+    console2.log('hasDoingItTooOften');
     return null;
   }
 
   if (!isAllRegBtnsEnabled(pageState)) {
-    debug.log('!isAllRegBtnsEnabled');
+    console2.log('!isAllRegBtnsEnabled');
     return null;
   }
 
   clickElement(regBtn);
-  console.log('pageState', pageState);
+  console2.log('pageState', pageState);
   if (pageState.isRegistering) {
     await sleep(SLEEP_BEFORE_NEXT_FORCE_REGISTER);
   }
@@ -186,10 +186,10 @@ function isAllTasksCompleted() {
   }
   const matches = s.matchAll(/([0-9]+) of ([0-9]+) TASKS COMPLETED/gi);
   const matchesArr = [...matches].flat();
-  console.log('matches', matches, matchesArr);
+  console2.log('matches', matches, matchesArr);
 
   const r = (matchesArr.length === 3) & (matchesArr[1] === matchesArr[2]);
-  console.log('r', r);
+  console2.log('r', r);
 
   return r;
 }
@@ -198,7 +198,7 @@ function isAllTasksCompleted() {
 // REGISTER BTN FUNCS ----------------------------------------------
 
 async function getRegisterButton(maxWait = 1000, interval = 10) {
-  console.log('getRegisterButton');
+  console2.log('getRegisterButton');
   return await waitForTextEquals(storage.options.LUCKYGO_REG_BTN_SEL, 'div', maxWait, interval);
 }
 
@@ -220,7 +220,7 @@ function isAllRegBtnsEnabled() {
   }
   */
   const regBtn = getRegisterButtonSync();
-  // console.log('regBtn', regBtn);
+  // console2.log('regBtn', regBtn);
   if (regBtn?.disabled) {
     return false;
   }
@@ -229,7 +229,7 @@ function isAllRegBtnsEnabled() {
 
 async function addQuickRegButton(clickHandler) {
   const regBtnContainer = await getRegisterButton();
-  debug.log('regBtnContainer', regBtnContainer);
+  console2.log('regBtnContainer', regBtnContainer);
   if (!regBtnContainer) {
     return;
   }
@@ -343,13 +343,13 @@ function parseMustFollowLinks() {
 }
 
 function getTwitterLinks(elems) {
-  console.log('getTwitterLinks, elems', elems);
+  console2.log('getTwitterLinks, elems', elems);
   if (!elems.length) {
     return [];
   }
   const allLinks = [];
   for (let elem of elems) {
-    console.log('elem', elem);
+    console2.log('elem', elem);
     const links = [...elem.querySelectorAll('a')]
       .filter(
         (x) =>
@@ -362,13 +362,13 @@ function getTwitterLinks(elems) {
     }
   }
 
-  console.log('getTwitterLinks', allLinks);
+  console2.log('getTwitterLinks', allLinks);
 
   return noDuplicates(allLinks);
 }
 
 function parseMustJoinLinks(mustHaveRole = false) {
-  console.log('parseMustJoinLinks:', mustHaveRole);
+  console2.log('parseMustJoinLinks:', mustHaveRole);
   /*
   let elems;
   if (mustHaveRole) {
@@ -383,14 +383,14 @@ function parseMustJoinLinks(mustHaveRole = false) {
       (e) => e.innerText.toLowerCase().startsWith('join') && e.innerText.toLowerCase().includes('discord')
     );
   }
-  console.log('parseMustJoinLinks, elems:', elems);
+  console2.log('parseMustJoinLinks, elems:', elems);
   */
 
   const matches = [
     ...document.body.innerHTML.matchAll(/"invite_link":"(https:\/\/discord.gg\/[a-z0-9_-]+)"/gim),
     ...document.body.innerHTML.matchAll(/"invite_link":"(https:\/\/discord.com\/invite\/[a-z0-9_-]+)"/gim),
   ];
-  console.log('matches:', matches);
+  console2.log('matches:', matches);
 
   return matches.map((x) => x[1]);
 }
@@ -400,20 +400,20 @@ function parseMustJoinLinks(mustHaveRole = false) {
 // WON WALLETS
 
 function addPreviouslyWonWallets(pageState) {
-  console.log('addPreviouslyWonWallets', pageState);
+  console2.log('addPreviouslyWonWallets', pageState);
 
   const twitterHandle = getRaffleTwitterHandle();
   if (!twitterHandle) {
     return;
   }
-  debug.log('twitterHandle', twitterHandle);
+  console2.log('twitterHandle', twitterHandle);
 
   const section = pageState.observer.createPreviousWonSection(twitterHandle, true);
-  console.log('section', section);
+  console2.log('section', section);
   if (!section) {
     return;
   }
-  debug.log('section', section);
+  console2.log('section', section);
 
   const containers1 = [...document.querySelectorAll('div')].filter((x) =>
     x.innerText.startsWith('Mint wallet')
@@ -424,19 +424,19 @@ function addPreviouslyWonWallets(pageState) {
   const containers = [...containers1, ...containers2];
 
   if (!containers?.length) {
-    console.error('Missing mint wallet container:', containers);
+    console2.error('Missing mint wallet container:', containers);
     return;
   }
-  debug.log('section', section);
+  console2.log('section', section);
   containers[0].before(section);
 
   /*
   const tasksElem = getElementByText('Tasks', 'h5', { contains: true });
   if (!tasksElem) {
-    console.error('Missing Tasks elem!');
+    console2.error('Missing Tasks elem!');
     return;
   }
-  debug.log('tasksElem', tasksElem);
+  console2.log('tasksElem', tasksElem);
   tasksElem.after(section);
   */
 }
@@ -461,7 +461,7 @@ async function handleSimpleErrors(exitFn) {
   const errors = getErrors();
   if (errors?.length) {
     await sleep(1000);
-    debug.log('Has errors:', errors);
+    console2.log('Has errors:', errors);
     if (hasCaptcha()) {
       exitFn('raffleCaptcha');
       return true;
@@ -485,7 +485,7 @@ async function handleComplexErrors(pageState, context) {
     context.exitAction('raffleUnknownError');
     return true;
   }
-  console.log('Wait for regbtn not registering');
+  console2.log('Wait for regbtn not registering');
   while (getRegisteringButtonSync()) {
     if (hasErrors()) {
       context.exitAction('raffleUnknownError');
@@ -525,7 +525,7 @@ function getSelectedWallet() {
 
     return { shortWallet, longWallet, shortPrefix, shortSuffix };
   } catch (e) {
-    console.error(e);
+    console2.error(e);
     return null;
   }
 }
@@ -542,7 +542,7 @@ function getTwitterUser() {
     }
     return elems[0].nextElementSibling?.innerText.replace('@', '').trim();
   } catch (e) {
-    console.error('Failed getTwitterUser! Error:', e);
+    console2.error('Failed getTwitterUser! Error:', e);
     return null;
   }
 }
@@ -555,7 +555,7 @@ function getDiscordUser() {
     }
     return elems[0].nextElementSibling?.innerText.trim();
   } catch (e) {
-    console.error('Failed getDiscordUser! Error:', e);
+    console2.error('Failed getDiscordUser! Error:', e);
     return null;
   }
 }

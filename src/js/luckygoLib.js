@@ -1,7 +1,7 @@
-import { sleep, fetchHelper, rateLimitHandler, createLogger } from 'hx-lib';
+import { sleep, fetchHelper, rateLimitHandler, myConsole } from 'hx-lib';
 import { normalizeTwitterHandle } from './premintHelperLib.js';
 
-const debug = createLogger();
+const console2 = myConsole();
 
 // DATA ----------------------------------------------------------------------------------
 
@@ -12,16 +12,16 @@ const WINS_BASE_URL = 'https://api.luckygo.io/raffle/list/me?type=won&page={PAGE
 // ACCOUNT -----------------------
 
 export async function getAccount() {
-  debug.log('url:', ACCOUNT_URL);
+  console2.log('url:', ACCOUNT_URL);
   const result = await fetchHelper(ACCOUNT_URL, {
     credentials: 'same-origin',
   });
-  debug.log('getAccount:', result);
+  console2.log('getAccount:', result);
 
   let m = null;
   if (result?.data) {
     m = [...result.data.matchAll(/{"user":{"address":"([a-z0-9]+)"/gim)];
-    console.log('m:', m);
+    console2.log('m:', m);
   }
 
   const address = m?.length === 1 ? m[0][1] : null;
@@ -41,13 +41,13 @@ export async function getWins(
   authKey,
   { interval = 1500, max = null, skip = [], statusLogger = null } = {}
 ) {
-  debug.log('getWins', account, authKey, interval, max, skip);
+  console2.log('getWins', account, authKey, interval, max, skip);
   const wins = await fetchWins(account, authKey, { interval, max, skip, statusLogger });
   return wins;
 }
 
 async function fetchWins(account, authKey, { interval, max, skip, statusLogger }) {
-  debug.log('fetchWins; max, interval, skip:', max, interval, skip);
+  console2.log('fetchWins; max, interval, skip:', max, interval, skip);
 
   const wins = [];
   let count = 0;
@@ -60,7 +60,7 @@ async function fetchWins(account, authKey, { interval, max, skip, statusLogger }
   await sleep(interval);
 
   if (entries?.error) {
-    console.error('Failed getting LuckyGo entries. Error:', entries);
+    console2.error('Failed getting LuckyGo entries. Error:', entries);
     if (statusLogger) {
       statusLogger.sub('Failed getting LuckyGo entries. Error:' + entries.error.toString());
     }
@@ -74,36 +74,36 @@ async function fetchWins(account, authKey, { interval, max, skip, statusLogger }
       statusLogger.main(`Get LuckyGo results for raffle ${count + 1} of ${entries.length}${maxText}`);
     }
     if (max && count > max) {
-      debug.log('Max wins fetched:', count, '>=', max);
+      console2.log('Max wins fetched:', count, '>=', max);
       return wins;
     }
     if (baseEntry.live) {
-      debug.log('Skip live entry', baseEntry.url);
+      console2.log('Skip live entry', baseEntry.url);
       continue;
     }
     count++; // count also non-wins, otherwise can be too many fetches!
-    debug.log('Fetch count:', count);
+    console2.log('Fetch count:', count);
 
     if (skip?.length && skip.find((id) => id === baseEntry.id)) {
-      debug.log('Skip existing entry', baseEntry.id);
+      console2.log('Skip existing entry', baseEntry.id);
       continue;
     }
 
     const entry = await fetchEntry(baseEntry.url, account);
-    debug.log('entry', entry);
+    console2.log('entry', entry);
 
-    debug.log(`sleep ${interval} ms before next fetch`);
+    console2.log(`sleep ${interval} ms before next fetch`);
     await sleep(interval);
 
-    // debug.log('entry', entry);
+    // console2.log('entry', entry);
 
     if (entry.error) {
-      debug.log('skip error entry:', entry);
+      console2.log('skip error entry:', entry);
       continue;
     }
 
     if (!entry.isWin) {
-      // debug.log('lost entry:', entry);
+      // console2.log('lost entry:', entry);
       continue;
     }
 
@@ -118,7 +118,7 @@ async function fetchEntries(
   { pageLength = 20, interval, max, statusLogger },
   checkIfContinueFn = null
 ) {
-  debug.log('fetchEntriesMetadata; pageLength:', pageLength);
+  console2.log('fetchEntriesMetadata; pageLength:', pageLength);
 
   const entries = [];
   let pageNum = 0;
@@ -132,11 +132,11 @@ async function fetchEntries(
     }
 
     const url = WINS_BASE_URL.replace('{PAGE}', pageNum).replace('{SIZE}', pageLength);
-    debug.log(`fetchWins page: ${pageNum}, ${url}`);
+    console2.log(`fetchWins page: ${pageNum}, ${url}`);
     const headers = { Authorization: authKey };
-    debug.log('url', url);
+    console2.log('url', url);
     const result = await fetchHelper(url, { method: 'GET', headers }, rateLimitHandler);
-    debug.log('result', result);
+    console2.log('result', result);
 
     if (result.error) {
       return { error: true, result, wins: entries };
@@ -154,16 +154,16 @@ async function fetchEntries(
 
     count += result.data.data.list.length;
     if (max && count > max) {
-      debug.log('Max wins fetched:', count, '>=', max);
+      console2.log('Max wins fetched:', count, '>=', max);
       return entries;
     }
 
     if (checkIfContinueFn && !checkIfContinueFn(result)) {
-      debug.log('checkIfContinueFn() says to stop');
+      console2.log('checkIfContinueFn() says to stop');
       break;
     }
 
-    debug.log(`sleep ${interval} ms before next fetch`);
+    console2.log(`sleep ${interval} ms before next fetch`);
     await sleep(interval);
   }
 
@@ -171,11 +171,11 @@ async function fetchEntries(
 }
 
 async function fetchEntry(url, account) {
-  debug.log('fetchEntry:', url);
+  console2.log('fetchEntry:', url);
 
-  debug.log('url', url);
+  console2.log('url', url);
   const result = await fetchHelper(url, { method: 'GET' }, rateLimitHandler);
-  debug.log('result', result);
+  console2.log('result', result);
 
   if (result.error) {
     return { error: true, result };
@@ -217,24 +217,24 @@ async function fetchEntry(url, account) {
 function parsePropsFromSource(html) {
   try {
     const tokensStart = html.split('script id="__NEXT_DATA__" type="application/json">');
-    console.log('tokensStart', tokensStart);
+    console2.log('tokensStart', tokensStart);
     if (!tokensStart?.length === 2) {
       return null;
     }
     const tokensEnd = tokensStart[1].split('</script>');
-    console.log('tokensEnd', tokensEnd);
+    console2.log('tokensEnd', tokensEnd);
     if (tokensEnd?.length < 2) {
       return null;
     }
     return JSON.parse(tokensEnd[0]);
   } catch (e) {
-    console.error(e);
+    console2.error(e);
     return null;
   }
 }
 
 function makeEntry(entries) {
-  debug.log('makeEntryUrls', entries);
+  console2.log('makeEntryUrls', entries);
   return entries.map((x) => {
     return {
       id: x.id,
@@ -246,7 +246,7 @@ function makeEntry(entries) {
 
 function convertWin(html, account) {
   const baseProps = parsePropsFromSource(html);
-  console.log('props', baseProps);
+  console2.log('props', baseProps);
   if (!baseProps) {
     return null;
   }
@@ -362,7 +362,7 @@ function convertWin(html, account) {
 /*
 function convertEntryMetadata(entries) {
   return entries.map((x) => {
-    console.log('convert entry:', x);
+    console2.log('convert entry:', x);
 
     const provider = 'luckygo';
 
@@ -413,7 +413,7 @@ function convertEntryMetadata(entries) {
 /*
 function convertWins(wins, account) {
   return wins.map((x) => {
-    console.log('convert win:', x);
+    console2.log('convert win:', x);
     const provider = 'luckygo';
 
     const raffleId = x.id;
@@ -531,15 +531,15 @@ function convertWins(wins, account) {
 // this already implemented in atlasRAfflePage, which one is best?
 export function isAllTasksCompleted() {
   const elems = [...document.querySelectorAll('p')].filter((x) => x.innerText.endsWith('TASKS COMPLETED'));
-  console.log('elems', elems);
+  console2.log('elems', elems);
   if (!elems?.length) {
     return false;
   }
   const s = elems[0].innerText.replace('TASKS COMPLETED', '').trim();
-  console.log('s', s);
+  console2.log('s', s);
 
   const tokens = s.split(s, 'OF').map((x) => x.trim());
-  console.log('tokens', tokens);
+  console2.log('tokens', tokens);
 
   if (tokens.length === 2 && tokens[0] === tokens[1]) {
     return true;
@@ -560,7 +560,7 @@ export function getSelectedWallet() {
     const elem = document.getElementById('headlessui-listbox-button-:r0:');
     return elem?.innerText || '';
   } catch (e) {
-    console.error(e);
+    console2.error(e);
     return null;
   }
 }
@@ -581,7 +581,7 @@ function makeDate(val, nullVal) {
       return nullVal;
     }
   } catch (e) {
-    console.error(e);
+    console2.error(e);
     return nullVal;
   }
 }
@@ -591,7 +591,7 @@ function stringToArray(s, nullVal) {
   try {
     return JSON.parse(s);
   } catch (e) {
-    console.error(e);
+    console2.error(e);
     return nullVal;
   }
 }
@@ -601,7 +601,7 @@ function matchNum(html, regexp, nullVal) {
     const val = matchAny(html, regexp, nullVal);
     return typeof val === 'string' ? Number(val) : nullVal;
   } catch (e) {
-    console.error(e);
+    console2.error(e);
     return nullVal;
   }
 }

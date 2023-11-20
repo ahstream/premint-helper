@@ -57,24 +57,6 @@ getStorageItems(['options']).then((storage) => {
       },
     },
     {
-      cmd: 'show-alphabot-results',
-      callback: () => {
-        return chrome.runtime.sendMessage({
-          cmd: 'openInSameTab',
-          url: chrome.runtime.getURL('/alphabotResults.html'),
-        });
-      },
-    },
-    {
-      cmd: 'update-alphabot-results',
-      callback: () => {
-        return chrome.runtime.sendMessage({
-          cmd: 'openInSameTab',
-          url: chrome.runtime.getURL('/alphabotResults.html#action=update'),
-        });
-      },
-    },
-    {
       cmd: 'update-raffle-results',
       callback: () => {
         return chrome.runtime.sendMessage({

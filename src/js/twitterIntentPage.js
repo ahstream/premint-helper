@@ -3,15 +3,15 @@ console.info('twitterIntentPage.js begin', window?.location?.href);
 import { switchToUser } from './twitterLib.js';
 import {
   getStorageItems,
-  createLogger,
   sleep,
   createHashArgs,
   waitForSelector,
   millisecondsAhead,
+  myConsole,
   ONE_HOUR,
 } from 'hx-lib';
 
-const debug = createLogger();
+const console2 = myConsole();
 
 // DATA ----------------------------------------------------------------------------------
 
@@ -28,10 +28,10 @@ runNow();
 
 async function runNow() {
   storage = await getStorageItems(['options']);
-  debug.log('storage', storage);
+  console2.log('storage', storage);
 
   if (!storage?.options) {
-    debug.info('Options missing, exit!');
+    console2.info('Options missing, exit!');
     return;
   }
 
@@ -40,15 +40,15 @@ async function runNow() {
     hashArgs,
     parentTabId: hashArgs.getOne('id'),
   };
-  debug.log('pageState', pageState);
+  console2.log('pageState', pageState);
 
   if (!pageState.parentTabId && !storage.options.TWITTER_ENABLE_MANUAL) {
-    debug.info('Disabled forced, exit!');
+    console2.info('Disabled forced, exit!');
     return;
   }
 
   if (pageState.parentTabId && !storage.options.TWITTER_ENABLE) {
-    debug.info('Disabled, exit!');
+    console2.info('Disabled, exit!');
     return;
   }
 
@@ -56,27 +56,27 @@ async function runNow() {
 }
 
 function onLoad() {
-  debug.log('onLoad');
+  console2.log('onLoad');
   runPage();
 }
 
 // PAGE FUNCTIONS ----------------------------------------------------------------------------
 
 async function runPage() {
-  debug.log('runPage');
+  console2.info('runPage');
 
   if (window.location.pathname.includes('intent/')) {
     await runMainLoop();
   }
 
-  debug.log('Exit runPage!');
+  console2.info('Exit runPage!');
 }
 
 async function runMainLoop() {
-  debug.log('runMainLoop');
+  console2.info('runMainLoop');
 
   const user = pageState.hashArgs.getOne('user');
-  debug.log('user', user);
+  console2.log('user', user);
 
   if (user) {
     const result = await switchToUser(user, pageState.parentTabId, window.location.href);
@@ -86,10 +86,10 @@ async function runMainLoop() {
         to: pageState.parentTabId,
         request: { cmd: 'switchedToTwitterUser', to: pageState.parentTabId, user, error: result.error },
       });
-      debug.log('Cannot switch to Twitter user! User, error:', user, result);
+      console2.error('Cannot switch to Twitter user! User, error:', user, result);
       return;
     }
-    debug.log('Twitter user already selected:', user, result);
+    console2.info('Twitter user already selected:', user, result);
   }
 
   const stopTime = millisecondsAhead(storage.options.TWITTER_MAIN_LOOP_RUN_FOR);
@@ -100,14 +100,14 @@ async function runMainLoop() {
     await sleep(storage.options.TWITTER_MAIN_LOOP_SLEEP);
   }
 
-  debug.log('Exit runMainLoop!');
+  console2.info('Exit runMainLoop!');
 }
 
 async function runIntentAction() {
-  debug.log('runIntentAction');
+  console2.info('runIntentAction');
 
   const intentBtn = getIntentButton();
-  debug.log('intentBtn', intentBtn);
+  console2.log('intentBtn', intentBtn);
   if (!intentBtn) {
     return;
   }
@@ -115,30 +115,30 @@ async function runIntentAction() {
   await waitForPageLoaded();
   await sleep(10);
 
-  debug.log('click intentBtn:', intentBtn);
+  console2.trace('click intentBtn:', intentBtn);
   intentBtn.click();
 
   await waitForNoIntentBtn();
 
-  debug.log('checkForAction...');
+  console2.log('checkForAction...');
 
   if (await checkForAction()) {
-    debug.log('checkForAction true');
+    console2.log('checkForAction true');
     await finishIntentAction();
     return true;
   } else {
-    debug.log('checkForAction false');
+    console2.log('checkForAction false');
     return false;
   }
 }
 
 async function waitForNoIntentBtn() {
-  debug.log('waitForNoIntentBtn');
+  console2.log('waitForNoIntentBtn');
   // eslint-disable-next-line no-constant-condition
   while (true) {
     const btn = getIntentButton();
     if (btn) {
-      debug.log('waitForNoIntentBtn...');
+      console2.log('waitForNoIntentBtn...');
       // not sure if we really should click here: btn.click();
       await sleep(10);
     } else {
@@ -146,7 +146,7 @@ async function waitForNoIntentBtn() {
     }
   }
   await sleep(100);
-  debug.log('Exit waitForNoIntentBtn!');
+  console2.log('Exit waitForNoIntentBtn!');
 }
 
 async function waitForPageLoaded() {
@@ -154,19 +154,19 @@ async function waitForPageLoaded() {
 }
 
 async function waitForTweetLoaded(maxWait = ONE_HOUR, interval = 10) {
-  debug.log('waitForTweetLoaded:', storage.options.TWITTER_REPLY_SEL);
+  console2.trace('waitForTweetLoaded:', storage.options.TWITTER_REPLY_SEL);
   return !!(await waitForSelector(storage.options.TWITTER_REPLY_SEL, maxWait, interval));
 }
 
 async function waitForProfileLoaded(maxWait = ONE_HOUR, interval = 10) {
-  debug.log('waitForProfileLoaded:', storage.options.TWITTER_PROFILE_SEL);
+  console2.trace('waitForProfileLoaded:', storage.options.TWITTER_PROFILE_SEL);
   return !!(await waitForSelector(storage.options.TWITTER_PROFILE_SEL, maxWait, interval));
 }
 
 async function finishIntentAction() {
-  debug.log('finishIntentAction; parentTabId:', pageState.parentTabId);
+  console2.log('finishIntentAction; parentTabId:', pageState.parentTabId);
   if (pageState.parentTabId) {
-    debug.log('send finish msg to parentId:', pageState.parentTabId);
+    console2.log('send finish msg to parentId:', pageState.parentTabId);
     await chrome.runtime.sendMessage({
       cmd: 'finish',
       delay: storage.options.TWITTER_PARENT_SUGGESTED_DELAY,
@@ -176,30 +176,30 @@ async function finishIntentAction() {
   }
   const shouldClose = pageState.parentTabId && storage.options.TWITTER_CLOSE_TASK_PAGE;
   if (shouldClose) {
-    debug.log('Close Twitter page after action...');
+    console2.info('Close Twitter page after action...');
     await sleep(storage.options.TWITTER_CLOSE_TASK_PAGE_DELAY, null, 0.2);
     window.close();
   }
 }
 
 async function checkForAction(maxWait = ONE_HOUR, interval = 100) {
-  debug.log('checkForAction');
+  console2.log('checkForAction');
   let elem;
   let isDone = false;
   const intent = getIntent();
-  debug.log('intent:', intent);
+  console2.log('intent:', intent);
   if (intent.follow) {
-    debug.log('Wait for followed selector...', storage.options.TWITTER_FOLLOWING_SEL);
+    console2.trace('Wait for followed selector...', storage.options.TWITTER_FOLLOWING_SEL);
     elem = await waitForSelector(storage.options.TWITTER_FOLLOWING_SEL, maxWait, interval);
     isDone = !!elem;
   } else if (intent.like) {
-    debug.log('Wait for liked selector...', storage.options.TWITTER_LIKED_SEL);
+    console2.trace('Wait for liked selector...', storage.options.TWITTER_LIKED_SEL);
     isDone = !!(await waitForSelector(storage.options.TWITTER_LIKED_SEL, maxWait, interval));
   } else if (intent.retweet) {
-    debug.log('Wait for retweeted selector...', storage.options.TWITTER_RETWEETED_SEL);
+    console2.trace('Wait for retweeted selector...', storage.options.TWITTER_RETWEETED_SEL);
     isDone = !!(await waitForSelector(storage.options.TWITTER_RETWEETED_SEL, maxWait, interval));
   }
-  debug.log('Exit checkForAction; isDone:', isDone);
+  console2.log('Exit checkForAction; isDone:', isDone);
   return isDone;
 }
 

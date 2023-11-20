@@ -16,15 +16,15 @@ import {
   noDuplicates,
   getStorageItems,
   setStorageData,
-  createLogger,
   createLogLevelArg,
   daysBetween,
   //isTwitterURL,
+  myConsole,
 } from 'hx-lib';
 
 import { waitForUser } from './twitterLib.js';
 
-const debug = createLogger();
+const console2 = myConsole();
 
 // DATA ----------------------------------------------------------------------------------
 
@@ -42,7 +42,7 @@ function logInfo(text) {
   if (pageState.logger?.info) {
     pageState.logger.info(text);
   } else {
-    console.log(text);
+    console2.info(text);
   }
 }
 function logError(text) {
@@ -54,7 +54,7 @@ function logError(text) {
 }
 
 export async function createObserver({ permissions, cacheTwitterHours = 72, logger = null } = {}) {
-  debug.log('createObserver:', ...arguments);
+  console2.info('createObserver:', ...arguments);
 
   await reloadStorage();
 
@@ -67,7 +67,7 @@ export async function createObserver({ permissions, cacheTwitterHours = 72, logg
     await setStorageData(storage);
   }
 
-  debug.log('storage:', storage);
+  console2.all('storage:', storage);
 
   pageState.permissions = permissions;
   pageState.logger = logger;
@@ -76,7 +76,7 @@ export async function createObserver({ permissions, cacheTwitterHours = 72, logg
     storage.options.TWITTER_FOLLOWERS_CACHE_HOURS
   );
 
-  debug.log('pageState', pageState);
+  console2.log('pageState', pageState);
 
   const mutationObserver = new MutationObserver(mutationHandler);
   mutationObserver.observe(document, { attributes: true, childList: true, subtree: true });
@@ -86,7 +86,7 @@ export async function createObserver({ permissions, cacheTwitterHours = 72, logg
 
 async function mutationHandler(mutationList) {
   for (const mutation of mutationList) {
-    debug.trace('mutation:', mutation);
+    console2.all('mutation:', mutation);
 
     if (!mutation?.addedNodes?.length) {
       continue;
@@ -106,7 +106,7 @@ function valIfDefined(val, notDefinedVal) {
 // EVENTS -------------------------------------------------------------
 
 chrome.runtime.onMessage.addListener(async (request, sender, sendResponse) => {
-  debug.log('Received request:', request, sender);
+  console2.log('Received request:', request, sender);
 
   if (request.cmd === 'lookupTwitterFollowers') {
     lookupTwitterFollowersHandler();
@@ -137,7 +137,7 @@ chrome.runtime.onMessage.addListener(async (request, sender, sendResponse) => {
 
 async function switchTwitterUserBeforeFetchingFollowers() {
   if (storage.options.TWITTER_FETCH_FOLLOWERS_USER) {
-    debug.log(
+    logInfo(
       `Switching to Twitter user @${storage.options.TWITTER_FETCH_FOLLOWERS_USER} on Twitter home page...`
     );
     const result = await waitForUser(
@@ -147,13 +147,13 @@ async function switchTwitterUserBeforeFetchingFollowers() {
     );
 
     if (!result || !result.ok) {
-      debug.log('Failed switching to Twitter user; result:', result);
-      console.error(
+      logError(`Failed switching to Twitter user @${storage.options.TWITTER_FETCH_FOLLOWERS_USER}`);
+      console2.error(
         `Failed switching to Twitter user @${storage.options.TWITTER_FETCH_FOLLOWERS_USER}, aborting action`
       );
       return false;
     }
-    debug.log(`Switched to Twitter user ${result.user}`);
+    console2.log(`Switched to Twitter user ${result.user}`);
   }
   return true;
 }
@@ -177,7 +177,7 @@ function handleProfileResult(profile) {
     return;
   }
   const user = createTwitterUser(profile.username, profile.follows);
-  debug.log('user:', user);
+  console2.trace('user:', user);
 
   updateTwitterUserLinksOnPage(user, profile.url);
 }
@@ -190,31 +190,31 @@ function getTwitterLinksFromMutations(nodes) {
     if (!node?.querySelectorAll) {
       continue;
     }
-    debug.trace('node:', node);
+    console2.all('node:', node);
     const links = [...node.querySelectorAll('a')].filter(
       (x) =>
         x.href.match(/http(?:s)?:\/\/(?:www\.)?twitter\.com\/([a-zA-Z0-9_]+)(?:\?.*)*$/) ||
         x.href.match(/http(?:s)?:\/\/(?:www\.)?x\.com\/([a-zA-Z0-9_]+)(?:\?.*)*$/)
     );
-    debug.trace('links:', links);
+    console2.trace('links:', links);
     elems.push(...links);
   }
   return elems;
 }
 
 function handleTwitterLinkFromMutation(link) {
-  debug.trace('handleTwitterLink', link);
+  console2.trace('handleTwitterLink', link);
 
   if (link.classList.contains('hx-twitter-link')) {
-    return debug.trace('twitter link already processed');
+    return console2.trace('twitter link already processed');
   }
 
   if (link.dataset && link.dataset.hxObserverDisabled) {
-    return debug.trace('Observer disabled, skip!');
+    return console2.log('Observer disabled, skip!');
   }
 
   const user = getTwitterUserByUrl(link.href, pageState.cacheTwitterHours);
-  debug.trace('user', user);
+  console2.trace('user', user);
 
   updateTwitterUserLinksOnPage(user, link.href);
 }
@@ -223,7 +223,7 @@ function handleTwitterLinkFromMutation(link) {
 
 async function lookupTwitterFollowersHandler() {
   await reloadOptions(storage);
-  console.log('lookupTwitterFollowers, storage:', storage);
+  console2.all('lookupTwitterFollowers, storage:', storage);
 
   if (!storage.options.TWITTER_FETCH_FOLLOWERS_USER) {
     window.alert(
@@ -247,13 +247,13 @@ async function lookupTwitterFollowersHandler() {
   }
 
   const useUrls = urls.slice(0, n);
-  debug.log('useUrls', useUrls);
+  console2.log('useUrls', useUrls);
 
   await getMyTabIdFromExtension(pageState, 5000);
   if (!pageState.myTabId) {
-    console.error('Invalid myTabId');
-    window.alert('Invalid myTabId');
+    console2.error('Invalid myTabId');
     logError(`Failed getting own page tab id when looking up Twitter followers!`);
+    window.alert('Failed getting own page tab id when looking up Twitter followers!');
     return;
   }
 
@@ -265,7 +265,7 @@ async function lookupTwitterFollowersHandler() {
   for (const url of useUrls) {
     ct++;
     logInfo(`Getting follower count for Twitter handle (${ct}/${useUrls.length})`);
-    debug.log(`Get Twitter followers ${ct}/${useUrls.length}: ${url}`);
+    console2.log(`Get Twitter followers ${ct}/${useUrls.length}: ${url}`);
     if (await fetchTwitterUser(url, pageState.myTabId)) {
       chrome.runtime.sendMessage({ cmd: 'focusMyTab' });
       await sleep(2000);
@@ -281,15 +281,15 @@ async function lookupTwitterFollowersHandler() {
 }
 
 function updateTwitterUserLinksOnPage(user, href) {
-  debug.log('updateTwitterLinks', href, user);
+  console2.log('updateTwitterLinks', href, user);
 
   if (!user) {
-    return debug.log('skip nullish user', user);
+    return console2.trace('skip nullish user', user);
   }
 
   const hrefLow = href.toLowerCase();
   const elems = [...document.querySelectorAll(`a`)].filter((e) => e.href.toLowerCase().startsWith(hrefLow));
-  debug.log('elems', elems);
+  console2.trace('elems', elems);
 
   for (let elem of elems) {
     //elem.classList.toggle('hx-twitter-link', !user.expired);
@@ -342,8 +342,8 @@ function getLookupTwitterUrlsOnPage(all = false) {
     .filter((x) => !x.classList.contains('hx-twitter-link') || all)
     .map((x) => x.href);
   const noDupUrls = noDuplicates(urls);
-  debug.log('urls:', urls);
-  debug.log('noDupUrls:', noDupUrls);
+  console2.trace('urls:', urls);
+  console2.trace('noDupUrls:', noDupUrls);
   return noDupUrls;
 }
 
@@ -356,12 +356,12 @@ async function fetchTwitterUser(baseUrl, myTabId) {
   }
 
   const url = `${baseUrl}#getProfile=true&id=${myTabId}&${createLogLevelArg()}`;
-  debug.log('open url:', url);
+  console2.info('open url:', url);
   window.open(url);
   const profile = await waitForTwitterProfileResult();
-  debug.log('profile', profile);
+  console2.log('profile', profile);
   if (!profile?.ok) {
-    console.warn('invalid profile');
+    console2.warn('invalid profile', profile);
     return false;
   }
 
@@ -377,15 +377,15 @@ function getTwitterUserByUrl(url, cacheHours) {
 }
 
 function getTwitterUser(handle, cacheHours) {
-  debug.trace('getTwitterUser, handle:', handle);
+  console2.trace('getTwitterUser, handle:', handle);
   if (!handle) {
-    debug.trace('Skip invalid handle!');
+    console2.trace('Skip invalid handle!');
     return null;
   }
 
   if (storage.twitterObserver[handle] && storage.twitterObserver[handle].fetchedAt) {
     const liveTo = storage.twitterObserver[handle].fetchedAt + cacheHours * 60 * 60 * 1000;
-    debug.trace('TTL (hours):', Math.round((liveTo - Date.now()) / (1000 * 60 * 60)));
+    console2.log('TTL (hours):', handle, Math.round((liveTo - Date.now()) / (1000 * 60 * 60)));
     if (liveTo >= Date.now()) {
       return storage.twitterObserver[handle];
     } else {
@@ -393,7 +393,7 @@ function getTwitterUser(handle, cacheHours) {
     }
   }
 
-  debug.trace('no cached twitter user');
+  console2.trace('no cached twitter user');
   return null;
 }
 
@@ -410,15 +410,15 @@ function createTwitterUser(handle, followers) {
 
 function saveTwitter() {
   if (!pageState.twitterModified) {
-    debug.log('no modifications, skip save!');
+    console2.trace('no modifications, skip save!');
     return;
   }
-  debug.log('start saveStorage timeout...');
+  console2.trace('start saveStorage timeout...');
   if (pageState.saveTwitterTimeout) {
     clearTimeout(pageState.saveTwitterTimeout);
   }
   pageState.saveTwitterTimeout = setTimeout(function () {
-    debug.log('do save storage!');
+    console2.trace('do save storage!');
     setStorageData({ twitterObserver: storage.twitterObserver });
     pageState.twitterModified = false;
   }, 2000);
@@ -431,5 +431,5 @@ async function reloadStorage(key = null) {
     const storageTemp = await getStorageItems([key]);
     storage[key] = storageTemp[key];
   }
-  debug.log('reloadStorage:', storage);
+  console2.all('reloadStorage:', storage);
 }

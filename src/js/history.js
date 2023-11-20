@@ -1,21 +1,23 @@
-import { getSearchParam } from 'hx-lib';
+import { getSearchParam, myConsole } from 'hx-lib';
+
+const console2 = myConsole();
 
 export async function createHistory() {
   let hxhistory = null;
   let isModified = false;
 
   const load = async () => {
-    // console.log('load history');
+    console2.log('load history');
     const storage = await chrome.storage.local.get(['hxhistory']);
     hxhistory = storage.hxhistory || {};
-    // console.log('loaded history:', hxhistory);
+    console2.all('loaded history:', hxhistory);
   };
 
   const _add = async (user, target, intent, key, val) => {
-    console.log('add history:', user, target, intent, key, val);
+    console2.log('add history:', user, target, intent, key, val);
 
     if (!user || !target || !intent || !key) {
-      // console.log('missing input!');
+      console2.log('missing input!');
       return false;
     }
 
@@ -39,7 +41,7 @@ export async function createHistory() {
 
   const save = async () => {
     if (isModified) {
-      // console.log('save history!');
+      console2.log('save history!');
       await chrome.storage.local.set({ hxhistory });
       isModified = false;
       return;
@@ -58,7 +60,7 @@ export async function createHistory() {
         await load();
       }
       const intention = getIntention(url);
-      // console.log('intention', intention);
+      console2.log('intention', intention);
       return await _add(user, intention.target, intention.intent, intention.key, Date.now());
     },
     has: async (user, url) => {

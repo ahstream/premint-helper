@@ -1,4 +1,4 @@
-console.info('raffleResults.js begin', window?.location?.href);
+console2.info('raffleResults.js begin', window?.location?.href);
 
 import './raffleResults.scss';
 
@@ -41,7 +41,6 @@ import {
   createHashArgs,
   getStorageItems,
   setStorageData,
-  createLogger,
   dynamicSortMultiple,
   noDuplicatesByKey,
   noDuplicates,
@@ -62,6 +61,7 @@ import {
   secondsBetween,
   // kFormatter,
   addPendingRequest,
+  myConsole,
 } from 'hx-lib';
 
 import { getPermissions } from '../../js/permissions';
@@ -74,7 +74,7 @@ import { createObserver as createTwitterObserver } from '../../js/twitterObserve
 
 const jht = require('json-html-table');
 
-const debug = createLogger();
+const console2 = myConsole();
 
 // DATA ------------------------------
 
@@ -92,7 +92,7 @@ const MAX_LEN_TEAM_NAME = 24;
 
 let storage;
 let pageState = {
-  shownProvider: 'all',
+  shownProvider: 'all-providers',
 };
 
 const statusLogger = { main: updateMainStatus, sub: updateSubStatus };
@@ -137,7 +137,7 @@ function initStorage() {
 }
 
 async function runPage() {
-  debug.log('runPage');
+  console2.log('runPage');
 
   storage = await getStorageItems([
     'options',
@@ -149,15 +149,15 @@ async function runPage() {
     'atlas',
     'luckygo',
   ]);
-  debug.log('storage:', storage);
+  console2.log('storage:', storage);
 
   if (!storage?.options) {
-    return debug.log('Options missing, exit!');
+    return console2.log('Options missing, exit!');
   }
 
   initStorage();
 
-  debug.log('storage after checks:', storage);
+  console2.log('storage after checks:', storage);
 
   const hashArgs = createHashArgs(window.location.hash);
   const permissions = await getPermissions();
@@ -169,7 +169,7 @@ async function runPage() {
     observer: await createTwitterObserver({ permissions }),
   };
 
-  debug.log('pageState', pageState);
+  console2.log('pageState', pageState);
 
   pageState.statusbar.buttons(
     createStatusbarButtons({
@@ -185,7 +185,9 @@ async function runPage() {
   document.getElementById('hx-update').addEventListener('click', () => updateWins());
   document.getElementById('hx-reset').addEventListener('click', () => resetWins());
 
-  document.getElementById('show-all').addEventListener('click', () => showProviderClickHandler('all'));
+  document
+    .getElementById('show-all-providers')
+    .addEventListener('click', () => showProviderClickHandler('all-providers'));
   document
     .getElementById('show-alphabot')
     .addEventListener('click', () => showProviderClickHandler('alphabot'));
@@ -196,7 +198,8 @@ async function runPage() {
   document
     .getElementById('show-luckygo')
     .addEventListener('click', () => showProviderClickHandler('luckygo'));
-  document.getElementById('show-debug').addEventListener('click', () => showProviderClickHandler('debug'));
+  document.getElementById('show-hidden').addEventListener('click', showCheckboxedClickHandler);
+  document.getElementById('show-extended').addEventListener('click', showCheckboxedClickHandler);
 
   if (pageState.hashArgs.has('action', 'update')) {
     return updateWins();
@@ -217,18 +220,18 @@ async function updateWins() {
 
   if (storage.options.CLOUD_MODE === 'load') {
     const fromTimestamp = (storage.results.lastCloudTimestamp || -1) + 1;
-    console.log('storage.results.lastCloudTimestamp', storage.results.lastCloudTimestamp);
-    console.log('fromTimestamp', fromTimestamp);
+    console2.log('storage.results.lastCloudTimestamp', storage.results.lastCloudTimestamp);
+    console2.log('fromTimestamp', fromTimestamp);
     cloudWins = await readWins(fromTimestamp, storage.options);
-    console.log('cloudWins', cloudWins);
+    console2.log('cloudWins', cloudWins);
     if (cloudWins.error) {
       statusLogger.sub('Failed getting results from Cloud! Error:' + cloudWins.msg);
     } else {
       statusLogger.sub(`Fetched ${cloudWins.length} new or updated winners from Cloud`);
       storage.results.lastCloudTimestamp = checkTime;
-      console.log('storage.results.lastCloudTimestamp', storage.results.lastCloudTimestamp);
+      console2.log('storage.results.lastCloudTimestamp', storage.results.lastCloudTimestamp);
       const lastCloudTimestamp = cloudWins?.length ? Math.max(...cloudWins.map((x) => x.hxCloudUpdated)) : 0;
-      console.log('lastCloudTimestamp', lastCloudTimestamp);
+      console2.log('lastCloudTimestamp', lastCloudTimestamp);
 
       if (lastCloudTimestamp > 0) {
         storage.results.lastCloudTimestamp = lastCloudTimestamp;
@@ -246,16 +249,16 @@ async function updateWins() {
 
   const mergedWins = mergeAllWins({ atlas, alphabot, premint, lucky: luckygo });
   storage.wins = mergedWins;
-  debug.log('mergedWins:', mergedWins);
+  console2.log('mergedWins:', mergedWins);
 
   storage.results.lastProviderUpdate = checkTime;
   storage.results.lastWinsUpdate = checkTime;
 
   const packedWins = packWins(storage.wins);
-  storage.projectWins = createProjectWins(packedWins.filter((x) => x.twitterHandle));
+  storage.projectWins = createProjectWins(packedWins.filter((x) => !!x.twitterHandle));
   /*
   storage.projectWinsAll = createProjectWins(packedWins);
-  console.log(
+  console2.log(
     'foobar',
     packedWins
       .filter((x) => x.twitterHandle && x.hxSortKey)
@@ -272,7 +275,7 @@ async function updateWins() {
 
 async function resetWins() {
   if (!window.confirm('Do you want to reset all raffle results?')) {
-    return debug.log('no');
+    return console2.log('no');
   }
 
   storage.results = {};
@@ -284,7 +287,7 @@ async function resetWins() {
   initStorage();
 
   await setStorageData(storage);
-  debug.log('storage', storage);
+  console2.log('storage', storage);
 
   resetSubStatus();
   showPage();
@@ -293,10 +296,10 @@ async function resetWins() {
 // EVENT HANDLERS ----------------------------------------------------------------------------------
 
 chrome.runtime.onMessage.addListener(async (request, sender, sendResponse) => {
-  debug.log('Received message:', request, sender);
+  console2.log('Received message:', request, sender);
 
   if (request.cmd === 'getAuth') {
-    debug.log('Received getAuth');
+    console2.log('Received getAuth');
     pageState[`${request.cmd}`] = true;
     pageState[`${request.cmd}Val`] = request.val;
   }
@@ -314,7 +317,7 @@ chrome.runtime.onMessage.addListener(async (request, sender, sendResponse) => {
 });
 
 async function getFromWebPage(url, key, tabId, maxWait = 30000, interval = 10) {
-  debug.log('getFromWebPage:', url);
+  console2.log('getFromWebPage:', url);
 
   await addPendingRequest(url, { action: key, tabId });
   window.open(url);
@@ -333,8 +336,8 @@ async function getFromWebPage(url, key, tabId, maxWait = 30000, interval = 10) {
 
 // MAIN ------------------------------
 
-async function showPage(customWins = null, customHeader = '') {
-  debug.log('showPage');
+async function showPage({ wins = null, header = '', allRaffles = false, extended = false } = {}) {
+  console2.log('showPage');
 
   document.getElementById('main-table').innerHTML = '';
 
@@ -342,17 +345,28 @@ async function showPage(customWins = null, customHeader = '') {
 
   updateShownProvider();
 
-  if (customWins) {
-    appendWinsTable(createWinsTable(customWins, customHeader));
-    appendWinsTable(createWinsTable(customWins, customHeader, true));
+  if (wins) {
+    appendWinsTable(createWinsTable(wins, header));
+    appendWinsTable(createWinsTable(wins, header, { allColumns: true }));
     return;
   }
-  appendWinsTable(createWinsTable(storage.wins, 'All raffle providers', 'all'));
-  appendWinsTable(createWinsTable(storage.alphabot?.wins, 'Alphabot raffles', 'alphabot'));
-  appendWinsTable(createWinsTable(storage.premint?.wins, 'Premint raffles', 'premint'));
-  appendWinsTable(createWinsTable(storage.atlas?.wins, 'Atlas raffles', 'atlas'));
-  appendWinsTable(createWinsTable(storage.luckygo?.wins, 'LuckyGo raffles', 'luckygo'));
-  appendWinsTable(createWinsTable(storage.wins, 'All raffles, all columns', 'debug', true));
+
+  appendWinsTable(
+    createWinsTable(storage.wins, 'All raffle providers', 'all-providers', { allRaffles, extended })
+  );
+  appendWinsTable(
+    createWinsTable(storage.alphabot?.wins, 'Alphabot raffles', 'alphabot', { allRaffles, extended })
+  );
+  appendWinsTable(
+    createWinsTable(storage.premint?.wins, 'Premint raffles', 'premint', { allRaffles, extended })
+  );
+  appendWinsTable(createWinsTable(storage.atlas?.wins, 'Atlas raffles', 'atlas', { allRaffles, extended }));
+  appendWinsTable(
+    createWinsTable(storage.luckygo?.wins, 'LuckyGo raffles', 'luckygo', { allRaffles, extended })
+  );
+  appendWinsTable(
+    createWinsTable(storage.wins, 'Debug', 'debug', { allColumns: true, allRaffles, extended })
+  );
 
   // await updateTwitterFollowers();
 
@@ -361,8 +375,15 @@ async function showPage(customWins = null, customHeader = '') {
   };
 
   statusLogger.main('Showing raffle results below');
-  debug.log('Done showing results page!');
+
+  console2.log('Done showing results page!');
 }
+
+/*
+async function showAllPage() {
+  console2.log('showAllPage');
+}
+*/
 
 function appendWinsTable(table) {
   document.getElementById('main-table').appendChild(table);
@@ -382,7 +403,7 @@ function mergeAllWins({ atlas = null, alphabot = null, premint = null, lucky = n
 // ALPHABOT ------------------------------
 
 async function updateAlphabotWins(checkTime, allCloudWins) {
-  debug.log('updateAlphabotWins', checkTime);
+  console2.log('updateAlphabotWins', checkTime);
 
   const providerName = 'Alphabot';
   const providerKey = providerName.toLowerCase();
@@ -397,7 +418,7 @@ async function updateAlphabotWins(checkTime, allCloudWins) {
 
   updateMainStatus(`Get ${providerName} account info...`);
   const account = await getAlphabotAccount();
-  console.log('account', account);
+  console2.log('account', account);
   if (!account?.id) {
     statusLogger.sub(`Failed getting ${providerName} account. Check if logged in to website.`);
     return [];
@@ -407,7 +428,7 @@ async function updateAlphabotWins(checkTime, allCloudWins) {
     ? Math.max(...raffleStorage.myWins.map((x) => x.endDate))
     : null;
   const lastEndDateStr = lastEndDate ? new Date(lastEndDate).toLocaleString() : 'null';
-  console.log('lastEndDate', lastEndDate, lastEndDateStr);
+  console2.log('lastEndDate', lastEndDate, lastEndDateStr);
 
   const myWinsByNewest = await getAlphabotWinsByNewest(account, {
     interval: ALPHABOT_INTERVAL,
@@ -415,7 +436,7 @@ async function updateAlphabotWins(checkTime, allCloudWins) {
     lastEndDate,
     statusLogger,
   });
-  console.log('myWinsByNewest', myWinsByNewest);
+  console2.log('myWinsByNewest', myWinsByNewest);
 
   updateMainStatus(`Get updated mint dates from ${providerName}...`);
   const myWinsByMinting = await getAlphabotWinsByMinting(account, {
@@ -423,7 +444,7 @@ async function updateAlphabotWins(checkTime, allCloudWins) {
     max: storage.options.ALPHABOT_RESULTS_MAX_FETCH_WINS,
     statusLogger,
   });
-  console.log('myWinsByMinting', myWinsByMinting);
+  console2.log('myWinsByMinting', myWinsByMinting);
 
   const myWins = mergeWins(myWinsByMinting, myWinsByNewest, 'id', null);
 
@@ -433,7 +454,7 @@ async function updateAlphabotWins(checkTime, allCloudWins) {
   let cloudWins = [];
   if (storage.options.ALPHABOT_ENABLE_CLOUD && storage.options.CLOUD_MODE === 'load') {
     cloudWins = allCloudWins.filter((x) => x.provider === providerKey);
-    console.log('cloudWins', cloudWins);
+    console2.log('cloudWins', cloudWins);
     // cloudWins should check for duplicates on full key hxId
     raffleStorage.cloudWins = mergeWins(cloudWins, raffleStorage.cloudWins, 'hxId', checkTime);
   }
@@ -448,10 +469,10 @@ async function updateAlphabotWins(checkTime, allCloudWins) {
 
   if (storage.options.ALPHABOT_ENABLE_CLOUD && storage.options.CLOUD_MODE === 'save') {
     const ct = await countWins(providerKey, account.id, storage.options);
-    console.log('Count wins:', ct);
+    console2.log('Count wins:', ct);
     // if no wins in cloud, upload everything we got!
     const winsToUpload = ct > 0 ? myWinsNew : raffleStorage.myWins;
-    debug.log('winsToUpload', winsToUpload);
+    console2.log('winsToUpload', winsToUpload);
     const writeResult = await writeWins(winsToUpload, storage.options);
     if (writeResult.error) {
       statusLogger.sub(`Failed uploading ${providerName} results to Cloud. Network problems?`);
@@ -467,7 +488,7 @@ async function updateAlphabotWins(checkTime, allCloudWins) {
 // PREMINT ------------------------------
 
 async function updatePremintWins(checkTime, allCloudWins) {
-  debug.log('updatePremintWins', checkTime);
+  console2.log('updatePremintWins', checkTime);
 
   const providerName = 'Premint';
   const providerKey = providerName.toLowerCase();
@@ -482,7 +503,7 @@ async function updatePremintWins(checkTime, allCloudWins) {
 
   updateMainStatus(`Get ${providerName} account info`);
   const account = await getPremintAccount();
-  console.log('account', account);
+  console2.log('account', account);
   if (!account?.id) {
     statusLogger.sub(`Failed getting ${providerName} account. Check if logged in to website.`);
     return [];
@@ -497,8 +518,8 @@ async function updatePremintWins(checkTime, allCloudWins) {
   });
   const myWins = wins;
   const myLost = lost;
-  console.log('myWins', myWins);
-  console.log('myLost', myLost);
+  console2.log('myWins', myWins);
+  console2.log('myLost', myLost);
 
   const myWinsNew = filterNewWins(myWins, raffleStorage.myWins, checkTime);
   statusLogger.sub(`Fetched ${myWinsNew.length} new or updated winners from ${providerName}`);
@@ -506,7 +527,7 @@ async function updatePremintWins(checkTime, allCloudWins) {
   let cloudWins = [];
   if (storage.options.PREMINT_ENABLE_CLOUD && storage.options.CLOUD_MODE === 'load') {
     cloudWins = allCloudWins.filter((x) => x.provider === providerKey);
-    console.log('cloudWins', cloudWins);
+    console2.log('cloudWins', cloudWins);
     raffleStorage.cloudWins = mergeWins(cloudWins, raffleStorage.cloudWins, 'hxId', checkTime);
   }
 
@@ -520,10 +541,10 @@ async function updatePremintWins(checkTime, allCloudWins) {
 
   if (storage.options.PREMINT_ENABLE_CLOUD && storage.options.CLOUD_MODE === 'save') {
     const ct = await countWins(providerKey, account.id, storage.options);
-    console.log('Count wins:', ct);
+    console2.log('Count wins:', ct);
     // if no wins in cloud, upload everything we got!
     const winsToUpload = ct > 0 ? myWinsNew : raffleStorage.myWins;
-    debug.log('winsToUpload', winsToUpload);
+    console2.log('winsToUpload', winsToUpload);
     const writeResult = await writeWins(winsToUpload, storage.options);
     if (writeResult.error) {
       statusLogger.sub(`Failed uploading ${providerName} results to Cloud. Network problems?`);
@@ -539,7 +560,7 @@ async function updatePremintWins(checkTime, allCloudWins) {
 // ATLAS ------------------------------
 
 async function updateAtlasWins(checkTime, allCloudWins) {
-  debug.log('updateAtlasWins', checkTime);
+  console2.log('updateAtlasWins', checkTime);
 
   const providerName = 'Atlas';
   const providerKey = providerName.toLowerCase();
@@ -554,7 +575,7 @@ async function updateAtlasWins(checkTime, allCloudWins) {
 
   updateMainStatus(`Get ${providerName} account info`);
   const account = await getAtlasAccount();
-  console.log('account', account);
+  console2.log('account', account);
   if (!account?.id) {
     statusLogger.sub(`Failed getting ${providerName} account. Check if logged in to website.`);
     return [];
@@ -565,7 +586,7 @@ async function updateAtlasWins(checkTime, allCloudWins) {
     max: storage.options.ATLAS_RESULTS_MAX_FETCH_WINS,
     statusLogger,
   });
-  console.log('myWins', myWins);
+  console2.log('myWins', myWins);
 
   const myWinsNew = filterNewWins(myWins, raffleStorage.myWins, checkTime);
   statusLogger.sub(`Fetched ${myWinsNew.length} new or updated winners from ${providerName}`);
@@ -573,7 +594,7 @@ async function updateAtlasWins(checkTime, allCloudWins) {
   let cloudWins = [];
   if (storage.options.ATLAS_ENABLE_CLOUD && storage.options.CLOUD_MODE === 'load') {
     cloudWins = allCloudWins.filter((x) => x.provider === providerKey);
-    console.log('cloudWins', cloudWins);
+    console2.log('cloudWins', cloudWins);
     raffleStorage.cloudWins = mergeWins(cloudWins, raffleStorage.cloudWins, 'hxId', checkTime);
   }
 
@@ -586,10 +607,10 @@ async function updateAtlasWins(checkTime, allCloudWins) {
 
   if (storage.options.ATLAS_ENABLE_CLOUD && storage.options.CLOUD_MODE === 'save') {
     const ct = await countWins(providerKey, account.id, storage.options);
-    console.log('Count wins:', ct);
+    console2.log('Count wins:', ct);
     // if no wins in cloud, upload everything we got!
     const winsToUpload = ct > 0 ? myWinsNew : raffleStorage.myWins;
-    debug.log('winsToUpload', winsToUpload);
+    console2.log('winsToUpload', winsToUpload);
     const writeResult = await writeWins(winsToUpload, storage.options);
     if (writeResult.error) {
       statusLogger.sub(`Failed uploading ${providerName} results to Cloud. Network problems?`);
@@ -605,7 +626,7 @@ async function updateAtlasWins(checkTime, allCloudWins) {
 // LUCKY ------------------------------
 
 async function updateLuckygoWins(checkTime, allCloudWins) {
-  debug.log('updateLuckygoWins', checkTime);
+  console2.log('updateLuckygoWins', checkTime);
 
   const providerName = 'LuckyGo';
   const providerKey = providerName.toLowerCase();
@@ -620,7 +641,7 @@ async function updateLuckygoWins(checkTime, allCloudWins) {
 
   updateMainStatus(`Get ${providerName} account info`);
   const account = await getLuckygoAccount();
-  console.log('account', account);
+  console2.log('account', account);
   if (!account?.id) {
     statusLogger.sub(`Failed getting ${providerName} account. Check if logged in to website.`);
     return [];
@@ -640,7 +661,7 @@ async function updateLuckygoWins(checkTime, allCloudWins) {
     statusLogger,
   });
   const myWins = wins;
-  console.log('myWins', myWins);
+  console2.log('myWins', myWins);
 
   const myWinsNew = filterNewWins(myWins, raffleStorage.myWins, checkTime);
   statusLogger.sub(`Fetched ${myWinsNew.length} new or updated winners from ${providerName}`);
@@ -648,7 +669,7 @@ async function updateLuckygoWins(checkTime, allCloudWins) {
   let cloudWins = [];
   if (storage.options.LUCKYGO_ENABLE_CLOUD && storage.options.CLOUD_MODE === 'load') {
     cloudWins = allCloudWins.filter((x) => x.provider === providerKey);
-    console.log('cloudWins', cloudWins);
+    console2.log('cloudWins', cloudWins);
     raffleStorage.cloudWins = mergeWins(cloudWins, raffleStorage.cloudWins, 'hxId', checkTime);
   }
 
@@ -661,10 +682,10 @@ async function updateLuckygoWins(checkTime, allCloudWins) {
 
   if (storage.options.LUCKYGO_ENABLE_CLOUD && storage.options.CLOUD_MODE === 'save') {
     const ct = await countWins(providerKey, account.id, storage.options);
-    console.log('Count wins:', ct);
+    console2.log('Count wins:', ct);
     // if no wins in cloud, upload everything we got!
     const winsToUpload = ct > 0 ? myWinsNew : raffleStorage.myWins;
-    debug.log('winsToUpload', winsToUpload);
+    console2.log('winsToUpload', winsToUpload);
     const writeResult = await writeWins(winsToUpload, storage.options);
     if (writeResult.error) {
       statusLogger.sub(`Failed uploading ${providerName} results to Cloud. Network problems?`);
@@ -680,11 +701,11 @@ async function updateLuckygoWins(checkTime, allCloudWins) {
 async function getLuckygoAuth() {
   await getMyTabIdFromExtension(pageState, 5000);
   if (!pageState.myTabId) {
-    console.error('Invalid myTabId');
+    console2.error('Invalid myTabId');
     return null;
   }
   const authKey = await getFromWebPage(`https://luckygo.io/myraffles`, 'getAuth', pageState.myTabId);
-  console.log('authKey', authKey);
+  console2.log('authKey', authKey);
 
   if (typeof authKey !== 'string') {
     return null;
@@ -728,7 +749,7 @@ function toDateHTML(timestamp, defaultVal = '') {
     }
     return new Date(timestamp).toLocaleDateString(DEFAULT_LOCALE || null);
   } catch (e) {
-    console.error(e);
+    console2.error(e);
     return defaultVal;
   }
 }
@@ -743,18 +764,18 @@ function toWalletsHTML(wallets, defaultVal = '') {
         const trimmed = toShortWallet(x);
         const alias = walletToAlias(x, storage.options);
         const aliasText = alias ? ` (${alias})` : '';
-        //debug.log('toWalletsHTML', x, trimmed, alias);
+        //console2.log('toWalletsHTML', x, trimmed, alias);
         return `<span title="${x.toLowerCase()}">${trimmed}${aliasText}</span>`;
       })
       .join('<br>');
   } catch (e) {
-    console.error(e, wallets, defaultVal);
+    console2.error(e, wallets, defaultVal);
     return defaultVal;
   }
 }
 
-function packWins(wins) {
-  console.log('sortWins', wins);
+function packWins(wins, allRaffles = false) {
+  console2.log('sortWins', wins);
   const winsToSort = resortHxUpdated([...(wins?.length ? wins : [])]);
 
   winsToSort.forEach((x) => {
@@ -797,25 +818,31 @@ function packWins(wins) {
     };
   });
 
-  console.log('winsWithTwitter', winsWithTwitter);
-  console.log('winsWithoutTwitter', winsWithoutTwitterRaw);
+  console2.log('winsWithTwitter', winsWithTwitter);
+  console2.log('winsWithoutTwitter', winsWithoutTwitterRaw);
 
   const allWins = [...winsWithTwitter, ...winsWithoutTwitter];
   allWins.sort(dynamicSortMultiple('-hxSortKey'));
 
   const minMintDate = millisecondsAhead(-storage.options.RESULTS_DAYS_TO_KEEP_MINTED_WINS * ONE_DAY);
-  debug.log('minMintDate', minMintDate, storage.options.RESULTS_DAYS_TO_KEEP_MINTED_WINS);
+  console2.log('minMintDate', minMintDate, storage.options.RESULTS_DAYS_TO_KEEP_MINTED_WINS);
 
-  const winsToShow = allWins.filter((x) => isWinnerToShow(x.wins[0], minMintDate));
-  debug.log('winsToShow', winsToShow);
+  const winsToShow = allRaffles ? allWins : allWins.filter((x) => isWinnerToShow(x.wins[0], minMintDate));
+  console2.log('winsToShow', winsToShow);
 
   const winsToShowSorted = [
     ...winsToShow.filter((x) => x.mintDate),
     ...winsToShow.filter((x) => !x.mintDate),
   ];
-  debug.log('winsToShowSorted', winsToShowSorted);
+  console2.log('winsToShowSorted', winsToShowSorted);
 
   return winsToShowSorted;
+}
+
+function countPackedWins(packedWins) {
+  let ct = 0;
+  packedWins.forEach((x) => (ct = ct + x.wins.length));
+  return ct;
 }
 
 function resortHxUpdated(wins) {
@@ -828,26 +855,26 @@ function resortHxUpdated(wins) {
 }
 
 function isWinnerToShow(win, minMintDate) {
-  console.log('isWinnerToShow', win.name, minMintDate, win);
+  console2.log('isWinnerToShow', win.name, minMintDate, win);
   if (!win) {
-    console.log('!win, hide');
+    console2.log('!win, hide');
     return false;
   }
   if (!win.mintDate) {
     // no mint date set -> include in result set!
-    console.log('!win.mintDate, show');
+    console2.log('!win.mintDate, show');
     return true;
   }
   if (win.mintDate >= minMintDate) {
-    console.log('win.mintDate >= minMintDate, show');
+    console2.log('win.mintDate >= minMintDate, show');
     return true;
   }
   if (isRestarted(win)) {
-    console.log('already minted but new raffle');
+    console2.log('already minted but new raffle');
     // already minted but new raffle, probably restarted drop -> include in result set!?
     return true;
   }
-  console.log('do not show winner');
+  console2.log('do not show winner');
   return false;
 }
 
@@ -856,7 +883,7 @@ function isRestarted(win) {
   return win.startDate && win.mintDate && win.startDate >= win.mintDate;
 }
 
-function createWinsTableHeadRow() {
+function createWinsTableHeadRow(extended = false) {
   const head = document.createElement('THEAD');
   const row = document.createElement('TR');
 
@@ -889,8 +916,10 @@ function createWinsTableHeadRow() {
   row.appendChild(createCell('Time'));
   row.appendChild(createCell('Raffle Date'));
   row.appendChild(createCell('Start Date'));
-  row.appendChild(createCell('Sort Key 1'));
-  row.appendChild(createCell('Sort Key 2'));
+  if (extended) {
+    row.appendChild(createCell('Sort Key 1'));
+    row.appendChild(createCell('Sort Key 2'));
+  }
   row.appendChild(createCell('R?', 'Is raffle restarted after mint date?'));
   row.appendChild(createCell('WL Price', 'Price at Whitelist Mint'));
   row.appendChild(createCell('Price', 'Price at Public Mint'));
@@ -908,12 +937,19 @@ function createWinsTableHeadRow() {
   return head;
 }
 
-function createWinsTable(wins, header, id, allColumns = false) {
-  console.log('createWinsTable wins', header, allColumns, wins);
+function createWinsTable(
+  wins,
+  header,
+  id,
+  { allColumns = false, allRaffles = false, extended = false } = {}
+) {
+  console2.log('createWinsTable wins', header, allColumns, wins);
 
-  const packedWins = packWins(wins);
+  const packedWins = packWins(wins, allRaffles);
   setDateishOnPackedWins(packedWins);
-  console.log('packedWins', packedWins);
+  console2.log('packedWins', packedWins);
+
+  storage.results[id] = countPackedWins(packedWins);
 
   if (allColumns) {
     const sortedWins = packedWins.map((x) => x.wins).flat();
@@ -929,7 +965,7 @@ function createWinsTable(wins, header, id, allColumns = false) {
 
   const table = document.createElement('TABLE');
 
-  table.appendChild(createWinsTableHeadRow());
+  table.appendChild(createWinsTableHeadRow(extended));
 
   for (const parent of packedWins) {
     const wins = parent.wins;
@@ -938,10 +974,10 @@ function createWinsTable(wins, header, id, allColumns = false) {
     const allUsers = wins.map((x) => x.userId).flat();
 
     /*
-    debug.log('pwin', parent);
-    debug.log('wins', wins);
-    debug.log('firstWin', firstWin);
-    debug.log('allWallets', allWallets);
+    console2.log('pwin', parent);
+    console2.log('wins', wins);
+    console2.log('firstWin', firstWin);
+    console2.log('allWallets', allWallets);
     */
 
     const row = document.createElement('TR');
@@ -1025,24 +1061,26 @@ function createWinsTable(wins, header, id, allColumns = false) {
     const raffleDates = wins.map((x) => {
       return { date: x.pickedDate, hasTime: false };
     });
-    // console.log('raffleDates', raffleDates);
+    // console2.log('raffleDates', raffleDates);
     row.appendChild(createCell(createMultiDates(raffleDates, '', { className: 'raffle-date' })));
 
     // CELL: start-date
     const startDates = wins.map((x) => {
       return { date: x.startDate, hasTime: false };
     });
-    // console.log('startDates', startDates);
+    // console2.log('startDates', startDates);
     row.appendChild(createCell(createMultiDates(startDates, '', { className: 'raffle-date' })));
 
-    // CELL: hxSortKey
-    row.appendChild(createCell(createDate(parent.hxSortKey, false, '', { className: 'sort-key' })));
+    if (extended) {
+      // CELL: hxSortKey 1
+      row.appendChild(createCell(createDate(parent.hxSortKey, false, '', { className: 'sort-key' })));
 
-    // CELL: hxSortKeys
-    const hxSortKeys = wins.map((x) => {
-      return { date: x.hxSortKey, hasTime: false };
-    });
-    row.appendChild(createCell(createMultiDates(hxSortKeys, '', { className: 'sort-key' })));
+      // CELL: hxSortKey 2
+      const hxSortKeys = wins.map((x) => {
+        return { date: x.hxSortKey, hasTime: false };
+      });
+      row.appendChild(createCell(createMultiDates(hxSortKeys, '', { className: 'sort-key' })));
+    }
 
     // CELL: raffle-restarted
     const isRestarteds = wins.map((x) => (raffleIsRestarted(x) ? 'Yes' : ''));
@@ -1136,14 +1174,14 @@ function createWinsTable(wins, header, id, allColumns = false) {
       )
     );
 
-    //console.log('row', row);
+    //console2.log('row', row);
     table.appendChild(row);
   }
 
-  console.log('table', table);
+  console2.log('table', table);
 
-  console.log(toDateHTML(null));
-  console.log(toWalletsHTML(null));
+  console2.log(toDateHTML(null));
+  console2.log(toWalletsHTML(null));
 
   const numWins = packedWins.reduce((sum, obj) => sum + obj.wins.length, 0);
 
@@ -1294,30 +1332,42 @@ function showProviderClickHandler(id) {
 }
 
 function updateShownProvider() {
-  const update = (id, ct = 0) => {
+  const update = (id) => {
+    const ct = storage.results[id] || null;
     const elemContent = document.getElementById(id);
-    console.log('updateShownProvider id, ct, elem, pageState', id, ct, elemContent, pageState);
+    const elemLink = document.getElementById('show-' + id);
+    console2.log('updateShownProvider id, ct, pageState', id, ct, pageState);
+    console2.log('updateShownProvider elemContent', elemContent);
 
-    if (elemContent && pageState.shownProvider === id) {
-      elemContent.classList.toggle('show', true);
-    } else if (elemContent) {
-      elemContent.classList.toggle('show', false);
+    const showFlag = pageState.shownProvider === id;
+
+    if (elemLink) {
+      elemLink.classList.toggle('show', showFlag);
+    }
+    if (elemContent) {
+      elemContent.classList.toggle('show', showFlag);
     }
 
-    const elemLink = document.getElementById(`show-${id}`);
-    if (elemLink) {
+    if (elemLink && ct) {
       elemLink.dataset.hxCount = `(${ct})`;
     }
   };
-  update('all', storage.wins?.length);
-  update('alphabot', storage.alphabot?.wins?.length);
-  update('premint', storage.premint?.wins?.length);
-  update('atlas', storage.atlas?.wins?.length);
-  update('luckygo', storage.luckygo?.wins?.length);
-  update('debug', storage.wins?.length);
+  update('all-providers');
+  update('alphabot');
+  update('premint');
+  update('atlas');
+  update('luckygo');
+  update('debug');
 }
 
-// UPDATE FUNCS -----------------------------------------------------
+// MISC FUNCS -----------------------------------------------------
+
+function showCheckboxedClickHandler() {
+  showPage({
+    allRaffles: document.getElementById('show-hidden').checked,
+    extended: document.getElementById('show-extended').checked,
+  });
+}
 
 // WINS FUNCS -----------------------------------------------------
 
@@ -1326,7 +1376,7 @@ function updateShownProvider() {
 // STATUS FUNCS -----------------------------------------------------
 
 function updateMainStatus(text) {
-  console.log('updateMainStatus', text);
+  console2.log('updateMainStatus', text);
 
   const elem = document.getElementById('hx-status-main');
   if (elem) {
@@ -1339,11 +1389,11 @@ function resetSubStatus() {
 }
 
 function updateSubStatus(html, reuseLast = false) {
-  console.log('updateSubStatus', html);
+  console2.log('updateSubStatus', html);
 
   const elem = document.getElementById('hx-status');
   if (!elem) {
-    console.error('Missing status element in HTML!');
+    console2.error('Missing status element in HTML!');
     return false;
   }
   let item;
@@ -1372,7 +1422,7 @@ function resetSubStatus() {
 function updateSubStatus(html, reuseLast = false) {
   const elem = document.getElementById('hx-status');
   if (!elem) {
-    console.error('Missing status element in HTML!');
+    console2.error('Missing status element in HTML!');
     return false;
   }
   let item;
@@ -1401,26 +1451,26 @@ async function setDateishOnPackedWins(packedWins) {
 
   const pivotTodayStr = new Date().toLocaleDateString(SORT_ORDER_LOCALE);
   const pivotTodayDate = new Date(pivotTodayStr);
-  debug.log('pivotTodayStr, pivotTodayDate:', pivotTodayStr, pivotTodayDate);
+  console2.log('pivotTodayStr, pivotTodayDate:', pivotTodayStr, pivotTodayDate);
 
   const pivotTomorrowStr = new Date(millisecondsAhead(1 * ONE_DAY)).toLocaleDateString(SORT_ORDER_LOCALE);
   const pivotTomorrowDate = new Date(pivotTomorrowStr);
-  debug.log('pivotTomorrowStr, pivotTomorrowStr:', pivotTomorrowStr, pivotTomorrowDate);
+  console2.log('pivotTomorrowStr, pivotTomorrowStr:', pivotTomorrowStr, pivotTomorrowDate);
 
   const pivotYesterdayStr = new Date(millisecondsAhead(-1 * ONE_DAY)).toLocaleDateString(SORT_ORDER_LOCALE);
   const pivotYesterdayDate = new Date(pivotYesterdayStr);
-  debug.log('pivotYesterdayStr, pivotYesterdayDate:', pivotYesterdayStr, pivotYesterdayDate);
+  console2.log('pivotYesterdayStr, pivotYesterdayDate:', pivotYesterdayStr, pivotYesterdayDate);
 
   let lastTommorowishDateStr = null;
   for (let i = packedWins.length - 1; i--; i >= 0) {
-    //console.log('i', i);
+    //console2.log('i', i);
     const parent = packedWins[i];
     if (!parent?.wins?.length) {
       continue;
     }
 
     const item = parent.wins[0];
-    // debug.trace('item:', new Date(item.mintDate), pivotTomorrowDate, item.mintDate >= pivotTomorrowDate, item);
+    // console2.trace('item:', new Date(item.mintDate), pivotTomorrowDate, item.mintDate >= pivotTomorrowDate, item);
 
     if (!item.mintDate) {
       continue;
@@ -1432,27 +1482,29 @@ async function setDateishOnPackedWins(packedWins) {
     }
 
     if (itemDateStr > lastTommorowishDateStr) {
-      debug.log('no more tomorrowishs');
+      console2.log('no more tomorrowishs');
       break;
     }
 
     if (itemDateStr >= pivotTomorrowStr) {
       lastTommorowishDateStr = itemDateStr;
       parent.isTomorrowish = true;
-      debug.log('isTomorrowish:', item);
+      console2.log('isTomorrowish:', item);
       // break;
       continue;
     }
 
     if (itemDateStr < pivotTodayStr && itemDateStr >= pivotYesterdayStr) {
       parent.isYesterdayish = true;
-      debug.log('isYesterdayish:', item);
+      console2.log('isYesterdayish:', item);
     }
   }
 }
 
 function showLastUpdatedStatus() {
   const nowDate = new Date();
+
+  resetSubStatus();
 
   if (storage.results.lastProviderUpdate) {
     const timestamp = storage.results.lastProviderUpdate;
@@ -1546,9 +1598,9 @@ async function getTwitterFollowerCount() {
 }
 
 async function updateTwitterFollowers() {
-  debug.log('updateTwitterFollowers');
+  console2.log('updateTwitterFollowers');
   const elems = [...document.querySelectorAll('a.twitter-link')];
-  debug.log('elems', elems);
+  console2.log('elems', elems);
   for (let link of elems) {
     const followers = await getTwitterFollowerCount(link.dataset.username);
     link.dataset.hxFollowersNum = followers;
@@ -1560,11 +1612,11 @@ async function updateTwitterFollowers() {
 // PROJECT-WINS
 
 function createProjectWins(packedWins) {
-  console.log('createProjectWins; packedWins:', packedWins);
+  console2.log('createProjectWins; packedWins:', packedWins);
 
   const data = [];
   packedWins.forEach((pw) => {
-    console.log('pw:', pw);
+    console2.log('pw:', pw);
     const handle = pw.twitterHandle;
     const dateKey = maxOrNull(...pw.wins.map((x) => x.hxSortKey).filter((x) => x));
     const startDate = maxOrNull(...pw.wins.map((x) => x.startDate).filter((x) => x));
@@ -1588,7 +1640,7 @@ function createProjectWins(packedWins) {
   });
 
   data.sort(dynamicSortMultiple('-mintDate', '-picked'));
-  console.log('createProjectWins; data:', data);
+  console2.log('createProjectWins; data:', data);
 
   return data;
 }
@@ -1601,7 +1653,7 @@ async function lookupTwitterEventHandler(event) {
   event.stopImmediatePropagation();
 
   await reloadOptions(storage);
-  console.log('lookupTwitterEventHandler, storage:', storage);
+  console2.log('lookupTwitterEventHandler, storage:', storage);
 
   if (!storage.options.TWITTER_FETCH_FOLLOWERS_USER) {
     window.alert(
@@ -1634,17 +1686,17 @@ function getLookupTwitterLinks() {
 }
 
 async function lookupTwitter() {
-  debug.log('lookupTwitter');
+  console2.log('lookupTwitter');
 
   const twitterLinksAll = getLookupTwitterLinks();
-  debug.log('twitterLinks', twitterLinksAll);
+  console2.log('twitterLinks', twitterLinksAll);
 
   if (!twitterLinksAll?.length) {
     statusLogger.main(`Already got follower counts for all Twitter links on page`);
     return;
   }
   const links = noDuplicates(twitterLinksAll);
-  debug.log('links', links);
+  console2.log('links', links);
 
   const packedWins = packWins(storage.wins);
   const sortedLinks = [];
@@ -1654,14 +1706,14 @@ async function lookupTwitter() {
       sortedLinks.push(link);
     }
   }
-  debug.log('sortedLinks', sortedLinks);
+  console2.log('sortedLinks', sortedLinks);
 
   const useLinks = sortedLinks.slice(0, storage.options.TWITTER_MAX_LOOKUPS);
-  debug.log('useLinks', useLinks);
+  console2.log('useLinks', useLinks);
 
   await getMyTabIdFromExtension(pageState, 5000);
   if (!pageState.myTabId) {
-    console.error('Invalid myTabId');
+    console2.error('Invalid myTabId');
     statusLogger.sub(`Failed getting own page tab id when looking up Twitter followers!`);
     return;
   }
@@ -1674,7 +1726,7 @@ async function lookupTwitter() {
   for (const baseUrl of useLinks) {
     ct++;
     statusLogger.main(`Get follower counts for Twitter links on page (${ct}/${useLinks.length})`);
-    debug.log(`Get Twitter followers ${ct}/${useLinks.length}: ${baseUrl}`);
+    console2.log(`Get Twitter followers ${ct}/${useLinks.length}: ${baseUrl}`);
     if (await pageState.observer.updateTwitter(baseUrl, pageState.myTabId)) {
       await sleep(2000);
     }
@@ -1696,7 +1748,7 @@ async function switchTwitterUserBeforeFetchingFollowers() {
     );
 
     if (!result || !result.ok) {
-      debug.log('Failed switching to Twitter user; result:', result);
+      console2.log('Failed switching to Twitter user; result:', result);
       statusLogger.sub(
         `Failed switching to Twitter user @${storage.options.TWITTER_FETCH_FOLLOWERS_USER}, aborting action`
       );

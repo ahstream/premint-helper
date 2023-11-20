@@ -70,7 +70,7 @@ function messageHandler(request, sender, sendResponse) {
         if (tabs.length < 2) {
           chrome.tabs.create({ url: `chrome://extensions/?url=${request.url}`, active: true });
         }
-        chrome.tabs.remove(sender.tab.id, () => console.log('close tab'));
+        chrome.tabs.remove(sender.tab.id, () => console.log('close tab', sender.tab));
       });
       break;
 
@@ -80,7 +80,7 @@ function messageHandler(request, sender, sendResponse) {
         if (tabs.length < 2) {
           chrome.tabs.create({ url: `chrome://extensions/?url=${request.url}`, active: true });
         }
-        chrome.tabs.remove(sender.tab.id, () => console.log('close tab'));
+        chrome.tabs.remove(sender.tab.id, () => console.log('close tab', sender.tab));
       });
       break;
     case 'cleanupRaffleWhenFinished':
@@ -88,7 +88,7 @@ function messageHandler(request, sender, sendResponse) {
         console.log('tabs', tabs);
         tabs.forEach((tab) => {
           if (tab.id !== sender.tab.id) {
-            chrome.tabs.remove(tab.id, () => console.log('close tab'));
+            chrome.tabs.remove(tab.id, () => console.log('close tab', tab));
           }
         });
       });
@@ -150,7 +150,6 @@ function handleAlphabotNavigation(data) {
 }
 
 async function revealAlphabotRaffles() {
-  console.log('revealAlphabotRaffles');
   chrome.tabs.query({}, async (tabs) => {
     for (let tab of tabs) {
       if (tab.active) {

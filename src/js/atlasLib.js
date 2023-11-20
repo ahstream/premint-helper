@@ -1,7 +1,7 @@
-import { sleep, fetchHelper, rateLimitHandler, createLogger } from 'hx-lib';
+import { sleep, fetchHelper, rateLimitHandler, myConsole } from 'hx-lib';
 import { normalizeTwitterHandle } from './premintHelperLib.js';
 
-const debug = createLogger();
+const console2 = myConsole();
 
 // DATA ----------------------------------------------------------------------------------
 
@@ -13,7 +13,7 @@ const WINS_BASE_URL = 'https://atlas3.io/api/me/won-giveaways?&page={PAGE}&pageL
 
 export async function getAccount() {
   const result = await fetchHelper(ACCOUNT_URL, {});
-  debug.log('getAccount:', result);
+  console2.log('getAccount:', result);
   const id = result?.data?.user?.id;
   return {
     id,
@@ -37,7 +37,7 @@ export async function getWins(account, { interval = 1500, max = null, statusLogg
 }
 
 async function fetchWins({ pageLength = 12, interval, max, statusLogger }, checkIfContinueFn = null) {
-  debug.log('fetchWins; pageLength:', pageLength);
+  console2.log('fetchWins; pageLength:', pageLength);
 
   const wins = [];
   let pageNum = 0;
@@ -51,9 +51,9 @@ async function fetchWins({ pageLength = 12, interval, max, statusLogger }, check
     }
 
     const url = WINS_BASE_URL.replace('{PAGE}', pageNum).replace('{PAGE_LENGTH}', pageLength);
-    debug.log(`fetchWins page: ${pageNum}, ${url}`);
+    console2.info(`fetchWins page: ${pageNum}, ${url}`);
     const result = await fetchHelper(url, { method: 'GET' }, rateLimitHandler);
-    debug.log('result', result);
+    console2.log('result', result);
 
     if (result.error) {
       return { error: true, result, wins };
@@ -71,16 +71,16 @@ async function fetchWins({ pageLength = 12, interval, max, statusLogger }, check
 
     count += result.data.giveaways.length;
     if (max && count > max) {
-      debug.log('Max wins fetched:', count, '>=', max);
+      console2.log('Max wins fetched:', count, '>=', max);
       return wins;
     }
 
     if (checkIfContinueFn && !checkIfContinueFn(result)) {
-      debug.log('checkIfContinueFn() says to stop');
+      console2.log('checkIfContinueFn() says to stop');
       break;
     }
 
-    debug.log(`sleep ${interval} ms before next fetch`);
+    console2.log(`sleep ${interval} ms before next fetch`);
     await sleep(interval);
   }
 
@@ -198,15 +198,15 @@ function convertWins(wins, account) {
 // this already implemented in atlasRAfflePage, which one is best?
 export function isAllTasksCompleted() {
   const elems = [...document.querySelectorAll('p')].filter((x) => x.innerText.endsWith('TASKS COMPLETED'));
-  console.log('elems', elems);
+  console2.log('elems', elems);
   if (!elems?.length) {
     return false;
   }
   const s = elems[0].innerText.replace('TASKS COMPLETED', '').trim();
-  console.log('s', s);
+  console2.log('s', s);
 
   const tokens = s.split(s, 'OF').map((x) => x.trim());
-  console.log('tokens', tokens);
+  console2.log('tokens', tokens);
 
   if (tokens.length === 2 && tokens[0] === tokens[1]) {
     return true;
@@ -223,7 +223,7 @@ export function getSelectedWallet() {
     const elem = document.getElementById('headlessui-listbox-button-:r0:');
     return elem?.innerText || '';
   } catch (e) {
-    console.error(e);
+    console2.error(e);
     return null;
   }
 }

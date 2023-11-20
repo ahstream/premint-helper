@@ -1,6 +1,6 @@
-import { fetchHelper, createLogger } from 'hx-lib';
+import { fetchHelper, myConsole } from 'hx-lib';
 
-const debug = createLogger();
+const console2 = myConsole();
 
 // DATA ----------------------------------------------------------------------------------
 
@@ -24,7 +24,7 @@ export async function readWins(fromTimestamp, options) {
       timestamp: fromTimestamp,
     }),
   });
-  debug.log('cloud read result:', result);
+  console2.log('cloud read result:', result);
 
   if (result.error) {
     return { error: true, msg: result.msg || 'Invalid data returned from CLOUD_READ_WINS_URL' };
@@ -48,7 +48,7 @@ export async function writeWins(wins, options) {
   }
 
   wins.forEach((win) => (win.hxTag = tag));
-  debug.log('wins to write', wins);
+  console2.log('wins to write', wins);
 
   const result = await fetchHelper(url, {
     method: 'POST',
@@ -56,14 +56,14 @@ export async function writeWins(wins, options) {
       wins,
     }),
   });
-  debug.log('cloud write result:', result);
+  console2.log('cloud write result:', result);
 
   if (result.error || !result.data) {
     return { error: true, msg: result.msg || 'Invalid data returned from CLOUD_WRITE_WINS_URL' };
   }
 
   const data = JSON.parse(result.data);
-  debug.log('parsed result data:', data);
+  console2.log('parsed result data:', data);
 
   if (!data.ok) {
     return { error: true, msg: `Invalid response when saving to cloud: ${data.msg}` };
@@ -91,7 +91,7 @@ export async function countWins(provider, userId, options) {
       userId,
     }),
   });
-  debug.log('cloud count result:', result);
+  console2.log('cloud count result:', result);
 
   if (result.error) {
     return { error: true, msg: result.msg || 'Invalid data returned from CLOUD_COUNT_WINS_URL' };

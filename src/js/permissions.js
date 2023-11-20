@@ -1,6 +1,8 @@
-import { getStorageItems, setStorageData } from 'hx-lib';
+import { getStorageItems, setStorageData, myConsole } from 'hx-lib';
 
 import CryptoJS from 'crypto-js';
+
+const console2 = myConsole();
 
 // DATA ----------------------------------------------------------------------------------
 
@@ -21,8 +23,10 @@ export async function showPermissions() {
 
 async function getSubscriptionInfo() {
   const permissions = await getPermissions();
-  console.log('permissions', permissions);
-  return permissions?.enabled ? `Subscription active until ${new Date(permissions.enabledTo).toLocaleString()}` : 'No active subscription';
+  console2.log('permissions', permissions);
+  return permissions?.enabled
+    ? `Subscription active until ${new Date(permissions.enabledTo).toLocaleString()}`
+    : 'No active subscription';
 }
 
 async function enterNewKey(prefix) {
@@ -44,7 +48,7 @@ async function enterNewKey(prefix) {
 function parsePermissions(key) {
   try {
     const p = parseKey(key);
-    console.log('parsePermissions', p);
+    console2.trace('parsePermissions', p);
     return p;
   } catch (e) {
     return null;
@@ -53,7 +57,7 @@ function parsePermissions(key) {
 
 export async function getPermissions() {
   const storage = await getStorageItems(['permissions']);
-  console.log('storage', storage);
+  console2.all('storage', storage);
   const permissions = storage.permissions ? parsePermissions(storage.permissions) : { enabled: false };
   if (!permissions) {
     return null;
@@ -61,10 +65,10 @@ export async function getPermissions() {
   permissions.enabledTo = Number(permissions?.enabledTo);
 
   permissions.enabled = permissions.enabledTo && Date.now() <= permissions.enabledTo;
-  console.log('Date.now()', Date.now());
-  console.log('permissions.enabledTo', permissions.enabledTo);
-  console.log('permissions.enabledTo', new Date(permissions.enabledTo));
-  console.log('permissions', permissions);
+  console2.trace('Date.now()', Date.now());
+  console2.trace('permissions.enabledTo', permissions.enabledTo);
+  console2.trace('permissions.enabledTo', new Date(permissions.enabledTo));
+  console2.log('permissions', permissions);
 
   return permissions;
 }

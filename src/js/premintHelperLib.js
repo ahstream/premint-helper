@@ -3,15 +3,15 @@ import {
   millisecondsAhead,
   getStorageItems,
   addPendingRequest,
-  createLogger,
   pluralize,
   dynamicSortMultiple,
   normalizePendingLink,
   isTwitterURL,
   simulateClick,
+  myConsole,
 } from 'hx-lib';
 
-const debug = createLogger();
+const console2 = myConsole();
 
 // DATA ----------------------------------------------------------------------------------
 
@@ -73,9 +73,9 @@ export function accountToAlias(account, options) {
 }
 
 export function walletToAlias(wallet, options) {
-  debug.trace('wallet', wallet);
+  console2.trace('wallet', wallet);
   const walletLow = wallet.toLowerCase();
-  debug.trace('walletToAlias:', wallet, options.WALLET_ALIAS);
+  console2.trace('walletToAlias:', wallet, options.WALLET_ALIAS);
   const items = options.WALLET_ALIAS.filter((x) => x.toLowerCase().endsWith(walletLow));
   return items.length ? items[0].toLowerCase().replace(`${walletLow}`, '').replace(':', '').trim() : '';
 }
@@ -92,14 +92,11 @@ export function trimWallet(text) {
 
 export function toShortWallet(addr) {
   if (typeof addr !== 'string') {
-    debug.log('invalid wallet:', addr);
+    console2.log('invalid wallet:', addr);
     return '';
   }
   const text = addr.toLowerCase();
   const r = text.length < 10 ? text : `${text.substring(0, 2)}...${text.substring(text.length - 4)}`;
-  //debug.log('toShortWallet; in, out:', text, r);
-  //debug.log('text.length', text.length);
-  //debug.log('text.substring(text.length - 4)', text.substring(text.length - 4));
 
   return r;
 }
@@ -109,10 +106,10 @@ export function trimWalletes(texts) {
 }
 
 export function sortWallets(addrList, options) {
-  debug.trace('addrList', addrList);
-  const sortData = addrList.map((x) => {
-    debug.trace('x', x);
-    const alias = walletToAlias(x, options);
+  console2.trace('addrList', addrList);
+  const sortData = addrList.map((addr) => {
+    console2.trace('addr', addr);
+    const alias = walletToAlias(addr, options);
     const tokens = alias.split('-');
     const sortParamNumber =
       tokens.length > 1
@@ -121,7 +118,7 @@ export function sortWallets(addrList, options) {
             .padStart(5, '0')
         : alias;
     const sortParamName = tokens.length > 1 ? tokens[0] : alias;
-    return { sortParamNumber, sortParamName, addr: x };
+    return { sortParamNumber, sortParamName, addr: addr };
   });
   sortData.sort(dynamicSortMultiple('-sortParamName', 'sortParamNumber'));
   const result = sortData.map((x) => x.addr);
@@ -147,7 +144,7 @@ export function createStatusbarButtons({
   reveal = false,
   followers = false,
 } = {}) {
-  console.log(
+  console2.log(
     'createStatusbarButtons; options, help, results, reveal, followers:',
     options,
     help,
@@ -197,7 +194,7 @@ export function createStatusbarButtons({
             chrome.runtime.sendMessage({
               cmd: 'openTab',
               active: true,
-              url: chrome.runtime.getURL('alphabotResults.html'),
+              url: chrome.runtime.getURL('raffleResults.html'),
             });
     add('Results', 'Open Premint Helper Alphabot Results page', callback);
   }
@@ -210,7 +207,7 @@ export function createStatusbarButtons({
     add('Reveal', 'Reveal odds and previously won wallets for all Alphabot raffles on page', reveal);
   }
 
-  debug.log('createStatusbarButtons:', buttons);
+  console2.log('createStatusbarButtons:', buttons);
 
   return buttons.reverse();
 }
@@ -220,7 +217,7 @@ function setPageBodyClass(className) {
 }
 
 export function exitActionMain(result, context, options) {
-  console.log('exitActionMain', result, context, options);
+  console2.log('exitActionMain', result, context, options);
   setPageBodyClass('exitAction');
   setPageBodyClass(result);
 
@@ -248,9 +245,9 @@ export function exitActionMain(result, context, options) {
     context.updateStatusbarError('Unspecified raffle error, see error messages on page');
   }
   if (result === 'raffleUnknownErrorWillRetry') {
-    console.log('context.forceRegister', context.forceRegister);
+    console2.log('context.forceRegister', context.forceRegister);
     if (context.forceRegister && context.forceRegister(context.storage)) {
-      console.log('forceRegister success!');
+      console2.log('forceRegister success!');
       // successful register, do nothing
     } else {
       if (options.retries) {
@@ -345,57 +342,50 @@ export function exitActionMain(result, context, options) {
 }
 
 function minimizeVerifiedRaffle(context) {
-  console.log('minimizeVerifiedRaffle', context);
   if (context.pageState.action === 'verifyAlphabotRaffle') {
-    console.log('do minimizeVerifiedRaffle');
+    console2.log('do minimizeVerifiedRaffle');
     chrome.runtime.sendMessage({ cmd: 'minimizeWindow' });
   } else {
-    console.log('do NOT minimizeVerifiedRaffle');
+    console2.log('do NOT minimizeVerifiedRaffle', context);
   }
 }
 
 function closeTasksWhenFinished(context) {
-  console.log('closeTasksWhenFinished', context);
-  console.log('closeTasksWhenFinished', JSON.stringify(context));
   if (context.options.RAFFLE_CLOSE_TASKS_WHEN_FINISHED && context.pageState.finishedTabsIds?.length) {
-    console.log('do closeTasksWhenFinished');
+    console2.log('do closeTasksWhenFinished');
     chrome.runtime.sendMessage({ cmd: 'closeTabs', tabIds: context.pageState.finishedTabsIds });
   } else {
-    console.log('do NOT closeTasksWhenFinished');
+    console2.log('do NOT closeTasksWhenFinished', context);
   }
 }
 
 function minimizeRaffleWhenFinished(context) {
-  console.log('minimizeRaffleWhenFinished', context);
   if (
     context.options.RAFFLE_MINIMIZE_WHEN_FINISHED &&
     (context.pageState.isAutoStarted || context.pageState.isPendingReg)
   ) {
-    console.log('do minimizeRaffleWhenFinished');
+    console2.log('do minimizeRaffleWhenFinished');
     chrome.runtime.sendMessage({ cmd: 'minimizeWindow' });
   } else {
-    console.log('do NOT minimizeRaffleWhenFinished');
+    console2.log('do NOT minimizeRaffleWhenFinished', context);
   }
 }
 
 function closeRaffleWhenFinished(context) {
-  console.log('closeRaffleWhenFinished', context);
-  console.log('closeRaffleWhenFinished', JSON.stringify(context));
   if (context.options.RAFFLE_CLOSE_WHEN_FINISHED && context.pageState.isAutoStarted) {
-    console.log('do closeRaffleWhenFinished');
+    console2.log('do closeRaffleWhenFinished');
     chrome.runtime.sendMessage({ cmd: 'closeRaffleWhenFinished', url: window.location.href });
   } else {
-    console.log('do NOT closeRaffleWhenFinished');
+    console2.log('do NOT closeRaffleWhenFinished', context);
   }
 }
 
 function cleanupRaffleWhenFinished(context) {
-  console.log('cleanupRaffleWhenFinished', context);
   if (context.options.RAFFLE_CLEANUP_WHEN_FINISHED && context.pageState.isAutoStarted) {
-    console.log('do cleanupRaffleWhenFinished');
+    console2.log('do cleanupRaffleWhenFinished');
     chrome.runtime.sendMessage({ cmd: 'cleanupRaffleWhenFinished', url: window.location.href });
   } else {
-    console.log('do NOT cleanupRaffleWhenFinished');
+    console2.log('do NOT cleanupRaffleWhenFinished', context);
   }
 }
 
@@ -419,7 +409,7 @@ function handleRetries(context, retries, retrySecs) {
 }
 
 export async function getMyTabIdFromExtension(context, maxWait, intervall = 100) {
-  debug.log('getMyTabIdFromExtension', context, maxWait, intervall);
+  console2.log('getMyTabIdFromExtension', context, maxWait, intervall);
   if (!context) {
     return null;
   }
@@ -429,23 +419,23 @@ export async function getMyTabIdFromExtension(context, maxWait, intervall = 100)
   }
 
   setTimeout(async () => {
-    debug.log('sendMessage getMyTabId');
+    console2.log('sendMessage getMyTabId');
     const result = await chrome.runtime.sendMessage({ cmd: 'getMyTabIdAsync' });
     if (result) {
       // this is set elsewhere, not here! context.myTabId = result;
     }
-    debug.log('context.myTabId after fetch; context.myTabId, result:', context.myTabId, result);
+    console2.log('context.myTabId after fetch; context.myTabId, result:', context.myTabId, result);
   }, 1);
 
   const stopTime = millisecondsAhead(maxWait);
   while (Date.now() <= stopTime) {
     if (context.myTabId) {
-      debug.log('context.myTabId after waited:', context.myTabId);
+      console2.log('context.myTabId after waited:', context.myTabId);
       return context.myTabId;
     }
     await sleep(intervall);
   }
-  debug.log('context.myTabId after waited in vain:', context.myTabId);
+  console2.log('context.myTabId after waited in vain:', context.myTabId);
   return context.myTabId;
 }
 
@@ -461,7 +451,7 @@ export async function removeDoneLinks(handle, links, pageState) {
 }
 
 export async function finishUnlockedTwitterAccount(request, sender, context) {
-  debug.log('finishUnlockedTwitterAccount; request, sender, context:', request, sender, context);
+  console2.log('finishUnlockedTwitterAccount; request, sender, context:', request, sender, context);
   const twitterLinks = [...context.pageState.pendingRequests.filter((x) => isTwitterURL(x))];
 
   if (context.pageState.handledUnlockedTwitterAccount) {
@@ -476,7 +466,7 @@ export async function finishUnlockedTwitterAccount(request, sender, context) {
   while (twitterLinks?.length) {
     const nextLink = twitterLinks.shift();
     const nextLinkUrl = 'https://' + nextLink + context.pageState.twitterLinkSuffix;
-    console.log('Open next twitter link:', nextLinkUrl);
+    console2.info('Open next twitter link:', nextLinkUrl);
     await sleep(context.options.RAFFLE_OPEN_QUEUED_TWITTER_LINK_DELAY, null, 0.1);
 
     if (context.options.RAFFLE_OPEN_LINKS_IN_FOREGROUND) {
@@ -488,7 +478,7 @@ export async function finishUnlockedTwitterAccount(request, sender, context) {
 }
 
 export async function finishTask(request, sender, context) {
-  debug.log('finishTask; request, sender:', request, sender);
+  console2.log('finishTask; request, sender:', request, sender);
 
   if (context.pageState.abort) {
     return context.exitAction('abort');
@@ -497,7 +487,7 @@ export async function finishTask(request, sender, context) {
   if (request.status === 'captcha') {
     context.pageState.discordCaptchaSender = sender;
     context.pageState.discordCaptchaTabId = sender?.tab?.id;
-    console.log('sender', sender);
+    console2.log('sender', sender);
     return context.handleDiscordCaptcha();
   }
 
@@ -506,15 +496,15 @@ export async function finishTask(request, sender, context) {
   if (request.isDiscord) {
     context.pageState.finishedDiscordTabIds.push(request.senderTabId);
   }
-  debug.log('pageState.finishedDiscordTabIds:', context.pageState.finishedDiscordTabIds);
+  console2.log('pageState.finishedDiscordTabIds:', context.pageState.finishedDiscordTabIds);
 
   const normalizedUrl = normalizePendingLink(request.url);
   const prevLength = context.pageState.pendingRequests.length;
 
-  debug.log('finish; url:', request.url);
-  debug.log('finish; normalizedUrl:', normalizedUrl);
+  console2.log('finish; url:', request.url);
+  console2.log('finish; normalizedUrl:', normalizedUrl);
 
-  debug.log(
+  console2.log(
     'finish; pendingRequests A:',
     context.pageState.pendingRequests.length,
     context.pageState.pendingRequests
@@ -522,30 +512,30 @@ export async function finishTask(request, sender, context) {
   context.pageState.pendingRequests = context.pageState.pendingRequests.filter(
     (item) => item !== normalizedUrl
   );
-  debug.log(
+  console2.log(
     'finish; pendingRequests B:',
     context.pageState.pendingRequests.length,
     context.pageState.pendingRequests
   );
 
   if (request.twitter) {
-    console.log('Add url to history:', request.url);
+    console2.info('Add url to history:', request.url);
     await context.pageState.history.add(normalizeTwitterHandle(context.pageState.twitterUser), request.url);
     await context.pageState.history.save();
   }
 
   if (context.pageState.pendingRequests.length === 0 && prevLength > 0) {
     const sleepMs = request.delay ?? 500;
-    console.info('Finished all required links, register raffle after sleep:', sleepMs);
+    console2.info('Finished all required links, register raffle after sleep:', sleepMs);
     await sleep(sleepMs);
-    debug.log('pageState:', context.pageState);
+    console2.log('pageState:', context.pageState);
 
     let tabsToClose = [...context.pageState.finishedTabsIds];
 
     if (context.pageState.haveRoleDiscordLink && context.options.RAFFLE_KEEP_ROLED_DISCORD_TASK_OPEN) {
       // if having role discord link we often times need to do some verification task to get role.
       // we save time by keeping those tabs open!
-      debug.log('focus roled discord tabs');
+      console2.log('focus roled discord tabs');
       context.pageState.finishedDiscordTabIds.forEach((id) => {
         tabsToClose = tabsToClose.filter((tabId) => tabId !== id);
         chrome.runtime.sendMessage({ cmd: 'focusTab', id });
@@ -553,7 +543,7 @@ export async function finishTask(request, sender, context) {
     }
 
     if (context.options.RAFFLE_CLOSE_TASKS_BEFORE_JOIN) {
-      debug.log('Close finishedTabsIds');
+      console2.log('Close finishedTabsIds');
       chrome.runtime.sendMessage({ cmd: 'closeTabs', tabIds: tabsToClose });
     }
 
@@ -561,13 +551,13 @@ export async function finishTask(request, sender, context) {
     return context.registerRaffle(focusTabWhenRegister, false);
   }
 
-  console.info('Not all required links finished yet!');
+  console2.info('Not all required links finished yet!');
 
   if (context.options.TWITTER_QUEUE_TASK_LINKS & request.twitter) {
     const nextLink = context.pageState.pendingRequests.find((x) => isTwitterURL(x));
     if (nextLink) {
       const nextLinkUrl = 'https://' + nextLink + context.pageState.twitterLinkSuffix;
-      console.log('Open next twitter link:', nextLinkUrl);
+      console2.info('Open next twitter link:', nextLinkUrl);
 
       await sleep(context.options.RAFFLE_OPEN_QUEUED_TWITTER_LINK_DELAY, null, 0.1);
 
@@ -577,7 +567,7 @@ export async function finishTask(request, sender, context) {
         chrome.runtime.sendMessage({ cmd: 'openTab', url: nextLinkUrl });
       }
     } else {
-      console.log('No more twitter links');
+      console2.info('No more twitter links');
     }
   }
 
@@ -587,7 +577,7 @@ export async function finishTask(request, sender, context) {
 }
 
 export function clickElement(elem) {
-  console.log('clickElement:', elem);
+  console2.trace('clickElement:', elem);
   if (elem.click) {
     elem.click();
   } else {
