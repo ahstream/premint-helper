@@ -59,7 +59,7 @@ let pageState = {
 // INIT ----------------------------------------------------------------------------
 
 export async function initRafflePage(raffleProvider) {
-  console2.log('initRafflePage, provider:', raffleProvider?.name);
+  console2.info('Init raffle page, provider:', raffleProvider?.name);
   provider = raffleProvider;
 
   await loadStorage();
@@ -112,14 +112,14 @@ async function onLoad() {
     },
   };
 
-  console2.log('pageState', pageState);
+  console2.info('PageState:', pageState);
 
   showPage();
 }
 
 function initEventHandlers() {
   chrome.runtime.onMessage.addListener(async (request, sender, sendResponse) => {
-    console2.log('Received message:', request, sender);
+    console2.info('Received message:', request, sender);
 
     if (request.cmd === 'switchedToTwitterUser') {
       if (request.error) {
@@ -332,7 +332,7 @@ async function runRafflePage() {
 }
 
 async function joinRaffle() {
-  console2.log('joinRaffle');
+  console2.info('Start joining raffle...');
 
   if (!checkIfSubscriptionEnabled(pageState.permissions, true, pageState.statusbar.warn)) {
     return;
@@ -352,7 +352,7 @@ async function joinRaffle() {
   }
 
   const reqs = getRequirements();
-  console2.log('reqs', reqs);
+  console2.info('Task requirements:', reqs);
 
   const skipDoneTasks = pageState.action === 'retryJoin' || storage.options.RAFFLE_SKIP_DONE_TASKS;
   const discordLinks = skipDoneTasks
@@ -384,7 +384,7 @@ async function joinRaffle() {
   }
 
   reqLinks.forEach((link) => pageState.pendingRequests.push(normalizePendingLink(link)));
-  console2.log('pageState.pendingRequests:', pageState.pendingRequests);
+  console2.info('Pending requests to open:', pageState.pendingRequests);
 
   pageState.twitterLinkSuffix = `#id=${pageState.myTabId}&user=${
     storage.options.RAFFLE_SWITCH_TWITTER_USER ? reqs.twitterUser : ''
@@ -460,7 +460,7 @@ async function joinRaffle() {
 // REGISTER ----------------------------------------------------------------------------------
 
 async function registerRaffle(focusTab = true, checkIfReady = true) {
-  console2.info('Register raffle; focusTab:', focusTab);
+  console2.info('Register raffle', focusTab);
 
   pageState.pause = false;
 
@@ -474,7 +474,7 @@ async function registerRaffle(focusTab = true, checkIfReady = true) {
 
   updateStatusbarRunning('Joining raffle...');
   if (focusTab) {
-    console2.info('focusTab');
+    console2.log('focusTab');
     chrome.runtime.sendMessage({ cmd: 'focusMyTab' });
   }
 
@@ -489,17 +489,17 @@ async function registerRaffle(focusTab = true, checkIfReady = true) {
   }
 
   while (checkIfReady && provider.readyToRegister && !provider.readyToRegister()) {
-    console2.log('wait until ready to register');
+    console2.info('Wait until ready to register...');
     await sleep(500);
   }
 
   if (regBtn && !regBtn.disabled) {
     await provider.setPendingReg();
     if (pageState.request?.retries) {
-      console2.log('Wait some time before clicking reg button when retrying');
+      console2.info('Wait some time before clicking reg button when retrying');
       await sleep(1500);
     }
-    console2.log('Click register button:', regBtn);
+    console2.info('Click register button:', regBtn);
     if (provider.register) {
       await provider.register(regBtn, pageState);
     } else {
@@ -509,16 +509,17 @@ async function registerRaffle(focusTab = true, checkIfReady = true) {
   }
 
   if (pageState.request?.retries) {
-    console2.log('Wait some time to let prev errors clear first when retrying register after errors!');
+    console2.info('Wait some time to let prev errors clear first when retrying register after errors!');
     await sleep(1500);
     await waitForRegistered();
   }
 
+  console2.info('Done with register raffle');
   //await waitForRegistered();
 }
 
 async function waitForRegistered(maxWait = 1 * ONE_MINUTE, interval = 100) {
-  console2.info('Wait for registered...');
+  console2.info('Wait for raffle registered...');
 
   const stopTime = millisecondsAhead(getWaitForRegistered() || maxWait);
 
@@ -656,7 +657,7 @@ async function waitAndTryRegisterBeforeRetry(retries) {
 }
 
 async function waitForRegisteredMainLoop(regBtn = null, maxWait = 300 * ONE_MINUTE, interval = 1000) {
-  console2.log('Wait for registered main loop...');
+  console2.log('Wait for raffle to register (main loop)...');
 
   const stopTime = millisecondsAhead(maxWait);
 
@@ -718,14 +719,14 @@ function exitAction(result, options = {}) {
 // GUI -----------------------------------------------------------------------------------------
 
 async function addQuickRegButton() {
-  console2.log('addQuickRegButton');
-
   const quickRegBtn = getQuickRegBtn();
   console2.log('quickRegBtn', quickRegBtn);
   if (quickRegBtn) {
-    return console2.log('quickRegBtn already present, do nothing');
+    console2.log('QuickReg button already exists');
+    return;
   }
 
+  console2.info('Add Premint Helper QuickReg button');
   provider.addQuickRegButton(quickRegClickHandler);
 }
 
@@ -878,16 +879,16 @@ function updateStatusbarRunning(content) {
 // WON WALLETS
 
 function checkForJoinWithWonWallet() {
-  console2.log('checkForJoinWithWonWallet');
+  console2.info('Check if alrady won with wallet');
 
   const wonWallets = getWonWallets().map((x) => x.toLowerCase());
-  console2.log('wonWallets', wonWallets);
+  console2.log('Won with wallets:', wonWallets);
   if (!wonWallets.length) {
     return false;
   }
 
   const selectedWallet = provider.getSelectedWallet();
-  console2.log('selectedWallet', selectedWallet);
+  console2.info('Selected wallet:', selectedWallet);
   if (!selectedWallet) {
     return false;
   }
@@ -898,11 +899,13 @@ function checkForJoinWithWonWallet() {
   selectedWallet.shortSuffix = selectedWallet.shortSuffix.toLowerCase();
 
   if (wonWallets.includes(selectedWallet.shortWallet)) {
+    console2.info('Already won with wallet:', selectedWallet.shortWallet);
     console2.log('checkForJoinWithWonWallet shortWallet hit!', selectedWallet, wonWallets);
     return true;
   }
 
   if (wonWallets.includes(selectedWallet.longWallet)) {
+    console2.info('Already won with wallet:', selectedWallet.longWallet);
     console2.log('checkForJoinWithWonWallet longWallet hit!', selectedWallet, wonWallets);
     return true;
   }
@@ -913,6 +916,7 @@ function checkForJoinWithWonWallet() {
         (x) => x.startsWith(selectedWallet.shortPrefix) && x.endsWith(selectedWallet.shortSuffix)
       )
     ) {
+      console2.info('Already won with wallet:', selectedWallet.shortPrefix, selectedWallet.shortSuffix);
       console2.log('checkForJoinWithWonWallet prefix/suffix hit!', selectedWallet, wonWallets);
       return true;
     }

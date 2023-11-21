@@ -31,7 +31,7 @@ async function runNow() {
     hashArgs,
     parentTabId: hashArgs.getOne('id'),
   };
-  console2.log('pageState', pageState);
+  console2.info('PageState:', pageState);
 
   // window.addEventListener('load', onLoad);
   window.addEventListener('DOMContentLoaded', onLoad);
@@ -59,7 +59,7 @@ async function runMyRafflesPage() {
 
   if (!pageState.action) {
     const request = await dispatch(window.location.href, 300);
-    console2.log('dispatched request:', request);
+    console2.info('Dispatched request:', request);
     pageState.request = request;
     pageState.action = request?.action;
     pageState.parentTabId = request?.tabId;

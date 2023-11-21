@@ -40,7 +40,7 @@ async function runNow() {
     hashArgs,
     parentTabId: hashArgs.getOne('id'),
   };
-  console2.log('pageState', pageState);
+  console2.info('PageState:', pageState);
 
   if (!pageState.parentTabId && !storage.options.TWITTER_ENABLE_MANUAL) {
     console2.info('Disabled forced, exit!');

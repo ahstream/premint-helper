@@ -47,7 +47,7 @@ export async function getWins(
 }
 
 async function fetchWins(account, authKey, { interval, max, skip, statusLogger }) {
-  console2.log('fetchWins; max, interval, skip:', max, interval, skip);
+  console2.info('Fetch wins; max, interval, skip:', max, interval, skip);
 
   const wins = [];
   let count = 0;
@@ -92,7 +92,7 @@ async function fetchWins(account, authKey, { interval, max, skip, statusLogger }
     const entry = await fetchEntry(baseEntry.url, account);
     console2.log('entry', entry);
 
-    console2.log(`sleep ${interval} ms before next fetch`);
+    console2.info(`Sleep ${interval} ms before next fetch`);
     await sleep(interval);
 
     // console2.log('entry', entry);
@@ -163,7 +163,7 @@ async function fetchEntries(
       break;
     }
 
-    console2.log(`sleep ${interval} ms before next fetch`);
+    console2.info(`Sleep ${interval} ms before next fetch`);
     await sleep(interval);
   }
 

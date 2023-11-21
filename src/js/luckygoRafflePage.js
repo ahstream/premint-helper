@@ -1,4 +1,4 @@
-console2.info('luckygoPage.js begin', window?.location?.href);
+console.info('luckygoPage.js begin', window?.location?.href);
 
 import '../styles/luckygoPage.css';
 
@@ -112,7 +112,7 @@ async function createObserver2(config) {
 // WAIT FOR LOADED ----------------------------------------------
 
 async function waitForRafflePageLoaded() {
-  console2.log('waitForRafflePageLoaded');
+  console2.info('Wait for raffle page to load');
 
   const stopTime = millisecondsAhead(storage.options.LUCKYGO_WAIT_FOR_RAFFLE_PAGE_LOADED);
   while (Date.now() <= stopTime) {
@@ -123,13 +123,14 @@ async function waitForRafflePageLoaded() {
     const tu = getTwitterUser();
     console2.log('du, tu:', du, tu);
     if (du || tu) {
+      console2.info('Raffle page has loaded!');
       await sleep(1000);
       return true;
     }
     await sleep(1000);
   }
 
-  console2.log('Raffle page has NOT loaded!');
+  console2.warn('Raffle page has NOT loaded!');
   return false;
 }
 

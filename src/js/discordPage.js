@@ -62,7 +62,7 @@ window.addEventListener('beforeunload', function () {
 });
 
 chrome.runtime.onMessage.addListener(async (request, sender) => {
-  console2.log('Received message:', request, sender);
+  console2.info('Received message:', request, sender);
 });
 
 // PAGE FUNCS ----------------------------------------------------------------------------------

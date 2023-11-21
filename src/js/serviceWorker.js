@@ -17,11 +17,11 @@ chrome.webNavigation.onHistoryStateUpdated.addListener(function (data) {
 });
 
 chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {
-  console.info('Received message; request, sender:', request, sender);
+  console.info('Received message:', request, sender);
 
   const defaultResult = defaultMessageHandler(request, sender);
   if (defaultResult?.ok) {
-    console.log('Handled in messageHandler');
+    //console.log('Handled in messageHandler');
     if (defaultResult.response !== undefined) {
       sendResponse(defaultResult.response);
     }
@@ -66,35 +66,35 @@ function messageHandler(request, sender, sendResponse) {
 
     case 'closeRaffleWhenFinished2':
       chrome.tabs.query({}, (tabs) => {
-        console.log('tabs', tabs);
+        //console.log('tabs', tabs);
         if (tabs.length < 2) {
           chrome.tabs.create({ url: `chrome://extensions/?url=${request.url}`, active: true });
         }
-        chrome.tabs.remove(sender.tab.id, () => console.log('close tab', sender.tab));
+        chrome.tabs.remove(sender.tab.id, () => console.info('Close tab:', sender.tab));
       });
       break;
 
     case 'closeRaffleWhenFinished':
       chrome.tabs.query({}, (tabs) => {
-        console.log('tabs', tabs);
+        //console.log('tabs', tabs);
         if (tabs.length < 2) {
           chrome.tabs.create({ url: `chrome://extensions/?url=${request.url}`, active: true });
         }
-        chrome.tabs.remove(sender.tab.id, () => console.log('close tab', sender.tab));
+        chrome.tabs.remove(sender.tab.id, () => console.info('Close tab:', sender.tab));
       });
       break;
     case 'cleanupRaffleWhenFinished':
       chrome.tabs.query({}, (tabs) => {
-        console.log('tabs', tabs);
+        //console.log('tabs', tabs);
         tabs.forEach((tab) => {
           if (tab.id !== sender.tab.id) {
-            chrome.tabs.remove(tab.id, () => console.log('close tab', tab));
+            chrome.tabs.remove(tab.id, () => console.info('Close tab:', tab));
           }
         });
       });
       break;
     case 'getMyTabIdAsync':
-      console.log('sender.tab.id:', sender.tab.id);
+      //console.log('sender.tab.id:', sender.tab.id);
       chrome.tabs.sendMessage(sender.tab.id, { cmd: 'getMyTabIdAsyncResponse', response: sender.tab.id });
       sendResponse(sender.tab.id);
       return;
@@ -125,7 +125,7 @@ function messageHandler(request, sender, sendResponse) {
       });
       break;
     default:
-      console.error('Received unexpected message!', request, sender);
+      console.error('Received unexpected message:', request, sender);
       break;
   }
 

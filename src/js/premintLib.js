@@ -42,7 +42,7 @@ export async function getWins(account, { interval = 1500, max = null, skip = [],
 }
 
 async function fetchWins({ interval, max, skip, statusLogger }) {
-  console2.log('fetchWins; max, interval, skip:', max, interval, skip);
+  console2.info('Fetch wins; max, interval, skip:', max, interval, skip);
 
   const wins = [];
   const lost = [];
@@ -88,7 +88,7 @@ async function fetchWins({ interval, max, skip, statusLogger }) {
     }
 
     const entry = await fetchEntry(entryMetadata);
-    console2.info(`sleep ${interval} ms before next fetch`);
+    console2.info(`Sleep ${interval} ms before next fetch`);
     await sleep(interval);
 
     console2.trace('entry', entry);

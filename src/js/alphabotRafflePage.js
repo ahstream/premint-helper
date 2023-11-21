@@ -104,22 +104,22 @@ async function createObserver2(config) {
 // WAIT FOR LOADED ----------------------------------------------
 
 async function waitForRafflePageLoaded() {
-  console2.log('waitForRafflePageLoaded');
+  console2.info('Wait for raffle page to load');
 
   const stopTime = millisecondsAhead(storage.options.ALPHABOT_WAIT_FOR_RAFFLE_PAGE_LOADED);
   while (Date.now() <= stopTime) {
     if (document.querySelector('[data-action="view-project-register"]')) {
-      console2.log('Raffle page has loaded!');
+      console2.info('Raffle page has loaded!');
       return true;
     }
     if (document.querySelector('[data-action="view-project-cancel-registration"]')) {
-      console2.log('Raffle page has loaded!');
+      console2.info('Raffle page has loaded!');
       return true;
     }
     await sleep(1000);
   }
 
-  console2.log('Raffle page has NOT loaded!');
+  console2.warn('Raffle page has NOT loaded!');
   return false;
 }
 

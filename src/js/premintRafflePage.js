@@ -1,4 +1,4 @@
-console2.info('premintRafflePage.js begin', window?.location?.href);
+console.info('premintRafflePage.js begin', window?.location?.href);
 
 import '../styles/premintPage.css';
 
@@ -103,6 +103,7 @@ async function createObserver2(config) {
 // WAIT FOR LOADED ----------------------------------------------
 
 async function waitForRafflePageLoaded() {
+  console2.info('Wait for raffle page to load');
   // skip waiting for dom elements for now, perhaps need to in future?!
   return true;
 }

@@ -54,7 +54,7 @@ function logError(text) {
 }
 
 export async function createObserver({ permissions, cacheTwitterHours = 72, logger = null } = {}) {
-  console2.info('createObserver:', ...arguments);
+  console2.trace('createObserver:', ...arguments);
 
   await reloadStorage();
 
@@ -76,7 +76,7 @@ export async function createObserver({ permissions, cacheTwitterHours = 72, logg
     storage.options.TWITTER_FOLLOWERS_CACHE_HOURS
   );
 
-  console2.log('pageState', pageState);
+  console2.info('PageState:', pageState);
 
   const mutationObserver = new MutationObserver(mutationHandler);
   mutationObserver.observe(document, { attributes: true, childList: true, subtree: true });
@@ -291,6 +291,10 @@ function updateTwitterUserLinksOnPage(user, href) {
   const elems = [...document.querySelectorAll(`a`)].filter((e) => e.href.toLowerCase().startsWith(hrefLow));
   console2.trace('elems', elems);
 
+  if (elems?.length) {
+    console2.info('Update Twitter followers:', user.handle, user.followers);
+  }
+
   for (let elem of elems) {
     //elem.classList.toggle('hx-twitter-link', !user.expired);
     //elem.classList.toggle('hx-twitter-link-expired', user.expired);
@@ -306,11 +310,10 @@ function updateTwitterUserLinksOnPage(user, href) {
     elem.title = title;
   }
   // todo move trimAlphabotWhiteSpace elsewhere!
-  /*
-    if (pageState.trimAlphabotWhiteSpace) {
-      [...document.querySelectorAll('h5')].forEach((h) => (h.style.whiteSpace = 'normal'));
-    }
-    */
+
+  if (pageState.trimAlphabotWhiteSpace) {
+    [...document.querySelectorAll('h5')].forEach((h) => (h.style.whiteSpace = 'normal'));
+  }
 
   /*
   document.documentElement.style.setProperty(
@@ -426,7 +429,7 @@ function saveTwitter() {
 
 async function reloadStorage(key = null) {
   if (!key) {
-    storage = await getStorageItems(['options', 'twitterObserver', 'projectObserver', 'projectWins']);
+    storage = await getStorageItems(['options', 'twitterObserver', 'projectObserver']);
   } else {
     const storageTemp = await getStorageItems([key]);
     storage[key] = storageTemp[key];

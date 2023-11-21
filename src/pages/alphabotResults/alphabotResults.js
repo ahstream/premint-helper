@@ -1,4 +1,4 @@
-console2.info('alphabotResults.js begin', window?.location?.href);
+console.info('alphabotResults.js begin', window?.location?.href);
 
 import './alphabotResults.scss';
 import {
@@ -117,7 +117,7 @@ async function runPage() {
     statusbar: createStatusbar(STATUSBAR_DEFAULT_TEXT),
     permissions: await getPermissions(),
   };
-  console2.log('pageState', pageState);
+  console2.info('PageState:', pageState);
 
   pageState.statusbar.buttons(
     createStatusbarButtons({
@@ -713,7 +713,7 @@ async function fetchMyWinners(baseUrl, checkIfContinueFn = null) {
       break;
     }
 
-    console2.log(`Sleep ${storage.options.ALPHABOT_FETCH_RESULTS_DELAY} ms before next fetch`);
+    console2.info(`Sleep ${storage.options.ALPHABOT_FETCH_RESULTS_DELAY} ms before next fetch`);
     await sleep(storage.options.ALPHABOT_FETCH_RESULTS_DELAY);
   }
 

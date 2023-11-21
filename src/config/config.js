@@ -5,8 +5,6 @@ export const defaultOptions = {
   ALPHABOT_ENABLE_TWITTER_TASKS: true,
   ALPHABOT_ENABLE_DISCORD_TASKS: true,
   ALPHABOT_ENABLE_RESULTS: true,
-  ALPHABOT_PREV_WINS_LIFETIME_MINT_DAYS: 30,
-  ALPHABOT_PREV_WINS_LIFETIME_PICKED_DAYS: 180,
   ALPHABOT_IGNORED_NAMES: [],
   //ALPHABOT_RESULTS_DAYS_TO_KEEP_MINTED_WINS: 2,
   //ALPHABOT_RESULTS_FETCH_MINE_PICKED_LAST_DAYS: 180,
@@ -116,6 +114,8 @@ export const defaultOptions = {
 
   // RESULTS
   RESULTS_DAYS_TO_KEEP_MINTED_WINS: 2,
+  RESULTS_PREV_WINS_LIFETIME_MINT_DAYS: 30,
+  RESULTS_PREV_WINS_LIFETIME_PICKED_DAYS: 180,
 
   // TWITTER
   TWITTER_ENABLE: true,
@@ -214,4 +214,16 @@ export const overrideOptions = {
   CLOUD_READ_WINS_URL: 'https://data.mongodb-api.com/app/application-0-pqnjz/endpoint/read_wins',
   CLOUD_WRITE_WINS_URL: 'https://data.mongodb-api.com/app/application-0-pqnjz/endpoint/write_wins',
   CLOUD_COUNT_WINS_URL: 'https://data.mongodb-api.com/app/application-0-pqnjz/endpoint/count_wins',
+
+  CLOUD_READ_PROJECT_WINS_URL:
+    'https://data.mongodb-api.com/app/application-0-pqnjz/endpoint/read_project_wins',
+  CLOUD_WRITE_PROJECT_WINS_URL:
+    'https://data.mongodb-api.com/app/application-0-pqnjz/endpoint/write_project_wins',
+
+  RESULTS_ENABLE_WRITE_PROJECT_WINS_NOTIFICATION: true,
+  RESULTS_NOTIFICATION_1_URL:
+    'https://imgproxy.nanxiongnandi.com/_imw0xb0fFZk8Eo2v6yqZXsx-M1cutSoiVKembilGRQ/w:1280/aHR0cHM6Ly9pbWcu/bmFueGlvbmduYW5k/aS5jb20vMjAyMzA1/L0V1cm9wZWFuSG9u/ZXliZWUuanBn.jpg',
+
+  RESULTS_ENABLE_READ_PROJECT_WINS_NOTIFICATION: true,
+  RESULTS_NOTIFICATION_2_URL: 'https://www.wide-gamut.com/assets/Sky-SDR.jpg',
 };

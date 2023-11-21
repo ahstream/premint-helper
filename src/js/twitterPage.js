@@ -48,7 +48,7 @@ async function runNow() {
     }),
   };
 
-  console2.log('pageState', pageState);
+  console2.info('PageState:', pageState);
 
   // window.addEventListener('load', onLoad);
   window.addEventListener('DOMContentLoaded', onLoad);

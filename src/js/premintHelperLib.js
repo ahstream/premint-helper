@@ -207,7 +207,7 @@ export function createStatusbarButtons({
     add('Reveal', 'Reveal odds and previously won wallets for all Alphabot raffles on page', reveal);
   }
 
-  console2.log('createStatusbarButtons:', buttons);
+  console2.trace('createStatusbarButtons:', buttons);
 
   return buttons.reverse();
 }
@@ -217,7 +217,9 @@ function setPageBodyClass(className) {
 }
 
 export function exitActionMain(result, context, options) {
-  console2.log('exitActionMain', result, context, options);
+  console2.info('Exit with action:', result, options);
+  console2.trace('Exit with action context:', context);
+
   setPageBodyClass('exitAction');
   setPageBodyClass(result);
 
@@ -551,7 +553,11 @@ export async function finishTask(request, sender, context) {
     return context.registerRaffle(focusTabWhenRegister, false);
   }
 
-  console2.info('Not all required links finished yet!');
+  if (context.pageState.pendingRequests.length === 0) {
+    console2.info('All required links finished, but gone one finished task anyway?!');
+  } else {
+    console2.info('Not all required links finished yet!');
+  }
 
   if (context.options.TWITTER_QUEUE_TASK_LINKS & request.twitter) {
     const nextLink = context.pageState.pendingRequests.find((x) => isTwitterURL(x));

@@ -1,13 +1,10 @@
 import { trimWallet, walletToAlias, sortWallets } from './premintHelperLib';
 import {
-  timestampToLocaleString,
   sleep,
   millisecondsAhead,
   round,
   kFormatter,
   extractTwitterHandle,
-  ONE_DAY,
-  noDuplicates,
   getStorageItems,
   setStorageData,
   createLogLevelArg,
@@ -34,7 +31,7 @@ export async function createObserver({
   autoOdds,
   autoWins,
 } = {}) {
-  console2.info('createObserver:', ...arguments);
+  console2.trace('createObserver:', ...arguments);
 
   let pageState = {
     saveTwitterTimeout: null,
@@ -77,7 +74,7 @@ export async function createObserver({
   pageState.autoOdds = typeof autoOdds === 'undefined' ? storage.options.RAFLE_AUTO_SHOW_ODDS : autoOdds;
   pageState.autoWins = typeof autoWins === 'undefined' ? storage.options.RAFLE_AUTO_SHOW_WINS : autoWins;
 
-  console2.info('pageState', pageState);
+  console2.info('PageState:', pageState);
 
   if (!pageState.autoFollowers && !pageState.autoOdds && !pageState.autoWins) {
     console2.info('No mutations needed');
@@ -582,40 +579,48 @@ export async function createObserver({
 // HELPERS FUNCS ----------------------------------------------------------------------------------
 
 export function getPreviousWalletsWon(twitterHandle) {
-  console2.trace('getPreviousWalletsWon, twitterHandle:', twitterHandle);
+  console2.trace('getPreviousWalletsWon:', twitterHandle);
   if (!twitterHandle || typeof twitterHandle !== 'string') {
+    console2.trace('return []');
     return [];
   }
 
+  const wallets = storage?.allProjectWins ? storage.allProjectWins[twitterHandle.toLowerCase()] || [] : [];
+  /*
   const elem = storage?.projectWins?.length
     ? storage.projectWins.find((x) => x.name.toLowerCase() === twitterHandle.toLowerCase())
     : null;
-  console2.log('storage.projectWins', storage.projectWins);
-  console2.trace('getPreviousWalletsWon, elem:', elem);
-  if (!elem) {
-    return [];
-  }
-  console2.log('getPreviousWalletsWon; elem:', elem);
+    */
+  console2.log('storage.allProjectWins', storage.allProjectWins);
+  console2.trace('projectWins:', twitterHandle, wallets);
 
-  const minMintDate = millisecondsAhead(-(storage.options.ALPHABOT_PREV_WINS_LIFETIME_MINT_DAYS * ONE_DAY));
+  if (wallets.length) {
+    console2.info(`Previous won wallet for ${twitterHandle}:`, wallets);
+  }
+
+  return wallets;
+
+  /*
+  const minMintDate = millisecondsAhead(-(storage.options.RESULTS_PREV_WINS_LIFETIME_MINT_DAYS * ONE_DAY));
   const minPickedDate = millisecondsAhead(
-    -(storage.options.ALPHABOT_PREV_WINS_LIFETIME_PICKED_DAYS * ONE_DAY)
+    -(storage.options.RESULTS_PREV_WINS_LIFETIME_PICKED_DAYS * ONE_DAY)
   );
+
 
   console2.log(
     'getPreviousWalletsWon minMintDate:',
     minMintDate,
-    storage.options.ALPHABOT_PREV_WINS_LIFETIME_MINT_DAYS,
+    storage.options.RESULTS_PREV_WINS_LIFETIME_MINT_DAYS,
     timestampToLocaleString(minMintDate)
   );
   console2.log(
     'getPreviousWalletsWon minPickedDate:',
     minPickedDate,
-    storage.options.ALPHABOT_PREV_WINS_LIFETIME_PICKED_DAYS,
+    storage.options.RESULTS_PREV_WINS_LIFETIME_PICKED_DAYS,
     timestampToLocaleString(minPickedDate)
   );
 
-  const wallets = elem.wins
+  const wallets = wallets.wins
     .filter((win) => {
       if (win.mintDate) {
         if (win.mintDate >= minMintDate) {
@@ -623,6 +628,7 @@ export function getPreviousWalletsWon(twitterHandle) {
           return true;
         }
         console2.trace('getPreviousWalletsWonmintDate too early:', win);
+        return false;
       }
       return win.pickedDate >= minPickedDate;
     })
@@ -633,7 +639,11 @@ export function getPreviousWalletsWon(twitterHandle) {
   const noDupsWallets = noDuplicates(wallets.map((x) => x.toLowerCase()));
   console2.trace('getPreviousWalletsWonnoDupsWallets', noDupsWallets);
 
-  return noDupsWallets;
+  if (noDupsWallets.length) {
+    console2.info(`Previous won wallet for ${twitterHandle}:`, noDupsWallets);
+  }
+  return wallets;
+  */
 }
 
 function makeRaffleOdds(entries, winners) {
@@ -653,7 +663,7 @@ function makeRaffleOdds(entries, winners) {
 
 async function reloadStorage(key = null) {
   if (!key) {
-    storage = await getStorageItems(['options', 'twitterObserver', 'projectObserver', 'projectWins']);
+    storage = await getStorageItems(['options', 'twitterObserver', 'projectObserver', 'allProjectWins']);
   } else {
     const storageTemp = await getStorageItems([key]);
     storage[key] = storageTemp[key];

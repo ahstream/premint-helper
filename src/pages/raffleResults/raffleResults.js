@@ -1,4 +1,4 @@
-console2.info('raffleResults.js begin', window?.location?.href);
+console.info('raffleResults.js begin', window?.location?.href);
 
 import './raffleResults.scss';
 
@@ -14,7 +14,7 @@ import {
 
 import { getAccount as getPremintAccount, getWins as getPremintWins } from '../../js/premintLib';
 
-import { readWins, writeWins, countWins } from '../../js/cloudLib';
+import { readWins, writeWins, countWins, readProjectWins, writeProjectWins } from '../../js/cloudLib';
 
 // import { waitForUser } from '../../js/twitterLib';
 
@@ -133,7 +133,7 @@ function initStorage() {
   storage.luckygo.wins = storage.luckygo.wins || [];
 
   storage.wins = storage.wins || [];
-  storage.projectWins = storage.projectWins || [];
+  storage.allProjectWins = storage.allProjectWins || [];
 }
 
 async function runPage() {
@@ -142,7 +142,7 @@ async function runPage() {
   storage = await getStorageItems([
     'options',
     'wins',
-    'projectWins',
+    'allProjectWins',
     'results',
     'alphabot',
     'premint',
@@ -169,7 +169,7 @@ async function runPage() {
     observer: await createTwitterObserver({ permissions }),
   };
 
-  console2.log('pageState', pageState);
+  console2.info('PageState:', pageState);
 
   pageState.statusbar.buttons(
     createStatusbarButtons({
@@ -205,7 +205,11 @@ async function runPage() {
     return updateWins();
   }
 
-  await showPage();
+  if (pageState.hashArgs.has('action', 'updateProjectWins')) {
+    return updateProjectWins();
+  }
+
+  showPage();
 }
 
 async function updateWins() {
@@ -242,10 +246,10 @@ async function updateWins() {
     }
   }
 
-  const luckygo = await updateLuckygoWins(checkTime, cloudWins);
   const alphabot = await updateAlphabotWins(checkTime, cloudWins);
   const premint = await updatePremintWins(checkTime, cloudWins);
   const atlas = await updateAtlasWins(checkTime, cloudWins);
+  const luckygo = await updateLuckygoWins(checkTime, cloudWins);
 
   const mergedWins = mergeAllWins({ atlas, alphabot, premint, lucky: luckygo });
   storage.wins = mergedWins;
@@ -254,23 +258,100 @@ async function updateWins() {
   storage.results.lastProviderUpdate = checkTime;
   storage.results.lastWinsUpdate = checkTime;
 
+  const prevProjectWins = storage.allProjectWins;
   const packedWins = packWins(storage.wins);
-  storage.projectWins = createProjectWins(packedWins.filter((x) => !!x.twitterHandle));
-  /*
-  storage.projectWinsAll = createProjectWins(packedWins);
-  console2.log(
-    'foobar',
-    packedWins
-      .filter((x) => x.twitterHandle && x.hxSortKey)
-      .map((x) => new Date(x.hxSortKey).toLocaleDateString('sv-SE'))
-  );
-  */
+  const newProjectWins = createProjectWins(packedWins.filter((x) => !!x.twitterHandle));
+  storage.allProjectWins = newProjectWins;
+  console2.info('storage.allProjectWins', storage.allProjectWins);
+
+  const hasChanged = hasProjectWinsChanged(prevProjectWins, newProjectWins);
+  console2.info('Is new won wallets found:', hasChanged);
+
+  if (hasChanged && storage.options.ALPHABOT_ENABLE_CLOUD && storage.options.CLOUD_MODE === 'load') {
+    const writeResult = await writeProjectWins(storage.allProjectWins, storage.options);
+    if (writeResult.error) {
+      statusLogger.sub(`Failed uploading won wallets to Cloud. Network problems?`);
+    } else {
+      storage.results.lastCloudUploadProjectWins = Date.now();
+      statusLogger.sub(`Uploaded ${countProjectWinsWallets()} won wallets to Cloud`);
+    }
+  }
 
   await setStorageData(storage);
 
   updateMainStatus('Raffle results updated!');
 
   showPage();
+
+  if (
+    storage.options.ALPHABOT_ENABLE_CLOUD &&
+    storage.options.CLOUD_MODE === 'load' &&
+    storage.options.RESULTS_ENABLE_WRITE_PROJECT_WINS_NOTIFICATION &&
+    storage.options.RESULTS_NOTIFICATION_1_URL
+  ) {
+    window.open(storage.options.RESULTS_NOTIFICATION_1_URL, '_blank');
+  }
+}
+
+async function updateProjectWins() {
+  updateMainStatus('Getting wallets won from Cloud...');
+  resetSubStatus();
+
+  document.getElementById('main-table').innerHTML = '';
+
+  if (storage.options.CLOUD_MODE === 'load') {
+    statusLogger.sub(
+      `Won wallets is only fetched from Cloud when saving own results to Cloud (this account is reading results from Cloud)`
+    );
+    return;
+  }
+
+  if (storage.options.CLOUD_MODE === 'save') {
+    const readResult = await readProjectWins(storage.options);
+    if (readResult.error) {
+      statusLogger.sub(`Failed getting won wallets from Cloud. Network problems?`);
+    } else {
+      storage.allProjectWins = readResult;
+      statusLogger.sub(`Fetched ${countProjectWinsWallets()} won wallets from Cloud`);
+      console2.info('storage.allProjectWins', storage.allProjectWins);
+    }
+
+    await setStorageData(storage);
+
+    updateMainStatus('Done getting wallets won from Cloud!');
+
+    if (
+      storage.options.RESULTS_ENABLE_READ_PROJECT_WINS_NOTIFICATION &&
+      storage.options.RESULTS_NOTIFICATION_2_URL
+    ) {
+      window.open(storage.options.RESULTS_NOTIFICATION_2_URL, '_blank');
+    }
+  }
+}
+
+function countProjectWinsWallets() {
+  let ct = 0;
+  for (const wallets in storage.allProjectWins) {
+    ct = ct + wallets?.length;
+  }
+  return ct;
+}
+
+function hasProjectWinsChanged(projectWins1, projectWins2) {
+  console.log('Object.entries(projectWins1).length', Object.entries(projectWins1).length);
+  console.log('Object.entries(projectWins2).length', Object.entries(projectWins2).length);
+
+  if (Object.entries(projectWins1).length !== Object.entries(projectWins2).length) {
+    return true;
+  }
+
+  for (const [key] of Object.entries(projectWins1)) {
+    console.log(key, projectWins1[key], projectWins2[key]);
+    if (JSON.stringify(projectWins1[key]) !== JSON.stringify(projectWins2[key])) {
+      return true;
+    }
+  }
+  return false;
 }
 
 async function resetWins() {
@@ -283,14 +364,14 @@ async function resetWins() {
   storage.alphabot = {};
   storage.premint = {};
   storage.wins = [];
-  storage.projectWins = [];
+  storage.allProjectWins = {};
   initStorage();
 
   await setStorageData(storage);
   console2.log('storage', storage);
 
   resetSubStatus();
-  showPage();
+  showPage({ updateStatus: true });
 }
 
 // EVENT HANDLERS ----------------------------------------------------------------------------------
@@ -336,12 +417,20 @@ async function getFromWebPage(url, key, tabId, maxWait = 30000, interval = 10) {
 
 // MAIN ------------------------------
 
-async function showPage({ wins = null, header = '', allRaffles = false, extended = false } = {}) {
+async function showPage({
+  wins = null,
+  header = '',
+  allRaffles = false,
+  extended = false,
+  updateStatus = true,
+} = {}) {
   console2.log('showPage');
 
   document.getElementById('main-table').innerHTML = '';
 
-  showLastUpdatedStatus();
+  if (updateStatus) {
+    showLastUpdatedStatus();
+  }
 
   updateShownProvider();
 
@@ -1366,6 +1455,7 @@ function showCheckboxedClickHandler() {
   showPage({
     allRaffles: document.getElementById('show-hidden').checked,
     extended: document.getElementById('show-extended').checked,
+    updateStatus: false,
   });
 }
 
@@ -1504,7 +1594,7 @@ async function setDateishOnPackedWins(packedWins) {
 function showLastUpdatedStatus() {
   const nowDate = new Date();
 
-  resetSubStatus();
+  // resetSubStatus();
 
   if (storage.results.lastProviderUpdate) {
     const timestamp = storage.results.lastProviderUpdate;
@@ -1614,19 +1704,55 @@ async function updateTwitterFollowers() {
 function createProjectWins(packedWins) {
   console2.log('createProjectWins; packedWins:', packedWins);
 
-  const data = [];
+  const minMintDate = millisecondsAhead(-(storage.options.RESULTS_PREV_WINS_LIFETIME_MINT_DAYS * ONE_DAY));
+  const minPickedDate = millisecondsAhead(
+    -(storage.options.RESULTS_PREV_WINS_LIFETIME_PICKED_DAYS * ONE_DAY)
+  );
+
+  const obj = {};
+
+  //const data = [];
   packedWins.forEach((pw) => {
     console2.log('pw:', pw);
-    const handle = pw.twitterHandle;
+
+    const handle = pw.twitterHandle.toLowerCase();
+    if (!handle) {
+      console2.log('No twitter handle, skip');
+      return;
+    }
+
+    /*
     const dateKey = maxOrNull(...pw.wins.map((x) => x.hxSortKey).filter((x) => x));
     const startDate = maxOrNull(...pw.wins.map((x) => x.startDate).filter((x) => x));
     const mintDate = maxOrNull(...pw.wins.map((x) => x.mintDate).filter((x) => x));
     const picked = maxOrNull(...pw.wins.map((x) => x.picked).filter((x) => x));
+    */
 
-    const wallets = noDuplicates(pw.wins.map((x) => x.wallets))
+    const winsToInclude = pw.wins.filter((win) => {
+      if (win.mintDate) {
+        if (win.mintDate >= minMintDate) {
+          console2.trace('mintDate still valid, keep:', win);
+          return true;
+        }
+        console2.trace('mintDate to early, skip:', win);
+        return false;
+      }
+      return win.pickedDate >= minPickedDate;
+    });
+    console2.trace('winsToInclude:', winsToInclude);
+
+    const wallets = noDuplicates(winsToInclude.map((x) => x.wallets))
       .flat()
       .map((x) => x.toLowerCase());
 
+    if (!wallets.length) {
+      console2.log('No wallets');
+      return;
+    }
+
+    obj[handle] = wallets;
+
+    /*
     data.push({
       name: handle,
       twitterHandle: handle,
@@ -1637,139 +1763,25 @@ function createProjectWins(packedWins) {
       wallets,
       wins: pw.wins,
     });
+    */
   });
 
+  /*
   data.sort(dynamicSortMultiple('-mintDate', '-picked'));
   console2.log('createProjectWins; data:', data);
-
   return data;
+  */
+
+  return obj;
 }
-
-// LOOKUP TWITTER FUNCS -----------------------------------------------------------------------------------------
-
-/*
-async function lookupTwitterEventHandler(event) {
-  event.preventDefault();
-  event.stopImmediatePropagation();
-
-  await reloadOptions(storage);
-  console2.log('lookupTwitterEventHandler, storage:', storage);
-
-  if (!storage.options.TWITTER_FETCH_FOLLOWERS_USER) {
-    window.alert(
-      'It is recommended to set TWITTER_FETCH_FOLLOWERS_USER property on Optins page before fetching follower counts!'
-    );
-  }
-
-  const links = noDuplicates(getLookupTwitterLinks());
-  if (!links.length) {
-    window.alert('No Twitter links with unknown follower count found on page!');
-    return;
-  }
-
-  if (
-    !window.confirm(
-      `Lookup follower count for ${storage.options.TWITTER_MAX_LOOKUPS} of ${links.length} Twitter links on page?`
-    )
-  ) {
-    return;
-  }
-
-  lookupTwitter();
-}
-
-function getLookupTwitterLinks() {
-  return [...document.querySelectorAll('a')]
-    .filter((x) => x.classList.contains('twitter-link'))
-    .filter((x) => !x.dataset.hxFollowers)
-    .map((x) => cleanTwitterLink(x.href));
-}
-
-async function lookupTwitter() {
-  console2.log('lookupTwitter');
-
-  const twitterLinksAll = getLookupTwitterLinks();
-  console2.log('twitterLinks', twitterLinksAll);
-
-  if (!twitterLinksAll?.length) {
-    statusLogger.main(`Already got follower counts for all Twitter links on page`);
-    return;
-  }
-  const links = noDuplicates(twitterLinksAll);
-  console2.log('links', links);
-
-  const packedWins = packWins(storage.wins);
-  const sortedLinks = [];
-  for (let item of packedWins) {
-    const link = links.find((x) => x.toLowerCase().endsWith(item.twitterHandle.toLowerCase()));
-    if (link) {
-      sortedLinks.push(link);
-    }
-  }
-  console2.log('sortedLinks', sortedLinks);
-
-  const useLinks = sortedLinks.slice(0, storage.options.TWITTER_MAX_LOOKUPS);
-  console2.log('useLinks', useLinks);
-
-  await getMyTabIdFromExtension(pageState, 5000);
-  if (!pageState.myTabId) {
-    console2.error('Invalid myTabId');
-    statusLogger.sub(`Failed getting own page tab id when looking up Twitter followers!`);
-    return;
-  }
-
-  if (storage.options.TWITTER_FETCH_FOLLOWERS_USER && !(await switchTwitterUserBeforeFetchingFollowers())) {
-    return;
-  }
-
-  let ct = 0;
-  for (const baseUrl of useLinks) {
-    ct++;
-    statusLogger.main(`Get follower counts for Twitter links on page (${ct}/${useLinks.length})`);
-    console2.log(`Get Twitter followers ${ct}/${useLinks.length}: ${baseUrl}`);
-    if (await pageState.observer.updateTwitter(baseUrl, pageState.myTabId)) {
-      await sleep(2000);
-    }
-  }
-
-  statusLogger.main(`Done getting follower count for ${useLinks.length} Twitter links`);
-  await pageState.observer.saveTwitter();
-}
-
-async function switchTwitterUserBeforeFetchingFollowers() {
-  if (storage.options.TWITTER_FETCH_FOLLOWERS_USER) {
-    statusLogger.main(
-      `Switching to Twitter user @${storage.options.TWITTER_FETCH_FOLLOWERS_USER} on Twitter home page...`
-    );
-    const result = await waitForUser(
-      storage.options.TWITTER_FETCH_FOLLOWERS_USER,
-      pageState.myTabId,
-      pageState
-    );
-
-    if (!result || !result.ok) {
-      console2.log('Failed switching to Twitter user; result:', result);
-      statusLogger.sub(
-        `Failed switching to Twitter user @${storage.options.TWITTER_FETCH_FOLLOWERS_USER}, aborting action`
-      );
-      return false;
-    }
-    statusLogger.main(`Switched to Twitter user ${result.user}`);
-  }
-  return true;
-}
-
-function cleanTwitterLink(href) {
-  const url = new URL(href);
-  return url.protocol + '//' + url.host + url.pathname;
-}
-*/
 
 // MISC HELPERS -----------------------------------------------------
 
+/*
 function maxOrNull(...args) {
   if (!args.length) {
     return null;
   }
   return Math.max(...args);
 }
+*/

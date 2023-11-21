@@ -89,7 +89,7 @@ async function onLoad() {
     },
   };
 
-  console2.log('pageState', pageState);
+  console2.info('PageState:', pageState);
 
   runPage();
 }
@@ -136,7 +136,8 @@ chrome.runtime.onMessage.addListener(async (request, sender, sendResponse) => {
 // PAGE FUNCS ----------------------------------------------------------------------------------
 
 async function runPage() {
-  console2.info('runPage; pageState:', pageState);
+  console2.info('Run page');
+  console2.info('PageState', pageState);
 
   pageState.statusbar.buttons(
     createStatusbarButtons({
@@ -146,11 +147,11 @@ async function runPage() {
       followers: lookupTwitterFollowersClickEventHandler,
     })
   );
-  console2.log('pageState.statusbar', pageState.statusbar);
+  console2.log('statusbar', pageState.statusbar);
 
   if (!pageState.action) {
     const request = await dispatch(window.location.href, 5 * 60);
-    console2.info('dispatched request:', request);
+    console2.info('Dispatched request:', request);
     pageState.request = request;
     pageState.action = request?.action;
   }
@@ -169,9 +170,10 @@ async function runPage() {
 // MAIN PAGE FUNCS ----------------------------------------------------------------------------------
 
 async function showMainPage() {
-  console2.info('showMainPage');
+  console2.info('Show main page');
 
-  console2.log('Fix raffles names no wrap');
+  console2.info('Fix raffles name wrap');
+
   [...document.querySelectorAll('h5')].forEach((h) => (h.style.whiteSpace = 'normal'));
 }
 

@@ -70,7 +70,7 @@ export async function fetchProjects({
   console2.log('params:', params);
 
   const alphas = all ? '' : params.alphas.map((a) => `alpha=${a}`).join('&');
-  const filters = params.filters.map((a) => `filter=${a}`).join('&') || 'filter=unregistered';
+  const filters = params.filters.map((a) => `filter=${a}`).join('&') || ''; // todo? 'filter=unregistered';
   const scope = params.scope || 'all'; // 'community';
   const hidden = params.hidden || false;
   const sort = params.sortBy || 'ending';
@@ -239,7 +239,7 @@ async function getWins(account, { interval, max, sortBy, checkIfContinueFn, stat
 }
 
 async function fetchWins({ interval, max, sortBy, pageLength = 16, checkIfContinueFn = null, statusLogger }) {
-  console2.log('fetchWins; pageLength:', pageLength);
+  console2.info('Fetch wins; pageLength:', pageLength);
 
   const wins = [];
   let pageNum = 0;
@@ -277,7 +277,7 @@ async function fetchWins({ interval, max, sortBy, pageLength = 16, checkIfContin
       return wins;
     }
 
-    console2.info(`sleep ${interval} ms before next fetch`);
+    console2.info(`Sleep ${interval} ms before next fetch`);
     await sleep(interval);
 
     pageNum++;

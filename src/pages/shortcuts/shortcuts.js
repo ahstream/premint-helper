@@ -56,6 +56,17 @@ getStorageItems(['options']).then((storage) => {
         return chrome.runtime.sendMessage({ cmd: 'openInSameTab', url });
       },
     },
+
+    {
+      cmd: 'update-project-wins',
+      callback: () => {
+        return chrome.runtime.sendMessage({
+          cmd: 'openInSameTab',
+          url: chrome.runtime.getURL('/raffleResults.html#action=updateProjectWins'),
+        });
+      },
+    },
+
     {
       cmd: 'update-raffle-results',
       callback: () => {

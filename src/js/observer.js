@@ -32,7 +32,7 @@ export async function createObserver({
   autoOdds,
   autoWins,
 } = {}) {
-  console2.log('createObserver:', ...arguments);
+  console2.trace('createObserver:', ...arguments);
 
   let pageState = {
     saveTwitterTimeout: null,
@@ -584,21 +584,21 @@ export function getPreviousWalletsWon(twitterHandle) {
   }
   console2.log('getPreviousWalletsWon; elem:', elem);
 
-  const minMintDate = millisecondsAhead(-(storage.options.ALPHABOT_PREV_WINS_LIFETIME_MINT_DAYS * ONE_DAY));
+  const minMintDate = millisecondsAhead(-(storage.options.RESULTS_PREV_WINS_LIFETIME_MINT_DAYS * ONE_DAY));
   const minPickedDate = millisecondsAhead(
-    -(storage.options.ALPHABOT_PREV_WINS_LIFETIME_PICKED_DAYS * ONE_DAY)
+    -(storage.options.RESULTS_PREV_WINS_LIFETIME_PICKED_DAYS * ONE_DAY)
   );
 
   console2.log(
     'getPreviousWalletsWon minMintDate:',
     minMintDate,
-    storage.options.ALPHABOT_PREV_WINS_LIFETIME_MINT_DAYS,
+    storage.options.RESULTS_PREV_WINS_LIFETIME_MINT_DAYS,
     timestampToLocaleString(minMintDate)
   );
   console2.log(
     'getPreviousWalletsWon minPickedDate:',
     minPickedDate,
-    storage.options.ALPHABOT_PREV_WINS_LIFETIME_PICKED_DAYS,
+    storage.options.RESULTS_PREV_WINS_LIFETIME_PICKED_DAYS,
     timestampToLocaleString(minPickedDate)
   );
 

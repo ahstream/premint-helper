@@ -37,7 +37,7 @@ export async function getWins(account, { interval = 1500, max = null, statusLogg
 }
 
 async function fetchWins({ pageLength = 12, interval, max, statusLogger }, checkIfContinueFn = null) {
-  console2.log('fetchWins; pageLength:', pageLength);
+  console2.info('Fetch wins; pageLength:', pageLength);
 
   const wins = [];
   let pageNum = 0;
@@ -80,7 +80,7 @@ async function fetchWins({ pageLength = 12, interval, max, statusLogger }, check
       break;
     }
 
-    console2.log(`sleep ${interval} ms before next fetch`);
+    console2.info(`Sleep ${interval} ms before next fetch`);
     await sleep(interval);
   }
 
