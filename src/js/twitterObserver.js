@@ -311,10 +311,13 @@ function updateTwitterUserLinksOnPage(user, href) {
   }
   // todo move trimAlphabotWhiteSpace elsewhere!
 
+  /*
   if (pageState.trimAlphabotWhiteSpace) {
     [...document.querySelectorAll('h5')].forEach((h) => (h.style.whiteSpace = 'normal'));
   }
+  */
 
+  [...document.querySelectorAll('h5')].forEach((h) => (h.style.whiteSpace = 'normal'));
   /*
   document.documentElement.style.setProperty(
     '--raffle-followers-background-color',

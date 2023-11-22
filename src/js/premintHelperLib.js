@@ -217,7 +217,7 @@ function setPageBodyClass(className) {
 }
 
 export function exitActionMain(result, context, options) {
-  console2.info('Exit with action:', result, options);
+  console2.info('Exit with action:', result, options, context);
   console2.trace('Exit with action context:', context);
 
   setPageBodyClass('exitAction');
@@ -374,7 +374,10 @@ function minimizeRaffleWhenFinished(context) {
 }
 
 function closeRaffleWhenFinished(context) {
-  if (context.options.RAFFLE_CLOSE_WHEN_FINISHED && context.pageState.isAutoStarted) {
+  if (
+    context.options.RAFFLE_CLOSE_WHEN_FINISHED &&
+    (context.pageState.isAutoStarted || context.pageState.isPendingReg)
+  ) {
     console2.log('do closeRaffleWhenFinished');
     chrome.runtime.sendMessage({ cmd: 'closeRaffleWhenFinished', url: window.location.href });
   } else {
@@ -383,7 +386,10 @@ function closeRaffleWhenFinished(context) {
 }
 
 function cleanupRaffleWhenFinished(context) {
-  if (context.options.RAFFLE_CLEANUP_WHEN_FINISHED && context.pageState.isAutoStarted) {
+  if (
+    context.options.RAFFLE_CLEANUP_WHEN_FINISHED &&
+    (context.pageState.isAutoStarted || context.pageState.isPendingReg)
+  ) {
     console2.log('do cleanupRaffleWhenFinished');
     chrome.runtime.sendMessage({ cmd: 'cleanupRaffleWhenFinished', url: window.location.href });
   } else {

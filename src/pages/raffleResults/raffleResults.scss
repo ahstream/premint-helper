@@ -4,6 +4,10 @@
 @import '../../styles/baseVars.css';
 @import '../../styles/statusbar.css';
 
+body.success {
+  background-color: green;
+}
+
 td {
   white-space: nowrap;
 }

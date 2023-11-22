@@ -231,11 +231,11 @@ const options = [
         'description',
         'These are only applicable when using Shortcuts to automate raffle joins. Minimize options makes it much easier to see which raffles need manual operation (captchas etc). See help page for more info.',
       ],
-      ['property', 'RAFFLE_MINIMIZE_WHEN_FINISHED', 'Minimize raffle window when finished', null, ''],
+      ['property', 'RAFFLE_MINIMIZE_WHEN_FINISHED', 'Minimize browser window when finished', null, ''],
       [
         'property',
         'RAFFLE_CLEANUP_WHEN_FINISHED',
-        'Close all tabs except raffle tab + minimize window when finished',
+        'Close all tabs except raffle tab when finished',
         null,
         '',
       ],

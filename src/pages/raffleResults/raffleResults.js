@@ -259,7 +259,7 @@ async function updateWins() {
   storage.results.lastWinsUpdate = checkTime;
 
   const prevProjectWins = storage.allProjectWins;
-  const packedWins = packWins(storage.wins);
+  const packedWins = packWins(storage.wins, true);
   const newProjectWins = createProjectWins(packedWins.filter((x) => !!x.twitterHandle));
   storage.allProjectWins = newProjectWins;
   console2.info('storage.allProjectWins', storage.allProjectWins);
@@ -283,12 +283,7 @@ async function updateWins() {
 
   showPage();
 
-  if (
-    storage.options.ALPHABOT_ENABLE_CLOUD &&
-    storage.options.CLOUD_MODE === 'load' &&
-    storage.options.RESULTS_ENABLE_WRITE_PROJECT_WINS_NOTIFICATION &&
-    storage.options.RESULTS_NOTIFICATION_1_URL
-  ) {
+  if (storage.options.CLOUD_MODE === 'load' && storage.options.RESULTS_NOTIFICATION_1_URL) {
     window.open(storage.options.RESULTS_NOTIFICATION_1_URL, '_blank');
   }
 }
@@ -320,12 +315,15 @@ async function updateProjectWins() {
 
     updateMainStatus('Done getting wallets won from Cloud!');
 
+    document.body.classList.toggle('success', true);
+    /*
     if (
       storage.options.RESULTS_ENABLE_READ_PROJECT_WINS_NOTIFICATION &&
       storage.options.RESULTS_NOTIFICATION_2_URL
     ) {
       window.open(storage.options.RESULTS_NOTIFICATION_2_URL, '_blank');
     }
+    */
   }
 }
 
