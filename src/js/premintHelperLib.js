@@ -9,6 +9,8 @@ import {
   isTwitterURL,
   simulateClick,
   myConsole,
+  getStorageData,
+  // setStorageData,
 } from 'hx-lib';
 
 const console2 = myConsole();
@@ -644,4 +646,144 @@ export function normalizeTwitterHandle(s) {
     handle = tokens[tokens.length - 1];
   }
   return handle.trim().toLowerCase();
+}
+
+export async function optimizeStorage() {
+  const baseStorage = await getStorageData();
+  console2.log('baseStorage', baseStorage);
+  const storage = {
+    allProjectWins: baseStorage.allProjectWins,
+    alphabot: baseStorage.alphabot,
+    atlas: baseStorage.atlas,
+    luckygo: baseStorage.luckygo,
+    options: baseStorage.options,
+    pendingPremintReg: {},
+    permissions: baseStorage.permissions,
+    premint: baseStorage.premint,
+    results: baseStorage.results,
+    runtime: {},
+    wins: baseStorage.wins,
+  };
+
+  const normalizeKey = (key) => normalizeDiscordHandle(normalizeTwitterHandle(key.toLowerCase()));
+
+  // hxhistory  --------------------------------------------------
+
+  const hxhistory = {};
+
+  console2.trace('baseStorage.hxHistory', baseStorage.hxhistory);
+
+  for (const prop in baseStorage.hxhistory) {
+    console2.trace('prop', prop);
+    const propLow = normalizeKey(prop);
+    if (!hxhistory[propLow]) {
+      hxhistory[propLow] = {};
+    }
+  }
+
+  const doTwitterHistory = (handle, data) => {
+    const handleLow = normalizeKey(handle);
+    console2.trace('hxhistory', hxhistory);
+
+    console2.trace('doTwitterHistory', handle, handleLow, data);
+    if (!hxhistory[handleLow]) {
+      hxhistory[handleLow] = {};
+    }
+    if (!hxhistory[handleLow].twitter) {
+      console2.trace('foo');
+      hxhistory[handleLow].twitter = {
+        follow: {},
+        like: {},
+        retweet: {},
+      };
+    }
+    console2.trace('x', hxhistory[handleLow]);
+    ['follow', 'like', 'retweet'].forEach((key) => {
+      for (const prop in data[key]) {
+        const thisKey = normalizeKey(prop);
+        const thisVal = data[key][prop];
+        console2.trace(key, thisKey, thisVal);
+        console2.trace(hxhistory[handleLow]);
+        console2.trace(hxhistory[handleLow].twitter);
+        if (!hxhistory[handleLow].twitter[key][thisKey]) {
+          hxhistory[handleLow].twitter[key][thisKey] = thisVal;
+        }
+      }
+    });
+  };
+
+  const doDiscordHistory = (handle, data) => {
+    const handleLow = normalizeKey(handle);
+    console2.trace('doDiscordHistory', hxhistory);
+
+    console2.trace('doDiscordHistory', handle, handleLow, data);
+    if (!hxhistory[handleLow]) {
+      hxhistory[handleLow] = {};
+    }
+    if (!hxhistory[handleLow].discord) {
+      console2.trace('foo');
+      hxhistory[handleLow].discord = {
+        join: {},
+      };
+    }
+    console2.trace('x', hxhistory[handleLow]);
+    ['join'].forEach((key) => {
+      for (const prop in data[key]) {
+        const thisKey = normalizeKey(prop);
+        const thisVal = data[key][prop];
+        console2.trace(key, thisKey, thisVal);
+        console2.trace(hxhistory[handleLow]);
+        console2.trace(hxhistory[handleLow].discord);
+        if (!hxhistory[handleLow].discord[key][thisKey]) {
+          hxhistory[handleLow].discord[key][thisKey] = thisVal;
+        }
+      }
+    });
+  };
+
+  for (const prop in baseStorage.hxhistory) {
+    if (baseStorage.hxhistory[prop].twitter) {
+      doTwitterHistory(prop, baseStorage.hxhistory[prop].twitter);
+    }
+    if (baseStorage.hxhistory[prop].discord) {
+      doDiscordHistory(prop, baseStorage.hxhistory[prop].discord);
+    }
+  }
+
+  storage.hxhistory = hxhistory;
+
+  // projectObserver  --------------------------------------------------
+
+  const projectObserver = {};
+  for (const prop in baseStorage.projectObserver) {
+    console2.trace('prop', prop);
+    const propLow = prop.toLowerCase();
+    if (!projectObserver[propLow]) {
+      projectObserver[propLow] = baseStorage.projectObserver[prop];
+    }
+  }
+  storage.projectObserver = projectObserver;
+
+  // projectObserver  --------------------------------------------------
+
+  const twitterObserver = {};
+  for (const prop in baseStorage.twitterObserver) {
+    console2.trace('prop', prop);
+    const propLow = prop.toLowerCase();
+    if (!twitterObserver[propLow]) {
+      twitterObserver[propLow] = baseStorage.twitterObserver[prop];
+    }
+  }
+  storage.twitterObserver = twitterObserver;
+
+  console2.log('storage', storage);
+
+  return storage;
+
+  //await setStorageData(storage);
+
+  // hxhistory: lowercase
+  // projectObserver: lowercase + remove old entries
+  // twitterObserver: lowercase + remove old entries
+  // wins: remove old?
 }

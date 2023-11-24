@@ -36,4 +36,15 @@ mountPopupPage([
       });
     },
   },
+  {
+    id: 'hx-admin',
+    callback: () => {
+      console.log('callback');
+      chrome.runtime.sendMessage({
+        cmd: 'openTab',
+        url: chrome.runtime.getURL('/admin.html'),
+        active: true,
+      });
+    },
+  },
 ]);

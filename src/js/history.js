@@ -1,6 +1,9 @@
 import { getSearchParam, myConsole } from 'hx-lib';
+import { normalizeDiscordHandle, normalizeTwitterHandle } from './premintHelperLib';
 
 const console2 = myConsole();
+
+const normalizeKey = (key) => normalizeDiscordHandle(normalizeTwitterHandle(key.toLowerCase()));
 
 export async function createHistory() {
   let hxhistory = null;
@@ -61,23 +64,35 @@ export async function createHistory() {
       }
       const intention = getIntention(url);
       console2.log('intention', intention);
-      return await _add(user, intention.target, intention.intent, intention.key, Date.now());
+
+      return await _add(
+        normalizeKey(user),
+        intention.target,
+        intention.intent,
+        normalizeKey(intention.key),
+        Date.now()
+      );
     },
-    has: async (user, url) => {
+    has: async (userIn, url) => {
       if (!hxhistory) {
         await load();
       }
       const intention = getIntention(url);
+
+      const user = normalizeKey(userIn);
+      const target = intention.target;
+      const key = normalizeKey(intention.key);
+
       if (!hxhistory[user]) {
         return false;
       }
-      if (!hxhistory[user][intention.target]) {
+      if (!hxhistory[user][target]) {
         return false;
       }
-      if (!hxhistory[user][intention.target][intention.intent]) {
+      if (!hxhistory[user][target][intention.intent]) {
         return false;
       }
-      if (!hxhistory[user][intention.target][intention.intent][intention.key]) {
+      if (!hxhistory[user][target][intention.intent][key]) {
         return false;
       }
       return true;

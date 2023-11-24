@@ -174,7 +174,9 @@ export const defaultOptions = {
     'btc-1: BTC_ADDRESS',
     'btc-2: BTC_ADDRESS',
   ],
+
   ACCOUNT_ALIAS: ['Main: ETH_ADDRESS', 'Alt-1: ETH_ADDRESS', 'Alt-2: ETH_ADDRESS'],
+
   ALPHABOT_TRIM_NAMES: [
     'Vee Friends Alpha',
     'Alpha King',
@@ -220,10 +222,9 @@ export const overrideOptions = {
   CLOUD_WRITE_PROJECT_WINS_URL:
     'https://data.mongodb-api.com/app/application-0-pqnjz/endpoint/write_project_wins',
 
-  RESULTS_ENABLE_WRITE_PROJECT_WINS_NOTIFICATION: true,
-  RESULTS_NOTIFICATION_1_URL:
-    'https://imgproxy.nanxiongnandi.com/_imw0xb0fFZk8Eo2v6yqZXsx-M1cutSoiVKembilGRQ/w:1280/aHR0cHM6Ly9pbWcu/bmFueGlvbmduYW5k/aS5jb20vMjAyMzA1/L0V1cm9wZWFuSG9u/ZXliZWUuanBn.jpg',
+  IS_MAIN_ACCOUNT: false,
+  MAIN_ACCOUNT_NOTIFICATION_URL: 'https://www.wide-gamut.com/assets/wide-gamut-photo02-p3.jpg',
 
-  RESULTS_ENABLE_READ_PROJECT_WINS_NOTIFICATION: true,
-  RESULTS_NOTIFICATION_2_URL: 'https://www.wide-gamut.com/assets/Sky-SDR.jpg',
+  IS_FIRST_SUB_ACCOUNT: false,
+  SUB_ACCOUNT_NOTIFICATION_URL: 'https://www.wide-gamut.com/assets/Sky-SDR.jpg',
 };

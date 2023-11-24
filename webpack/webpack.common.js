@@ -12,6 +12,7 @@ module.exports = {
     popup: './src/pages/popup/popup.js',
     options: './src/pages/options/options.js',
     help: './src/pages/help/help.js',
+    admin: './src/pages/admin/admin.js',
     shortcuts: './src/pages/shortcuts/shortcuts.js',
     raffleResults: './src/pages/raffleResults/raffleResults.js',
     genericPage: './src/js/genericPage.js',

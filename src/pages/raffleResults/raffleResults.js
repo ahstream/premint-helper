@@ -267,7 +267,7 @@ async function updateWins() {
   const hasChanged = hasProjectWinsChanged(prevProjectWins, newProjectWins);
   console2.info('Is new won wallets found:', hasChanged);
 
-  if (hasChanged && storage.options.ALPHABOT_ENABLE_CLOUD && storage.options.CLOUD_MODE === 'load') {
+  if (hasChanged && storage.options.CLOUD_MODE === 'load') {
     const writeResult = await writeProjectWins(storage.allProjectWins, storage.options);
     if (writeResult.error) {
       statusLogger.sub(`Failed uploading won wallets to Cloud. Network problems?`);
@@ -283,8 +283,13 @@ async function updateWins() {
 
   showPage();
 
-  if (storage.options.CLOUD_MODE === 'load' && storage.options.RESULTS_NOTIFICATION_1_URL) {
-    window.open(storage.options.RESULTS_NOTIFICATION_1_URL, '_blank');
+  if (storage.options.IS_MAIN_ACCOUNT && storage.options.CLOUD_MODE === 'load') {
+    if (hasChanged) {
+      // window.open(storage.options.MAIN_ACCOUNT_NOTIFICATION_URL, '_blank');
+      document.title = 'premint-helper-main-account-new-project-wins';
+    } else {
+      document.title = 'premint-helper-main-account-no-new-project-wins';
+    }
   }
 }
 
@@ -315,15 +320,11 @@ async function updateProjectWins() {
 
     updateMainStatus('Done getting wallets won from Cloud!');
 
-    document.body.classList.toggle('success', true);
-    /*
-    if (
-      storage.options.RESULTS_ENABLE_READ_PROJECT_WINS_NOTIFICATION &&
-      storage.options.RESULTS_NOTIFICATION_2_URL
-    ) {
-      window.open(storage.options.RESULTS_NOTIFICATION_2_URL, '_blank');
+    // document.body.classList.toggle('success', true);
+
+    if (storage.options.IS_FIRST_SUB_ACCOUNT && storage.options.CLOUD_MODE === 'save') {
+      document.title = 'premint-helper-sub-account-read-project-wins';
     }
-    */
   }
 }
 

@@ -13,6 +13,7 @@ let pageState = {
 };
 
 const options = [
+  // Alphabot.app Raffles
   {
     header: 'Alphabot.app Raffles',
     hiddenKey: '',
@@ -24,6 +25,7 @@ const options = [
     ],
   },
 
+  // Premint.xyz Raffles
   {
     header: 'Premint.xyz Raffles',
     hiddenKey: '',
@@ -36,6 +38,7 @@ const options = [
     ],
   },
 
+  // Atlas3.io Raffles
   {
     header: 'Atlas3.io Raffles',
     hiddenKey: '',
@@ -49,6 +52,7 @@ const options = [
     ],
   },
 
+  // LuckyGo.io Raffles
   {
     header: 'LuckyGo.io Raffles',
     hiddenKey: '',
@@ -61,6 +65,7 @@ const options = [
     ],
   },
 
+  // Results Page
   {
     header: 'Results Page',
     hiddenKey: '',
@@ -74,14 +79,22 @@ const options = [
       ],
       [
         'property',
-        'TWITTER_MAX_LOOKUPS',
-        'Batch Twitter lookups on results page',
+        'RESULTS_PREV_WINS_LIFETIME_MINT_DAYS',
+        'RESULTS_PREV_WINS_LIFETIME_MINT_DAYS',
         '',
-        'Each lookup request will only lookup this many Twitter accounts to avoid bot detection',
+        'RESULTS_PREV_WINS_LIFETIME_MINT_DAYS',
+      ],
+      [
+        'property',
+        'RESULTS_PREV_WINS_LIFETIME_PICKED_DAYS',
+        'RESULTS_PREV_WINS_LIFETIME_PICKED_DAYS',
+        '',
+        'RESULTS_PREV_WINS_LIFETIME_PICKED_DAYS',
       ],
     ],
   },
 
+  // Raffle Behaviour
   {
     header: 'Raffle Behaviour',
     hiddenKey: '',
@@ -166,6 +179,7 @@ const options = [
     ],
   },
 
+  // Discord
   {
     header: 'Discord',
     hiddenKey: '',
@@ -187,6 +201,7 @@ const options = [
     ],
   },
 
+  // Twitter
   {
     header: 'Twitter',
     hiddenKey: '',
@@ -197,6 +212,14 @@ const options = [
         'Automate manually opened Twitter pages',
         '',
         'If enabled, Premint Helper will auto click OK button on Twitter intent pages.',
+      ],
+      ['space', 10],
+      [
+        'property',
+        'TWITTER_MAX_LOOKUPS',
+        'Max Twitter follower lookups per time',
+        '',
+        'Each lookup request will only lookup this many Twitter accounts to avoid bot detection',
       ],
       ['space', 10],
       [
@@ -223,8 +246,9 @@ const options = [
     ],
   },
 
+  // External automation
   {
-    header: 'Auto-Start',
+    header: 'External automation',
     hiddenKey: '',
     options: [
       [
@@ -247,9 +271,31 @@ const options = [
         null,
         'Name of Alphabot teams to ignore when auto-start raffle join. Typically you may want to ignore raffles from teams that require an NFT you do not have.',
       ],
+      ['space', 10],
+
+      ['property', 'IS_MAIN_ACCOUNT', 'IS_MAIN_ACCOUNT', null, 'IS_MAIN_ACCOUNT'],
+
+      [
+        'property',
+        'MAIN_ACCOUNT_NOTIFICATION_URL',
+        'MAIN_ACCOUNT_NOTIFICATION_URL',
+        null,
+        'MAIN_ACCOUNT_NOTIFICATION_URL',
+      ],
+
+      ['property', 'IS_FIRST_SUB_ACCOUNT', 'IS_FIRST_SUB_ACCOUNT', null, 'IS_FIRST_SUB_ACCOUNT'],
+
+      [
+        'property',
+        'SUB_ACCOUNT_NOTIFICATION_URL',
+        'SUB_ACCOUNT_NOTIFICATION_URL',
+        null,
+        'SUB_ACCOUNT_NOTIFICATION_URL',
+      ],
     ],
   },
 
+  // Cloud
   {
     header: 'Cloud',
     hiddenKey: '',
@@ -272,6 +318,7 @@ const options = [
     ],
   },
 
+  // Aliases
   {
     header: 'Aliases',
     hiddenKey: '',
@@ -293,6 +340,7 @@ const options = [
     ],
   },
 
+  // Custom Data
   {
     header: 'Custom Data',
     hiddenKey: '',
