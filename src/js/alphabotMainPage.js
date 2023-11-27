@@ -202,13 +202,31 @@ async function revealRaffles({ pageSize = 16 } = {}) {
   const numPages = Math.round(Number(numRafflesOnPage / pageSize)) + 1;
   console2.log('numRafflesOnPage, numPages', numRafflesOnPage, numPages);
 
-  const callback = (pageNum) => {
+  const loggerFn = (pageNum) => {
     updateStatusbar(`Revealing raffles... (page ${pageNum + 1}/${numPages})`);
   };
 
+  const updateProjects = (ps) => {
+    for (const project of ps) {
+      console2.trace('project', project);
+      pageState.observer.updateProject(project.slug, {
+        entryCount: project.entryCount,
+        winnerCount: project.winnerCount,
+      });
+    }
+  };
+
+  const processResultFn = updateProjects;
+
   const query = document.querySelector('input[placeholder="search"]')?.value || '';
 
-  const projects = await fetchProjects({ pageSize, maxPages: numPages, searchQuery: query, callback });
+  const projects = await fetchProjects({
+    pageSize,
+    maxPages: numPages,
+    searchQuery: query,
+    loggerFn,
+    processResultFn,
+  });
   console2.log('projects', projects);
 
   if (!projects?.length) {
@@ -218,12 +236,8 @@ async function revealRaffles({ pageSize = 16 } = {}) {
 
   await pageState.observer.reloadStorage();
 
-  for (const project of projects) {
-    console2.trace('project', project);
-    pageState.observer.updateProject(project.slug, {
-      entryCount: project.entryCount,
-      winnerCount: project.winnerCount,
-    });
+  if (!processResultFn) {
+    updateProjects(projects);
   }
 
   pageState.observer.saveProjects();

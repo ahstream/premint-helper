@@ -586,13 +586,6 @@ export function getPreviousWalletsWon(twitterHandle) {
   }
 
   const wallets = storage?.allProjectWins ? storage.allProjectWins[twitterHandle.toLowerCase()] || [] : [];
-  /*
-  const elem = storage?.projectWins?.length
-    ? storage.projectWins.find((x) => x.name.toLowerCase() === twitterHandle.toLowerCase())
-    : null;
-    */
-  console2.log('storage.allProjectWins', storage.allProjectWins);
-  console2.trace('projectWins:', twitterHandle, wallets);
 
   if (wallets.length) {
     console2.info(`Previous won wallet for ${twitterHandle}:`, wallets);

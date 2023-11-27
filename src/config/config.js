@@ -62,7 +62,7 @@ export const defaultOptions = {
   ATLAS_DISCORD_USER_SEL: 'Discord Account',
   ATLAS_WAIT_FOR_RAFFLE_PAGE_LOADED: 30000,
 
-  // LUCKY
+  // LUCKYGO
   LUCKYGO_ENABLE: true,
   LUCKYGO_ENABLE_CLOUD: true,
   LUCKYGO_ENABLE_TWITTER_TASKS: true,
@@ -117,6 +117,9 @@ export const defaultOptions = {
   RESULTS_PREV_WINS_LIFETIME_MINT_DAYS: 30,
   RESULTS_PREV_WINS_LIFETIME_PICKED_DAYS: 180,
 
+  ALPHABOT_CALENDAR_BACK_MONTHS: 0,
+  ALPHABOT_CALENDAR_FORWARD_MONTHS: 3,
+
   // TWITTER
   TWITTER_ENABLE: true,
   TWITTER_ENABLE_MANUAL: false,
@@ -165,6 +168,9 @@ export const defaultOptions = {
   // MISC
   CLOSE_BUT_ONE_URL: 'chrome://extensions/',
 
+  IS_MAIN_ACCOUNT: false,
+  IS_FIRST_SUB_ACCOUNT: false,
+
   // ALIASES
   WALLET_ALIAS: [
     'hot-1: ETH_ADDRESS',
@@ -188,18 +194,18 @@ export const defaultOptions = {
     'WOW Alpha',
     'NFTSensei',
   ],
-};
 
-export const overrideOptions = {
   ALPHABOT_RESULTS_MAX_FETCH_WINS: 5000, // 5000,
   PREMINT_RESULTS_MAX_FETCH_WINS: 300, //  300,
   ATLAS_RESULTS_MAX_FETCH_WINS: 5000, // 5000,
   LUCKYGO_RESULTS_MAX_FETCH_WINS: 300, //  300,
+};
 
+export const overrideOptions = {
   TWITTER_CLOSE_TASK_PAGE_DELAY: 1500,
   TWITTER_PARENT_SUGGESTED_DELAY: 500,
 
-  RAFFLE_OPEN_QUEUED_TWITTER_LINK_DELAY: 500,
+  RAFFLE_OPEN_QUEUED_TWITTER_LINK_DELAY: 1100,
 
   TWITTER_INTENT_BTN_SEL: '[data-testid="confirmationSheetConfirm"]',
   TWITTER_CANCEL_BTN_SEL: '[data-testid="confirmationSheetCancel"]',
@@ -221,10 +227,4 @@ export const overrideOptions = {
     'https://data.mongodb-api.com/app/application-0-pqnjz/endpoint/read_project_wins',
   CLOUD_WRITE_PROJECT_WINS_URL:
     'https://data.mongodb-api.com/app/application-0-pqnjz/endpoint/write_project_wins',
-
-  IS_MAIN_ACCOUNT: false,
-  MAIN_ACCOUNT_NOTIFICATION_URL: 'https://www.wide-gamut.com/assets/wide-gamut-photo02-p3.jpg',
-
-  IS_FIRST_SUB_ACCOUNT: false,
-  SUB_ACCOUNT_NOTIFICATION_URL: 'https://www.wide-gamut.com/assets/Sky-SDR.jpg',
 };

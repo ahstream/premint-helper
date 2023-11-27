@@ -11,6 +11,9 @@ const ACCOUNT_URL = 'https://www.alphabot.app/api/auth/session';
 const WINS_BASE_URL =
   'https://www.alphabot.app/api/projects?sort={SORT_BY}&scope=all&sortDir=-1&showHidden=true&pageSize={PAGE_SIZE}&pageNum={PAGE_NUM}&filter=winners';
 
+const CALENDAR_URL =
+  'https://www.alphabot.app/api/projectData?calendar=true&startDate={START_DATE}&endDate={END_DATE}&selectedMonth={SELECTED_MONTH}';
+
 export const winnersSortedByNewestURL = `https://www.alphabot.app/api/projects?sort=newest&scope=all&sortDir=-1&showHidden=true&pageSize=16&filter=winners`;
 export const winnersSortedByMintingURL = `https://www.alphabot.app/api/projects?sort=minting&scope=all&sortDir=-1&showHidden=true&pageSize=16&filter=winners`;
 
@@ -62,7 +65,8 @@ export async function fetchProjects({
   maxPages = null,
   all = false,
   delayMs = 1000,
-  callback = null,
+  loggerFn = null,
+  processResultFn = null,
 } = {}) {
   console2.log('fetchProjects', pageSize, maxPages, all, delayMs);
 
@@ -90,8 +94,8 @@ export async function fetchProjects({
       return projects;
     }
 
-    if (callback) {
-      callback(pageNum);
+    if (loggerFn) {
+      loggerFn(pageNum);
     }
 
     const url = `https://www.alphabot.app/api/projects?sort=${sort}&scope=${scope}&sortDir=${sortDir}&showHidden=${hidden}&pageSize=${pageSize}&pageNum=${pageNum}&search=${search}&${filters}&${reqFilters}&${alphas}`;
@@ -110,6 +114,11 @@ export async function fetchProjects({
     }
 
     projects.push(...result.data);
+
+    if (processResultFn) {
+      await processResultFn(result.data);
+    }
+
     pageNum++;
 
     await sleep(delayMs);
@@ -185,6 +194,57 @@ export async function fetchAccountAddress() {
   const result = await fetchHelper(ACCOUNT_URL, {});
   console2.log('fetchAccountAddress:', result);
   return result?.data?.address;
+}
+
+// CALENDAR -----------------------
+
+function addMonths(date, months) {
+  date.setMonth(date.getMonth() + months);
+  return date;
+}
+
+export async function getCalendars(date, monthsBack = 0, monthsForward = 0) {
+  const arr = [];
+  for (let i = monthsBack; i > 0; i--) {
+    arr.push(addMonths(new Date(date.getTime()), -i));
+  }
+  arr.push(date);
+  for (let i = 1; monthsForward && i <= monthsForward; i++) {
+    arr.push(addMonths(new Date(date.getTime()), i));
+  }
+  console.log('arr', arr);
+
+  const projects = [];
+  for (let d of arr) {
+    console.log('d', d);
+    const result = await getCalendar(d);
+    if (result?.length) {
+      projects.push(...result);
+    }
+    await sleep(500);
+  }
+
+  return projects.reverse();
+}
+
+export async function getCalendar(date) {
+  console.log('date', date);
+  const firstDay = new Date(date.getFullYear(), date.getMonth(), 1);
+  const lastDay = new Date(date.getFullYear(), date.getMonth() + 1, 0);
+
+  const url = CALENDAR_URL.replace('{START_DATE}', firstDay.getTime()).replace(
+    '{END_DATE}',
+    lastDay.getTime()
+  );
+
+  const result = await fetchHelper(url, {});
+  console2.log('getCalendar:', result);
+
+  if (result.error || !result.data?.projects) {
+    return { error: true, result };
+  }
+
+  return result.data.projects;
 }
 
 // WINS -----------------------
@@ -286,7 +346,7 @@ async function fetchWins({ interval, max, sortBy, pageLength = 16, checkIfContin
   return wins;
 }
 
-function cleanTwitterUrl(str) {
+export function cleanTwitterUrl(str) {
   if (typeof str !== 'string') {
     return str;
   }
@@ -316,6 +376,7 @@ function convertWins(wins, account) {
 
     const twitterHandle = normalizeTwitterHandle(extractTwitterHandle(cleanTwitterUrl(x.twitterUrl)));
     const twitterHandleGuess = twitterHandle;
+    const twitterBannerImage = x.twitterBannerImage;
     const discordUrl = x.discordUrl;
     const websiteUrl = null;
 
@@ -373,6 +434,7 @@ function convertWins(wins, account) {
 
       twitterHandle,
       twitterHandleGuess,
+      twitterBannerImage,
       discordUrl,
       websiteUrl,
 

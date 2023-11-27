@@ -91,6 +91,20 @@ const options = [
         '',
         'RESULTS_PREV_WINS_LIFETIME_PICKED_DAYS',
       ],
+      [
+        'property',
+        'ALPHABOT_CALENDAR_BACK_MONTHS',
+        'ALPHABOT_CALENDAR_BACK_MONTHS',
+        '',
+        'ALPHABOT_CALENDAR_BACK_MONTHS',
+      ],
+      [
+        'property',
+        'ALPHABOT_CALENDAR_FORWARD_MONTHS',
+        'ALPHABOT_CALENDAR_FORWARD_MONTHS',
+        '',
+        'ALPHABOT_CALENDAR_FORWARD_MONTHS',
+      ],
     ],
   },
 
@@ -275,23 +289,7 @@ const options = [
 
       ['property', 'IS_MAIN_ACCOUNT', 'IS_MAIN_ACCOUNT', null, 'IS_MAIN_ACCOUNT'],
 
-      [
-        'property',
-        'MAIN_ACCOUNT_NOTIFICATION_URL',
-        'MAIN_ACCOUNT_NOTIFICATION_URL',
-        null,
-        'MAIN_ACCOUNT_NOTIFICATION_URL',
-      ],
-
       ['property', 'IS_FIRST_SUB_ACCOUNT', 'IS_FIRST_SUB_ACCOUNT', null, 'IS_FIRST_SUB_ACCOUNT'],
-
-      [
-        'property',
-        'SUB_ACCOUNT_NOTIFICATION_URL',
-        'SUB_ACCOUNT_NOTIFICATION_URL',
-        null,
-        'SUB_ACCOUNT_NOTIFICATION_URL',
-      ],
     ],
   },
 

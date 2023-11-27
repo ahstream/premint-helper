@@ -10,6 +10,8 @@ import {
   getAccount as getAlphabotAccount,
   getWinsByNewest as getAlphabotWinsByNewest,
   getWinsByMinting as getAlphabotWinsByMinting,
+  getCalendars,
+  cleanTwitterUrl,
 } from '../../js/alphabotLib';
 
 import { getAccount as getPremintAccount, getWins as getPremintWins } from '../../js/premintLib';
@@ -30,6 +32,7 @@ import {
   reloadOptions,
   getMyTabIdFromExtension,
   normalizeTwitterHandle,
+  // normalizeDiscordUrl,
   lookupTwitterFollowersClickEventHandler,
 } from '../../js/premintHelperLib.js';
 
@@ -62,6 +65,7 @@ import {
   // kFormatter,
   addPendingRequest,
   myConsole,
+  extractTwitterHandle,
 } from 'hx-lib';
 
 import { getPermissions } from '../../js/permissions';
@@ -231,7 +235,7 @@ async function updateWins() {
     if (cloudWins.error) {
       statusLogger.sub('Failed getting results from Cloud! Error:' + cloudWins.msg);
     } else {
-      statusLogger.sub(`Fetched ${cloudWins.length} new or updated winners from Cloud`);
+      statusLogger.sub(`Fetched <b>${cloudWins.length}</b> new or updated winners from Cloud`);
       storage.results.lastCloudTimestamp = checkTime;
       console2.log('storage.results.lastCloudTimestamp', storage.results.lastCloudTimestamp);
       const lastCloudTimestamp = cloudWins?.length ? Math.max(...cloudWins.map((x) => x.hxCloudUpdated)) : 0;
@@ -251,9 +255,11 @@ async function updateWins() {
   const atlas = await updateAtlasWins(checkTime, cloudWins);
   const luckygo = await updateLuckygoWins(checkTime, cloudWins);
 
-  const mergedWins = mergeAllWins({ atlas, alphabot, premint, lucky: luckygo });
+  const mergedWins = mergeAllWins({ atlas, alphabot, premint, luckygo });
   storage.wins = mergedWins;
   console2.log('mergedWins:', mergedWins);
+
+  await updateAlphabotCalendarMintDates();
 
   storage.results.lastProviderUpdate = checkTime;
   storage.results.lastWinsUpdate = checkTime;
@@ -265,7 +271,7 @@ async function updateWins() {
   console2.info('storage.allProjectWins', storage.allProjectWins);
 
   const hasChanged = hasProjectWinsChanged(prevProjectWins, newProjectWins);
-  console2.info('Is new won wallets found:', hasChanged);
+  console2.info('Has won wallets changed:', hasChanged);
 
   if (hasChanged && storage.options.CLOUD_MODE === 'load') {
     const writeResult = await writeProjectWins(storage.allProjectWins, storage.options);
@@ -285,7 +291,6 @@ async function updateWins() {
 
   if (storage.options.IS_MAIN_ACCOUNT && storage.options.CLOUD_MODE === 'load') {
     if (hasChanged) {
-      // window.open(storage.options.MAIN_ACCOUNT_NOTIFICATION_URL, '_blank');
       document.title = 'premint-helper-main-account-new-project-wins';
     } else {
       document.title = 'premint-helper-main-account-no-new-project-wins';
@@ -336,17 +341,31 @@ function countProjectWinsWallets() {
   return ct;
 }
 
-function hasProjectWinsChanged(projectWins1, projectWins2) {
-  console.log('Object.entries(projectWins1).length', Object.entries(projectWins1).length);
-  console.log('Object.entries(projectWins2).length', Object.entries(projectWins2).length);
+function hasProjectWinsChanged(oldWins, newWins) {
+  console.log(
+    'Object.entries(projectWins1).length',
+    Object.getOwnPropertyNames(oldWins).length,
+    Object.entries(oldWins).length,
+    Object.entries(oldWins),
+    oldWins
+  );
+  console.log(
+    'Object.entries(projectWins2).length',
+    Object.getOwnPropertyNames(newWins).length,
+    Object.entries(newWins).length,
+    Object.entries(newWins),
+    oldWins
+  );
 
-  if (Object.entries(projectWins1).length !== Object.entries(projectWins2).length) {
+  if (Object.getOwnPropertyNames(oldWins).length !== Object.getOwnPropertyNames(newWins).length) {
+    console.log('foobar 1');
     return true;
   }
 
-  for (const [key] of Object.entries(projectWins1)) {
-    console.log(key, projectWins1[key], projectWins2[key]);
-    if (JSON.stringify(projectWins1[key]) !== JSON.stringify(projectWins2[key])) {
+  for (const [key] of Object.entries(oldWins)) {
+    console.log(key, oldWins[key], newWins[key]);
+    if (JSON.stringify(oldWins[key]) !== JSON.stringify(newWins[key])) {
+      console.log('foobar 2');
       return true;
     }
   }
@@ -400,7 +419,8 @@ async function getFromWebPage(url, key, tabId, maxWait = 30000, interval = 10) {
   console2.log('getFromWebPage:', url);
 
   await addPendingRequest(url, { action: key, tabId });
-  window.open(url);
+  // window.open(url);
+  chrome.runtime.sendMessage({ cmd: 'openTab', url });
 
   const stopTime = millisecondsAhead(maxWait);
   while (Date.now() <= stopTime) {
@@ -478,12 +498,12 @@ function appendWinsTable(table) {
   updateShownProvider();
 }
 
-function mergeAllWins({ atlas = null, alphabot = null, premint = null, lucky = null } = {}) {
+function mergeAllWins({ atlas = null, alphabot = null, premint = null, luckygo = null } = {}) {
   const r = [
     ...(alphabot?.length ? alphabot : []),
     ...(premint?.length ? premint : []),
     ...(atlas?.length ? atlas : []),
-    ...(lucky?.length ? lucky : []),
+    ...(luckygo?.length ? luckygo : []),
   ];
   return r;
 }
@@ -537,7 +557,7 @@ async function updateAlphabotWins(checkTime, allCloudWins) {
   const myWins = mergeWins(myWinsByMinting, myWinsByNewest, 'id', null);
 
   const myWinsNew = filterNewWins(myWins, raffleStorage.myWins, checkTime);
-  statusLogger.sub(`Fetched ${myWinsNew.length} new or updated winners from ${providerName}`);
+  statusLogger.sub(`Fetched <b>${myWinsNew.length}</b> new or updated winners from ${providerName}`);
 
   let cloudWins = [];
   if (storage.options.ALPHABOT_ENABLE_CLOUD && storage.options.CLOUD_MODE === 'load') {
@@ -571,6 +591,76 @@ async function updateAlphabotWins(checkTime, allCloudWins) {
   }
 
   return raffleStorage.wins;
+}
+
+async function updateAlphabotCalendarMintDates() {
+  statusLogger.main(`Fetch mint dates from Alphabot calendar...`);
+
+  const calendarProjects = await getCalendars(
+    new Date(),
+    storage.options.ALPHABOT_CALENDAR_BACK_MONTHS,
+    storage.options.ALPHABOT_CALENDAR_FORWARD_MONTHS
+  );
+  console.log('calendarProjects', calendarProjects);
+
+  storage.wins.forEach((win) => {
+    if (win.mintDate) {
+      // make sure sortkey is correct at all times!
+      win.hxSortKey = win.mintDate;
+    }
+
+    const p = calendarProjects.find((x) => {
+      const th1 = normalizeTwitterHandle(extractTwitterHandle(cleanTwitterUrl(x.twitterUrl)));
+      const th2 = win.twitterHandleGuess;
+      //const du1 = normalizeDiscordUrl(x.discordUrl);
+      //const du2 = normalizeDiscordUrl(win.discordUrl);
+      return th2 && th2 === th1; // || (du2 && du2 === du1);
+    });
+    if (!p) {
+      return;
+    }
+    console.log('win', win);
+    console.log('p', p);
+
+    const ps = calendarProjects.filter((x) => {
+      const th1 = normalizeTwitterHandle(extractTwitterHandle(cleanTwitterUrl(x.twitterUrl)));
+      const th2 = win.twitterHandleGuess;
+      //const du1 = normalizeDiscordUrl(x.discordUrl);
+      //const du2 = normalizeDiscordUrl(win.discordUrl);
+      return th2 && th2 === th1; // || (du2 && du2 === du1);
+    });
+    console.log('ps', ps);
+    console.log(
+      'psmap',
+      ps.map((y) => y.mintDate)
+    );
+    if (ps?.length > 1) {
+      console.warn('foobar length', ps);
+    }
+
+    let isModified = false;
+
+    const update = (key1, key2) => {
+      if (win[key1] !== p[key2]) {
+        win[key1] = p[key2];
+        isModified = true;
+        if (key1 === 'mintDate') {
+          win.hxSortKey = win.mintDate;
+        }
+      }
+    };
+
+    update('mintDate', 'mintDate');
+    update('hasTime', 'hasTime');
+    update('pubPrice', 'pubPrice');
+    update('wlPrice', 'wlPrice');
+
+    win.isModified = isModified;
+  });
+
+  statusLogger.sub(
+    `Updated <b>${storage.wins.filter((x) => x.isModified).length}</b> wins with new mint date or price info`
+  );
 }
 
 // PREMINT ------------------------------
@@ -610,7 +700,7 @@ async function updatePremintWins(checkTime, allCloudWins) {
   console2.log('myLost', myLost);
 
   const myWinsNew = filterNewWins(myWins, raffleStorage.myWins, checkTime);
-  statusLogger.sub(`Fetched ${myWinsNew.length} new or updated winners from ${providerName}`);
+  statusLogger.sub(`Fetched <b>${myWinsNew.length}</b> new or updated winners from ${providerName}`);
 
   let cloudWins = [];
   if (storage.options.PREMINT_ENABLE_CLOUD && storage.options.CLOUD_MODE === 'load') {
@@ -677,7 +767,7 @@ async function updateAtlasWins(checkTime, allCloudWins) {
   console2.log('myWins', myWins);
 
   const myWinsNew = filterNewWins(myWins, raffleStorage.myWins, checkTime);
-  statusLogger.sub(`Fetched ${myWinsNew.length} new or updated winners from ${providerName}`);
+  statusLogger.sub(`Fetched <b>${myWinsNew.length}</b> new or updated winners from ${providerName}`);
 
   let cloudWins = [];
   if (storage.options.ATLAS_ENABLE_CLOUD && storage.options.CLOUD_MODE === 'load') {
@@ -711,7 +801,7 @@ async function updateAtlasWins(checkTime, allCloudWins) {
   return raffleStorage.wins;
 }
 
-// LUCKY ------------------------------
+// LUCKYGO ------------------------------
 
 async function updateLuckygoWins(checkTime, allCloudWins) {
   console2.log('updateLuckygoWins', checkTime);
@@ -752,7 +842,7 @@ async function updateLuckygoWins(checkTime, allCloudWins) {
   console2.log('myWins', myWins);
 
   const myWinsNew = filterNewWins(myWins, raffleStorage.myWins, checkTime);
-  statusLogger.sub(`Fetched ${myWinsNew.length} new or updated winners from ${providerName}`);
+  statusLogger.sub(`Fetched <b>${myWinsNew.length}</b> new or updated winners from ${providerName}`);
 
   let cloudWins = [];
   if (storage.options.LUCKYGO_ENABLE_CLOUD && storage.options.CLOUD_MODE === 'load') {

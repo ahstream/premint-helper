@@ -477,7 +477,7 @@ export async function finishUnlockedTwitterAccount(request, sender, context) {
     const nextLink = twitterLinks.shift();
     const nextLinkUrl = 'https://' + nextLink + context.pageState.twitterLinkSuffix;
     console2.info('Open next twitter link:', nextLinkUrl);
-    await sleep(context.options.RAFFLE_OPEN_QUEUED_TWITTER_LINK_DELAY, null, 0.1);
+    await sleep(context.options.RAFFLE_OPEN_QUEUED_TWITTER_LINK_DELAY, null, 0.2);
 
     if (context.options.RAFFLE_OPEN_LINKS_IN_FOREGROUND) {
       window.open(nextLinkUrl, '_blank');
@@ -573,7 +573,7 @@ export async function finishTask(request, sender, context) {
       const nextLinkUrl = 'https://' + nextLink + context.pageState.twitterLinkSuffix;
       console2.info('Open next twitter link:', nextLinkUrl);
 
-      await sleep(context.options.RAFFLE_OPEN_QUEUED_TWITTER_LINK_DELAY, null, 0.1);
+      await sleep(context.options.RAFFLE_OPEN_QUEUED_TWITTER_LINK_DELAY, null, 0.2);
 
       if (context.options.RAFFLE_OPEN_LINKS_IN_FOREGROUND) {
         window.open(nextLinkUrl, '_blank');
@@ -646,6 +646,13 @@ export function normalizeTwitterHandle(s) {
     handle = tokens[tokens.length - 1];
   }
   return handle.trim().toLowerCase();
+}
+
+export function normalizeDiscordUrl(s) {
+  if (typeof s !== 'string') {
+    return s;
+  }
+  return s.replaceAll(' ', '').trim().toLowerCase();
 }
 
 export async function optimizeStorage() {
@@ -776,7 +783,12 @@ export async function optimizeStorage() {
   }
   storage.twitterObserver = twitterObserver;
 
-  console2.log('storage', storage);
+  await chrome.storage.local.remove(['alphabotProjectWinners']);
+  await chrome.storage.local.remove(['projectWins']);
+  await chrome.storage.local.remove(['projectWinsAll']);
+  await chrome.storage.local.remove(['lucky']);
+
+  console2.info('storage', storage);
 
   return storage;
 

@@ -11,6 +11,7 @@ import {
 import { createHashArgs, myConsole, getStorageData, setStorageData } from 'hx-lib';
 
 import { getPermissions } from '../../js/permissions.js';
+import { getCalendar, getCalendars } from '../../js/alphabotLib.js';
 
 import { createStatusbar } from 'hx-statusbar';
 
@@ -55,6 +56,14 @@ async function runPage() {
   updateMainStatus('');
 
   document.getElementById('hx-optimize-storage').addEventListener('click', () => optimizeStorageHandler());
+  document.getElementById('hx-get-alphabot-calendar').addEventListener('click', () => getAlphabotCalendar());
+}
+
+async function getAlphabotCalendar() {
+  const result = await getCalendar(new Date());
+  console.log('result', result);
+  const result2 = await getCalendars(new Date(), 1, 2);
+  console.log('result2', result2);
 }
 
 async function optimizeStorageHandler() {
