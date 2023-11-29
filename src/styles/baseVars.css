@@ -116,6 +116,6 @@ a.hx-twitter-link:after {
 }
 
 a.hx-twitter-link.expired:after {
-  color: var(--raffle-expired-followers-color);
-  background-color: var(--raffle-expired-followers-background-color);
+  color: var(--raffle-expired-followers-color) !important;
+  background-color: var(--raffle-expired-followers-background-color) !important;
 }

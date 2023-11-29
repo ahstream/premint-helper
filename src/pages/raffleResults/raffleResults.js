@@ -604,6 +604,8 @@ async function updateAlphabotCalendarMintDates() {
   console.log('calendarProjects', calendarProjects);
 
   storage.wins.forEach((win) => {
+    win.isModified = false;
+
     if (win.mintDate) {
       // make sure sortkey is correct at all times!
       win.hxSortKey = win.mintDate;
@@ -642,6 +644,7 @@ async function updateAlphabotCalendarMintDates() {
 
     const update = (key1, key2) => {
       if (win[key1] !== p[key2]) {
+        console.log('modified:', key1, key2, win[key1], p[key2]);
         win[key1] = p[key2];
         isModified = true;
         if (key1 === 'mintDate') {

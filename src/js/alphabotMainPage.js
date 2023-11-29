@@ -206,6 +206,8 @@ async function revealRaffles({ pageSize = 16 } = {}) {
     updateStatusbar(`Revealing raffles... (page ${pageNum + 1}/${numPages})`);
   };
 
+  await pageState.observer.reloadStorage();
+
   const updateProjects = (ps) => {
     for (const project of ps) {
       console2.trace('project', project);
@@ -233,8 +235,6 @@ async function revealRaffles({ pageSize = 16 } = {}) {
     updateStatusbarError(`No raffles to reveal`);
     return;
   }
-
-  await pageState.observer.reloadStorage();
 
   if (!processResultFn) {
     updateProjects(projects);

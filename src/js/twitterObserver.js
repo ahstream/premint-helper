@@ -4,7 +4,9 @@ import {
   //sortWallets,
   reloadOptions,
   getMyTabIdFromExtension,
+  normalizeTwitterHandle,
 } from './premintHelperLib.js';
+
 import {
   //timestampToLocaleString,
   sleep,
@@ -231,22 +233,41 @@ async function lookupTwitterFollowersHandler() {
     );
   }
 
-  const urls = getLookupTwitterUrlsOnPage();
-  if (!urls.length) {
-    window.alert('No Twitter links with unknown follower count found on page!');
+  const urls = getTwitterUrlsOnPage();
+  if (!urls.twitterUrls.length) {
+    return window.alert('No Twitter links found on page!');
+    // window.alert('No Twitter links with unknown follower count found on page!');
+  }
+
+  const getRealMax = (length) => {
+    return length <= storage.options.TWITTER_MAX_LOOKUPS
+      ? `${length}`
+      : `max ${storage.options.TWITTER_MAX_LOOKUPS} of ${length}`;
+  };
+
+  let answer1 = null;
+  let answer2 = null;
+
+  if (urls.newUrls.length) {
+    answer1 = window.confirm(
+      `Lookup follower counts for ${getRealMax(urls.newUrls.length)} non-expired Twitter handles on page?`
+    );
+  }
+  if (!answer1 && urls.expiredUrls.length) {
+    answer2 = window.confirm(
+      `Lookup follower counts for ${getRealMax(urls.expiredUrls.length)} EXPIRED Twitter handles on page?`
+    );
+  }
+
+  if (!answer1 && !answer2) {
     return;
   }
 
-  const max = storage.options.TWITTER_MAX_LOOKUPS;
-  const n = urls.length <= max ? urls.length : max;
+  const desc = answer1 ? 'non-expired' : 'expired';
 
-  if (
-    !window.confirm(`Lookup follower counts for ${n} of ${urls.length} non-expired Twitter handles on page?`)
-  ) {
-    return;
-  }
-
-  const useUrls = urls.slice(0, n);
+  const useUrls = answer1
+    ? urls.newUrls.splice(0, storage.options.TWITTER_MAX_LOOKUPS)
+    : urls.expiredUrls.splice(0, storage.options.TWITTER_MAX_LOOKUPS);
   console2.log('useUrls', useUrls);
 
   await getMyTabIdFromExtension(pageState, 5000);
@@ -272,20 +293,22 @@ async function lookupTwitterFollowersHandler() {
     }
   }
 
-  logInfo(`Done getting follower counts for ${useUrls.length} Twitter handles`);
+  logInfo(`Done getting follower counts for ${useUrls.length} ${desc} Twitter handles`);
   await saveTwitter();
 
   chrome.runtime.sendMessage({ cmd: 'focusMyTab' });
 
-  window.alert(`Done getting follower counts for ${useUrls.length} Twitter handles`);
+  window.alert(`Done getting follower counts for ${useUrls.length} ${desc} Twitter handles`);
 }
 
 function updateTwitterUserLinksOnPage(user, href) {
-  console2.log('updateTwitterLinks', href, user);
+  console2.log('updateTwitterUserLinksOnPage', href, user);
 
   if (!user) {
     return console2.trace('skip nullish user', user);
   }
+
+  user.handle = user.handle || twitterUrlToHandle(href);
 
   const hrefLow = href.toLowerCase();
   const elems = [...document.querySelectorAll(`a`)].filter((e) => e.href.toLowerCase().startsWith(hrefLow));
@@ -305,7 +328,7 @@ function updateTwitterUserLinksOnPage(user, href) {
     elem.dataset.hxFollowersNum = followers;
     elem.dataset.hxFollowers = kFormatter(followers);
     const daysAgo = daysBetween(Date.now(), user.fetchedAt);
-    const title = `@${user.handle}\n${followers} followers  ${daysAgo < 1 ? 'today' : daysAgo + ' days ago'}`;
+    const title = `@${user.handle}\n${followers} followers ${daysAgo < 1 ? 'today' : daysAgo + ' days ago'}`;
 
     elem.title = title;
   }
@@ -338,19 +361,31 @@ function updateTwitterUserLinksOnPage(user, href) {
   */
 }
 
-function getLookupTwitterUrlsOnPage(all = false) {
-  const urls = [...document.querySelectorAll('a')]
-    .filter(
-      (x) =>
-        x.href.match(/http(?:s)?:\/\/(?:www\.)?twitter\.com\/([a-zA-Z0-9_]+)(?:\?.*)*$/) ||
-        x.href.match(/http(?:s)?:\/\/(?:www\.)?x\.com\/([a-zA-Z0-9_]+)(?:\?.*)*$/)
-    )
-    .filter((x) => !x.classList.contains('hx-twitter-link') || all)
-    .map((x) => x.href);
-  const noDupUrls = noDuplicates(urls);
-  console2.trace('urls:', urls);
-  console2.trace('noDupUrls:', noDupUrls);
-  return noDupUrls;
+function getTwitterUrlsOnPage(all = false) {
+  const twitterLinks = [...document.querySelectorAll('a')].filter(
+    (x) =>
+      x.href.match(/http(?:s)?:\/\/(?:www\.)?twitter\.com\/([a-zA-Z0-9_]+)(?:\?.*)*$/) ||
+      x.href.match(/http(?:s)?:\/\/(?:www\.)?x\.com\/([a-zA-Z0-9_]+)(?:\?.*)*$/)
+  );
+
+  const twitterUrls = twitterLinks.map((x) => x.href);
+
+  const newUrls = noDuplicates(
+    twitterLinks.filter((x) => !x.classList.contains('hx-twitter-link') || all).map((x) => x.href)
+  );
+
+  const expiredUrls = noDuplicates(
+    twitterLinks
+      .filter((x) => (x.classList.contains('hx-twitter-link') && x.classList.contains('expired')) || all)
+      .map((x) => x.href)
+  );
+
+  console2.trace('twitterLinks:', twitterLinks);
+  console2.trace('twitterUrls:', twitterUrls);
+  console2.trace('newUrls:', newUrls);
+  console2.trace('expiredUrls:', expiredUrls);
+
+  return { twitterUrls, newUrls, expiredUrls };
 }
 
 async function fetchTwitterUser(baseUrl, myTabId) {
@@ -378,8 +413,12 @@ async function fetchTwitterUser(baseUrl, myTabId) {
 
 // TWITTER USER -------------------------------------------------------------
 
+function twitterUrlToHandle(url) {
+  return normalizeTwitterHandle(extractTwitterHandle(url));
+}
+
 function getTwitterUserByUrl(url, cacheHours) {
-  return getTwitterUser(extractTwitterHandle(url), cacheHours);
+  return getTwitterUser(twitterUrlToHandle(url), cacheHours);
 }
 
 function getTwitterUser(handle, cacheHours) {
@@ -391,7 +430,14 @@ function getTwitterUser(handle, cacheHours) {
 
   if (storage.twitterObserver[handle] && storage.twitterObserver[handle].fetchedAt) {
     const liveTo = storage.twitterObserver[handle].fetchedAt + cacheHours * 60 * 60 * 1000;
-    console2.log('TTL (hours):', handle, Math.round((liveTo - Date.now()) / (1000 * 60 * 60)));
+    console2.log(
+      'TTL (hours):',
+      handle,
+      cacheHours,
+      liveTo,
+      Date.now(),
+      Math.round((liveTo - Date.now()) / (1000 * 60 * 60))
+    );
     if (liveTo >= Date.now()) {
       return storage.twitterObserver[handle];
     } else {

@@ -221,7 +221,7 @@ export async function getCalendars(date, monthsBack = 0, monthsForward = 0) {
     if (result?.length) {
       projects.push(...result);
     }
-    await sleep(500);
+    await sleep(1500);
   }
 
   return projects.reverse();

@@ -4,6 +4,10 @@
 @import '../../styles/baseVars.css';
 @import '../../styles/statusbar.css';
 
+a.hx-twitter-link.expired:after {
+  background-color: #bd9490 !important;
+}
+
 body.success {
   background-color: limegreen;
 }
