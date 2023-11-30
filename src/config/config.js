@@ -227,4 +227,9 @@ export const overrideOptions = {
     'https://data.mongodb-api.com/app/application-0-pqnjz/endpoint/read_project_wins',
   CLOUD_WRITE_PROJECT_WINS_URL:
     'https://data.mongodb-api.com/app/application-0-pqnjz/endpoint/write_project_wins',
+
+  CLOUD_READ_PROJECT_WINS_URL2:
+    'https://data.mongodb-api.com/app/application-0-pqnjz/endpoint/read_project_wins2',
+  CLOUD_WRITE_PROJECT_WINS_URL2:
+    'https://data.mongodb-api.com/app/application-0-pqnjz/endpoint/write_project_wins2',
 };

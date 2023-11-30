@@ -9,14 +9,21 @@ import { getAccount as getLuckygoAccount, getWins as getLuckygoWins } from '../.
 import {
   getAccount as getAlphabotAccount,
   getWinsByNewest as getAlphabotWinsByNewest,
-  getWinsByMinting as getAlphabotWinsByMinting,
   getCalendars,
   cleanTwitterUrl,
 } from '../../js/alphabotLib';
 
 import { getAccount as getPremintAccount, getWins as getPremintWins } from '../../js/premintLib';
 
-import { readWins, writeWins, countWins, readProjectWins, writeProjectWins } from '../../js/cloudLib';
+import {
+  readWins,
+  writeWins,
+  countWins,
+  readProjectWins,
+  readProjectWins2,
+  writeProjectWins,
+  writeProjectWins2,
+} from '../../js/cloudLib';
 
 // import { waitForUser } from '../../js/twitterLib';
 
@@ -138,6 +145,7 @@ function initStorage() {
 
   storage.wins = storage.wins || [];
   storage.allProjectWins = storage.allProjectWins || [];
+  storage.allProjectWins2 = storage.allProjectWins2 || [];
 }
 
 async function runPage() {
@@ -147,6 +155,7 @@ async function runPage() {
     'options',
     'wins',
     'allProjectWins',
+    'allProjectWins2',
     'results',
     'alphabot',
     'premint',
@@ -210,7 +219,9 @@ async function runPage() {
   }
 
   if (pageState.hashArgs.has('action', 'updateProjectWins')) {
-    return updateProjectWins();
+    await updateProjectWins();
+    await updateProjectWins2();
+    return;
   }
 
   showPage();
@@ -283,6 +294,22 @@ async function updateWins() {
     }
   }
 
+  // test code: storage.allProjectWins2 = {};
+
+  const newProjectWins2 = addNewProjectWins();
+  console2.info('newProjectWins2', newProjectWins2);
+  if (newProjectWins2?.length && storage.options.CLOUD_MODE === 'load') {
+    const writeResult2 = await writeProjectWins2(newProjectWins2, storage.options);
+    if (writeResult2.error) {
+      statusLogger.sub(`Failed uploading won wallets to Cloud. Network problems?`);
+    } else {
+      storage.results.lastCloudUploadProjectWins2 = Date.now();
+      statusLogger.sub(`Uploaded ${newProjectWins2.length} won wallets to Cloud`);
+    }
+  }
+
+  // todo create storage.allProjectWins3 with twitterHandle keyd projectWins!
+
   await setStorageData(storage);
 
   updateMainStatus('Raffle results updated!');
@@ -306,7 +333,7 @@ async function updateProjectWins() {
 
   if (storage.options.CLOUD_MODE === 'load') {
     statusLogger.sub(
-      `Won wallets is only fetched from Cloud when saving own results to Cloud (this account is reading results from Cloud)`
+      `Won wallets is only fetched from Cloud when saving own wins to Cloud (this account is reading results from Cloud)`
     );
     return;
   }
@@ -320,6 +347,64 @@ async function updateProjectWins() {
       statusLogger.sub(`Fetched ${countProjectWinsWallets()} won wallets from Cloud`);
       console2.info('storage.allProjectWins', storage.allProjectWins);
     }
+
+    await setStorageData(storage);
+
+    updateMainStatus('Done getting wallets won from Cloud!');
+
+    // document.body.classList.toggle('success', true);
+
+    if (storage.options.IS_FIRST_SUB_ACCOUNT && storage.options.CLOUD_MODE === 'save') {
+      document.title = 'premint-helper-sub-account-read-project-wins';
+    }
+  }
+}
+
+async function updateProjectWins2() {
+  updateMainStatus('Getting wallets won from Cloud...');
+  resetSubStatus();
+
+  document.getElementById('main-table').innerHTML = '';
+
+  if (storage.options.CLOUD_MODE === 'load') {
+    statusLogger.sub(
+      `Won wallets is only fetched from Cloud when saving own wins to Cloud (this account is reading results from Cloud)`
+    );
+    return;
+  }
+
+  const checkTime = Date.now();
+
+  if (storage.options.CLOUD_MODE === 'save') {
+    const fromTimestamp = (storage.results.lastReadProjectWinsCloudTimestamp || -1) + 1;
+    console2.log(
+      'storage.results.lastReadProjectWinsCloudTimestamp',
+      storage.results.lastReadProjectWinsCloudTimestamp
+    );
+    console2.log('fromTimestamp', fromTimestamp);
+
+    const readResult = await readProjectWins2(fromTimestamp, storage.options);
+    if (readResult.error) {
+      statusLogger.sub(`Failed getting won wallets from Cloud. Network problems?`);
+    } else {
+      readResult.forEach((item) => {
+        storage.allProjectWins2[item.hxId] = item;
+      });
+      statusLogger.sub(`Fetched ${readResult.length} won wallets from Cloud`);
+      console2.info('storage.allProjectWins2', storage.allProjectWins2);
+
+      storage.results.lastReadProjectWinsCloudTimestamp = checkTime;
+      const lastReadProjectWinsCloudTimestamp = readResult?.length
+        ? Math.max(...readResult.map((x) => x.hxCloudUpdated))
+        : 0;
+      console2.log('lastReadProjectWinsCloudTimestamp', lastReadProjectWinsCloudTimestamp);
+
+      if (lastReadProjectWinsCloudTimestamp > 0) {
+        storage.results.lastReadProjectWinsCloudTimestamp = lastReadProjectWinsCloudTimestamp;
+      }
+    }
+
+    // todo create storage.allProjectWins3 with twitterHandle keyd projectWins!
 
     await setStorageData(storage);
 
@@ -383,6 +468,7 @@ async function resetWins() {
   storage.premint = {};
   storage.wins = [];
   storage.allProjectWins = {};
+  storage.allProjectWins2 = {};
   initStorage();
 
   await setStorageData(storage);
@@ -546,6 +632,7 @@ async function updateAlphabotWins(checkTime, allCloudWins) {
   });
   console2.log('myWinsByNewest', myWinsByNewest);
 
+  /*
   updateMainStatus(`Get updated mint dates from ${providerName}...`);
   const myWinsByMinting = await getAlphabotWinsByMinting(account, {
     interval: ALPHABOT_INTERVAL,
@@ -553,6 +640,8 @@ async function updateAlphabotWins(checkTime, allCloudWins) {
     statusLogger,
   });
   console2.log('myWinsByMinting', myWinsByMinting);
+  */
+  const myWinsByMinting = [];
 
   const myWins = mergeWins(myWinsByMinting, myWinsByNewest, 'id', null);
 
@@ -1865,6 +1954,71 @@ function createProjectWins(packedWins) {
   */
 
   return obj;
+}
+
+function addNewProjectWins() {
+  const minMintDate = millisecondsAhead(-(storage.options.RESULTS_PREV_WINS_LIFETIME_MINT_DAYS * ONE_DAY));
+  const minPickedDate = millisecondsAhead(
+    -(storage.options.RESULTS_PREV_WINS_LIFETIME_PICKED_DAYS * ONE_DAY)
+  );
+
+  const packedWins = packWins(storage.wins, true);
+
+  const newProjectWins = [];
+
+  packedWins.forEach((pw) => {
+    console2.log('pw:', pw);
+
+    const twitterHandle = pw.twitterHandle.toLowerCase();
+    if (!twitterHandle) {
+      console2.log('No twitter handle, skip');
+      return;
+    }
+
+    let hxSortKey = null;
+
+    const winsToInclude = pw.wins.filter((win) => {
+      hxSortKey = win.hxSortKey > hxSortKey ? win.hxSortKey : hxSortKey;
+      if (win.mintDate) {
+        if (win.mintDate >= minMintDate) {
+          console2.trace('mintDate still valid, keep:', win);
+          return true;
+        }
+        console2.trace('mintDate to early, skip:', win);
+        return false;
+      }
+      return win.pickedDate >= minPickedDate;
+    });
+    console2.trace('winsToInclude:', winsToInclude);
+
+    const wallets = noDuplicates(winsToInclude.map((x) => x.wallets))
+      .flat()
+      .map((x) => x.toLowerCase());
+
+    if (!wallets.length) {
+      console2.log('No wallets');
+      return;
+    }
+
+    wallets.forEach((wallet) => {
+      const id = twitterHandle + '-' + wallet;
+      if (storage.allProjectWins2[id]) {
+        return;
+      }
+      const newProjectWin = {
+        hxId: id,
+        twitterHandle,
+        wallet,
+        hxSortKey,
+      };
+      storage.allProjectWins2[id] = newProjectWin;
+      newProjectWins.push(newProjectWin);
+    });
+
+    return newProjectWins;
+  });
+
+  return newProjectWins;
 }
 
 // MISC HELPERS -----------------------------------------------------

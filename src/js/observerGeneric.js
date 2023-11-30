@@ -10,6 +10,7 @@ import {
   createLogLevelArg,
   isTwitterURL,
   myConsole,
+  noDuplicates,
 } from 'hx-lib';
 
 const console2 = myConsole();
@@ -489,6 +490,17 @@ export async function createObserver({
       );
       document.documentElement.style.setProperty('--raffle-wins-color', storage.options.RAFFLE_WINS_COLOR);
     }
+
+    const div2 = createPreviousWonSection2(twitterHandle, false);
+    console2.trace('div2', div2);
+    if (div2) {
+      raffleBox.append(div2);
+      document.documentElement.style.setProperty(
+        '--raffle-wins-background-color',
+        storage.options.RAFFLE_WINS_BACKGROUND_COLOR
+      );
+      document.documentElement.style.setProperty('--raffle-wins-color', storage.options.RAFFLE_WINS_COLOR);
+    }
   }
 
   function getAllAlphabotProjectLinkElems(node) {
@@ -508,6 +520,50 @@ export async function createObserver({
   function createPreviousWonSection(twitterHandle, showAll = false) {
     console2.log('createPreviousWonSection', twitterHandle, showAll);
     const walletsWon = getPreviousWalletsWon(twitterHandle);
+    if (!walletsWon.length) {
+      return null;
+    }
+
+    const hidden = pageState.permissions?.enabled ? '' : '[ PREMIUM FEATURE HIDDEN ]';
+    console2.trace('hidden', hidden);
+
+    const wallets = sortWallets(walletsWon, storage.options);
+    const wallet = wallets[0];
+    const walletAliasFirst = walletToAlias(wallet, storage.options);
+
+    console2.trace('walletAliasFirst', walletAliasFirst);
+    const walletAliasTextFirst = walletAliasFirst ? ` &nbsp;(${walletAliasFirst})` : '';
+    let html = hidden || `${trimWallet(wallet)}${walletAliasTextFirst}`;
+    if (wallets.length > 1) {
+      html = `<span class='times-won'>[x${wallets.length}]</span> ` + html;
+      if (showAll) {
+        wallets.shift();
+        for (const addr of wallets) {
+          const walletAlias = walletToAlias(addr, storage.options);
+          const walletAliasText = walletAlias ? ` (${walletAlias})` : '';
+          const mintAddrText = hidden || `${trimWallet(addr)}${walletAliasText}`;
+          html = html + `<br>${mintAddrText}`;
+        }
+      }
+    }
+    const div = document.createElement('div');
+    div.classList.add('hx-already-won');
+    div.innerHTML = html;
+    const text = wallets
+      .map((x) => {
+        const walletAlias = walletToAlias(x, storage.options);
+        const walletAliasText = walletAlias ? ` (${walletAlias})` : '';
+        return `${trimWallet(x)}${walletAliasText}`;
+      })
+      .join('\n');
+    div.title = `Wallets with previous wins:\n\n` + (hidden || text);
+
+    return div;
+  }
+
+  function createPreviousWonSection2(twitterHandle, showAll = false) {
+    console2.log('createPreviousWonSection2', twitterHandle, showAll);
+    const walletsWon = getPreviousWalletsWon2(twitterHandle);
     if (!walletsWon.length) {
       return null;
     }
@@ -639,6 +695,40 @@ export function getPreviousWalletsWon(twitterHandle) {
   */
 }
 
+export function getPreviousWalletsWon2(twitterHandle) {
+  console2.trace('getPreviousWalletsWon2:', twitterHandle);
+  if (!twitterHandle || typeof twitterHandle !== 'string') {
+    console2.trace('return []');
+    return [];
+  }
+
+  const handleLow = twitterHandle.toLowerCase();
+  console.log('handleLow:', handleLow);
+
+  let wallets = [];
+
+  console.log('storage.allProjectWins2:', storage.allProjectWins2);
+  for (let prop in storage.allProjectWins2) {
+    const item = storage.allProjectWins2[prop];
+    console.log('item:', item);
+    console.log('item.twitterHandle:', item.twitterHandle);
+    if (item.twitterHandle === handleLow) {
+      console.log('add item');
+      wallets.push(item.wallet);
+    }
+  }
+
+  console.log('wallets:', wallets);
+  wallets = noDuplicates(wallets);
+  console.log('wallets:', wallets);
+
+  if (wallets.length) {
+    console2.info(`Previous 2 won wallet for ${twitterHandle}:`, wallets);
+  }
+
+  return wallets;
+}
+
 function makeRaffleOdds(entries, winners) {
   if (typeof entries !== 'number') {
     return '?';
@@ -656,7 +746,13 @@ function makeRaffleOdds(entries, winners) {
 
 async function reloadStorage(key = null) {
   if (!key) {
-    storage = await getStorageItems(['options', 'twitterObserver', 'projectObserver', 'allProjectWins']);
+    storage = await getStorageItems([
+      'options',
+      'twitterObserver',
+      'projectObserver',
+      'allProjectWins',
+      'allProjectWins2',
+    ]);
   } else {
     const storageTemp = await getStorageItems([key]);
     storage[key] = storageTemp[key];

@@ -216,7 +216,7 @@ export async function getCalendars(date, monthsBack = 0, monthsForward = 0) {
 
   const projects = [];
   for (let d of arr) {
-    console.log('d', d);
+    console.log('date:', d);
     const result = await getCalendar(d);
     if (result?.length) {
       projects.push(...result);
@@ -228,7 +228,7 @@ export async function getCalendars(date, monthsBack = 0, monthsForward = 0) {
 }
 
 export async function getCalendar(date) {
-  console.log('date', date);
+  console.log('getCalendar, date:', date);
   const firstDay = new Date(date.getFullYear(), date.getMonth(), 1);
   const lastDay = new Date(date.getFullYear(), date.getMonth() + 1, 0);
 

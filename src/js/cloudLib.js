@@ -168,3 +168,69 @@ export async function writeProjectWins(wins, options) {
 
   return { ...data };
 }
+
+export async function readProjectWins2(fromTimestamp, options) {
+  const url = options.CLOUD_READ_PROJECT_WINS_URL2;
+  const tag = options.CLOUD_TAG;
+
+  if (!url) {
+    return { error: true, msg: 'Missing CLOUD_READ_PROJECT_WINS_URL2' };
+  }
+  if (!tag) {
+    return { error: true, msg: 'Missing CLOUD_TAG' };
+  }
+
+  const result = await fetchHelper(url, {
+    method: 'POST',
+    body: JSON.stringify({
+      hxTag: tag,
+      timestamp: fromTimestamp,
+    }),
+  });
+  console2.log('cloud read project wins result:', result);
+
+  if (result.error) {
+    return { error: true, msg: result.msg || 'Invalid data returned from CLOUD_READ_PROJECT_WINS_URL2' };
+  }
+
+  return result.data;
+}
+
+export async function writeProjectWins2(wins, options) {
+  const url = options.CLOUD_WRITE_PROJECT_WINS_URL2;
+  const tag = options.CLOUD_TAG;
+
+  if (!wins?.length) {
+    return { ok: true, count: 0 };
+  }
+  if (!url) {
+    return { error: true, msg: 'Missing CLOUD_WRITE_PROJECT_WINS_URL2' };
+  }
+  if (!tag) {
+    return { error: true, msg: 'Missing CLOUD_TAG' };
+  }
+
+  wins.forEach((win) => (win.hxTag = tag));
+  console2.log('wins to write', wins);
+
+  const result = await fetchHelper(url, {
+    method: 'POST',
+    body: JSON.stringify({
+      wins,
+    }),
+  });
+  console2.log('cloud write result:', result);
+
+  if (result.error || !result.data) {
+    return { error: true, msg: result.msg || 'Invalid data returned from CLOUD_WRITE_WINS_URL' };
+  }
+
+  const data = JSON.parse(result.data);
+  console2.log('parsed result data:', data);
+
+  if (!data.ok) {
+    return { error: true, msg: `Invalid response when writing to cloud: ${data.msg}` };
+  }
+
+  return { ...data, count: data.length };
+}
