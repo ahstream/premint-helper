@@ -476,7 +476,10 @@ export async function finishUnlockedTwitterAccount(request, sender, context) {
   while (twitterLinks?.length) {
     const nextLink = twitterLinks.shift();
     const nextLinkUrl = 'https://' + nextLink + context.pageState.twitterLinkSuffix;
-    console2.info('Open next twitter link:', nextLinkUrl);
+    console2.info(
+      `Open next twitter link after sleeping ${context.options.RAFFLE_OPEN_QUEUED_TWITTER_LINK_DELAY}:`,
+      nextLinkUrl
+    );
     await sleep(context.options.RAFFLE_OPEN_QUEUED_TWITTER_LINK_DELAY, null, 0.2);
 
     if (context.options.RAFFLE_OPEN_LINKS_IN_FOREGROUND) {
@@ -571,7 +574,10 @@ export async function finishTask(request, sender, context) {
     const nextLink = context.pageState.pendingRequests.find((x) => isTwitterURL(x));
     if (nextLink) {
       const nextLinkUrl = 'https://' + nextLink + context.pageState.twitterLinkSuffix;
-      console2.info('Open next twitter link:', nextLinkUrl);
+      console2.info(
+        `Open next twitter link after sleeping ${context.options.RAFFLE_OPEN_QUEUED_TWITTER_LINK_DELAY}:`,
+        nextLinkUrl
+      );
 
       await sleep(context.options.RAFFLE_OPEN_QUEUED_TWITTER_LINK_DELAY, null, 0.2);
 

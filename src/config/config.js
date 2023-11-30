@@ -205,7 +205,7 @@ export const overrideOptions = {
   TWITTER_CLOSE_TASK_PAGE_DELAY: 1500,
   TWITTER_PARENT_SUGGESTED_DELAY: 500,
 
-  RAFFLE_OPEN_QUEUED_TWITTER_LINK_DELAY: 1100,
+  RAFFLE_OPEN_QUEUED_TWITTER_LINK_DELAY: 1600,
 
   TWITTER_INTENT_BTN_SEL: '[data-testid="confirmationSheetConfirm"]',
   TWITTER_CANCEL_BTN_SEL: '[data-testid="confirmationSheetCancel"]',
