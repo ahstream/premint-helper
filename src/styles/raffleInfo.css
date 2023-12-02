@@ -64,7 +64,20 @@ body.alreadyWon {
   background-color: var(--raffle-info-already-won) !important;
 }
 
-body.registered {
+body.registered,
+body.joinWithWonWallet.registered,
+body.raffleCaptcha.registered,
+body.discordCaptcha.registered,
+body.twitterLocked.registered,
+body.abort.registered,
+body.notRegisterProperly.registered,
+body.raffleUnknownErrorWillRetry.registered,
+body.raffleUnknownError.registered,
+body.unspecifiedRaffleError.registered,
+body.walletConnectDialog.registered,
+body.doingItTooOften.registered,
+body.switchTwitterUserError.registered,
+body.noRaffleTrigger.registered {
   background-color: var(--raffle-info-registered) !important;
 }
 

@@ -69,6 +69,12 @@ async function runPage() {
     await runMainLoop();
   }
 
+  if (window.location.pathname.includes('/account/access')) {
+    window.location.href = 'https://twitter.com/account/access';
+    window.location.reload();
+    return;
+  }
+
   console2.info('Exit runPage!');
 }
 

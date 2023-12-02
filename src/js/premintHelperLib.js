@@ -303,6 +303,7 @@ export function exitActionMain(result, context, options) {
   if (result === 'twitterLocked') {
     context.updateStatusbarError('Twitter account is locked!');
     context.pageState.pause = true;
+    context.pageState.twitterLockedNotified = true;
   }
   if (result === 'alphabotDisabled') {
     context.updateStatusbar('Alphabot automation disabled, do nothing');
@@ -477,11 +478,11 @@ export async function finishUnlockedTwitterAccount(request, sender, context) {
     const nextLink = twitterLinks.shift();
     const nextLinkUrl = 'https://' + nextLink + context.pageState.twitterLinkSuffix;
     console2.info(
-      `Open next twitter link after sleeping ${context.options.RAFFLE_OPEN_QUEUED_TWITTER_LINK_DELAY}:`,
-      nextLinkUrl
+      `Sleep ${context.options.RAFFLE_OPEN_QUEUED_TWITTER_LINK_DELAY} before opening next Twitter link`
     );
     await sleep(context.options.RAFFLE_OPEN_QUEUED_TWITTER_LINK_DELAY, null, 0.2);
 
+    console2.info(`Open:`, nextLinkUrl);
     if (context.options.RAFFLE_OPEN_LINKS_IN_FOREGROUND) {
       window.open(nextLinkUrl, '_blank');
     } else {
@@ -574,13 +575,13 @@ export async function finishTask(request, sender, context) {
     const nextLink = context.pageState.pendingRequests.find((x) => isTwitterURL(x));
     if (nextLink) {
       const nextLinkUrl = 'https://' + nextLink + context.pageState.twitterLinkSuffix;
-      console2.info(
-        `Open next twitter link after sleeping ${context.options.RAFFLE_OPEN_QUEUED_TWITTER_LINK_DELAY}:`,
-        nextLinkUrl
-      );
 
+      console2.info(
+        `Sleep ${context.options.RAFFLE_OPEN_QUEUED_TWITTER_LINK_DELAY} before opening next Twitter link`
+      );
       await sleep(context.options.RAFFLE_OPEN_QUEUED_TWITTER_LINK_DELAY, null, 0.2);
 
+      console2.info(`Open:`, nextLinkUrl);
       if (context.options.RAFFLE_OPEN_LINKS_IN_FOREGROUND) {
         window.open(nextLinkUrl, '_blank');
       } else {

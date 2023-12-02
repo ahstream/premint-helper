@@ -703,24 +703,48 @@ export function getPreviousWalletsWon2(twitterHandle) {
   }
 
   const handleLow = twitterHandle.toLowerCase();
-  console.log('handleLow:', handleLow);
+  console2.log('handleLow:', handleLow);
+
+  if (!storage.allProjectWinsMap[handleLow]) {
+    return [];
+  }
+
+  const wallets = noDuplicates(storage.allProjectWinsMap[handleLow].wallets.map((x) => x.wallet));
+  console2.log('wallets:', wallets);
+  if (wallets.length) {
+    console2.info(`Previous 2 won wallet for ${twitterHandle}:`, wallets);
+  }
+
+  return wallets;
+}
+
+// todo remove func
+export function getPreviousWalletsWon3(twitterHandle) {
+  console2.trace('getPreviousWalletsWon2:', twitterHandle);
+  if (!twitterHandle || typeof twitterHandle !== 'string') {
+    console2.trace('return []');
+    return [];
+  }
+
+  const handleLow = twitterHandle.toLowerCase();
+  console2.log('handleLow:', handleLow);
 
   let wallets = [];
 
-  console.log('storage.allProjectWins2:', storage.allProjectWins2);
+  console2.log('storage.allProjectWins2:', storage.allProjectWins2);
   for (let prop in storage.allProjectWins2) {
     const item = storage.allProjectWins2[prop];
-    console.log('item:', item);
-    console.log('item.twitterHandle:', item.twitterHandle);
+    console2.log('item:', item);
+    console2.log('item.twitterHandle:', item.twitterHandle);
     if (item.twitterHandle === handleLow) {
-      console.log('add item');
+      console2.log('add item');
       wallets.push(item.wallet);
     }
   }
 
-  console.log('wallets:', wallets);
+  console2.log('wallets:', wallets);
   wallets = noDuplicates(wallets);
-  console.log('wallets:', wallets);
+  console2.log('wallets:', wallets);
 
   if (wallets.length) {
     console2.info(`Previous 2 won wallet for ${twitterHandle}:`, wallets);
@@ -752,6 +776,7 @@ async function reloadStorage(key = null) {
       'projectObserver',
       'allProjectWins',
       'allProjectWins2',
+      'allProjectWinsMap',
     ]);
   } else {
     const storageTemp = await getStorageItems([key]);

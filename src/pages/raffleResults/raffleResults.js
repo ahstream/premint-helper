@@ -144,8 +144,9 @@ function initStorage() {
   storage.luckygo.wins = storage.luckygo.wins || [];
 
   storage.wins = storage.wins || [];
-  storage.allProjectWins = storage.allProjectWins || [];
-  storage.allProjectWins2 = storage.allProjectWins2 || [];
+  storage.allProjectWins = storage.allProjectWins || {};
+  storage.allProjectWins2 = storage.allProjectWins2 || {};
+  storage.allProjectWinsMap = storage.allProjectWinsMap || {};
 }
 
 async function runPage() {
@@ -156,6 +157,7 @@ async function runPage() {
     'wins',
     'allProjectWins',
     'allProjectWins2',
+    'allProjectWinsMap',
     'results',
     'alphabot',
     'premint',
@@ -242,10 +244,11 @@ async function updateWins() {
     console2.log('storage.results.lastCloudTimestamp', storage.results.lastCloudTimestamp);
     console2.log('fromTimestamp', fromTimestamp);
     cloudWins = await readWins(fromTimestamp, storage.options);
-    console2.log('cloudWins', cloudWins);
+    console2.info('cloudWins', cloudWins);
     if (cloudWins.error) {
       statusLogger.sub('Failed getting results from Cloud! Error:' + cloudWins.msg);
     } else {
+      console2.info(`Fetched <b>${cloudWins.length}</b> new or updated winners from Cloud:`, cloudWins);
       statusLogger.sub(`Fetched <b>${cloudWins.length}</b> new or updated winners from Cloud`);
       storage.results.lastCloudTimestamp = checkTime;
       console2.log('storage.results.lastCloudTimestamp', storage.results.lastCloudTimestamp);
@@ -270,7 +273,7 @@ async function updateWins() {
   storage.wins = mergedWins;
   console2.log('mergedWins:', mergedWins);
 
-  await updateAlphabotCalendarMintDates();
+  await updateAlphabotCalendarMintDates(checkTime);
 
   storage.results.lastProviderUpdate = checkTime;
   storage.results.lastWinsUpdate = checkTime;
@@ -404,6 +407,8 @@ async function updateProjectWins2() {
       }
     }
 
+    updateAllProjectWinsMap();
+
     // todo create storage.allProjectWins3 with twitterHandle keyd projectWins!
 
     await setStorageData(storage);
@@ -427,14 +432,14 @@ function countProjectWinsWallets() {
 }
 
 function hasProjectWinsChanged(oldWins, newWins) {
-  console.log(
+  console2.log(
     'Object.entries(projectWins1).length',
     Object.getOwnPropertyNames(oldWins).length,
     Object.entries(oldWins).length,
     Object.entries(oldWins),
     oldWins
   );
-  console.log(
+  console2.log(
     'Object.entries(projectWins2).length',
     Object.getOwnPropertyNames(newWins).length,
     Object.entries(newWins).length,
@@ -443,14 +448,14 @@ function hasProjectWinsChanged(oldWins, newWins) {
   );
 
   if (Object.getOwnPropertyNames(oldWins).length !== Object.getOwnPropertyNames(newWins).length) {
-    console.log('foobar 1');
+    console2.log('foobar 1');
     return true;
   }
 
   for (const [key] of Object.entries(oldWins)) {
-    console.log(key, oldWins[key], newWins[key]);
+    console2.log(key, oldWins[key], newWins[key]);
     if (JSON.stringify(oldWins[key]) !== JSON.stringify(newWins[key])) {
-      console.log('foobar 2');
+      console2.log('foobar 2');
       return true;
     }
   }
@@ -469,6 +474,7 @@ async function resetWins() {
   storage.wins = [];
   storage.allProjectWins = {};
   storage.allProjectWins2 = {};
+  storage.allProjectWinsMap = {};
   initStorage();
 
   await setStorageData(storage);
@@ -682,7 +688,7 @@ async function updateAlphabotWins(checkTime, allCloudWins) {
   return raffleStorage.wins;
 }
 
-async function updateAlphabotCalendarMintDates() {
+async function updateAlphabotCalendarMintDates(checkTime) {
   statusLogger.main(`Fetch mint dates from Alphabot calendar...`);
 
   const calendarProjects = await getCalendars(
@@ -690,7 +696,7 @@ async function updateAlphabotCalendarMintDates() {
     storage.options.ALPHABOT_CALENDAR_BACK_MONTHS,
     storage.options.ALPHABOT_CALENDAR_FORWARD_MONTHS
   );
-  console.log('calendarProjects', calendarProjects);
+  console2.log('calendarProjects', calendarProjects);
 
   storage.wins.forEach((win) => {
     win.isModified = false;
@@ -710,8 +716,8 @@ async function updateAlphabotCalendarMintDates() {
     if (!p) {
       return;
     }
-    console.log('win', win);
-    console.log('p', p);
+    console2.log('win', win);
+    console2.log('p', p);
 
     const ps = calendarProjects.filter((x) => {
       const th1 = normalizeTwitterHandle(extractTwitterHandle(cleanTwitterUrl(x.twitterUrl)));
@@ -720,25 +726,24 @@ async function updateAlphabotCalendarMintDates() {
       //const du2 = normalizeDiscordUrl(win.discordUrl);
       return th2 && th2 === th1; // || (du2 && du2 === du1);
     });
-    console.log('ps', ps);
-    console.log(
+    console2.log('ps', ps);
+    console2.log(
       'psmap',
       ps.map((y) => y.mintDate)
     );
     if (ps?.length > 1) {
-      console.warn('foobar length', ps);
+      console2.warn('length > 1', ps);
     }
-
-    let isModified = false;
 
     const update = (key1, key2) => {
       if (win[key1] !== p[key2]) {
-        console.log('modified:', key1, key2, win[key1], p[key2]);
+        console2.log('modified:', key1, key2, win[key1], p[key2]);
         win[key1] = p[key2];
-        isModified = true;
         if (key1 === 'mintDate') {
           win.hxSortKey = win.mintDate;
         }
+        win.hxUpdated = checkTime;
+        win.isModified = true;
       }
     };
 
@@ -746,12 +751,16 @@ async function updateAlphabotCalendarMintDates() {
     update('hasTime', 'hasTime');
     update('pubPrice', 'pubPrice');
     update('wlPrice', 'wlPrice');
-
-    win.isModified = isModified;
   });
 
   statusLogger.sub(
     `Updated <b>${storage.wins.filter((x) => x.isModified).length}</b> wins with new mint date or price info`
+  );
+  console2.info(
+    `Updated <b>${
+      storage.wins.filter((x) => x.isModified).length
+    }</b> wins with new mint date or price info:`,
+    storage.wins.filter((x) => x.isModified)
   );
 }
 
@@ -2015,10 +2024,26 @@ function addNewProjectWins() {
       newProjectWins.push(newProjectWin);
     });
 
+    updateAllProjectWinsMap();
+
     return newProjectWins;
   });
 
   return newProjectWins;
+}
+
+function updateAllProjectWinsMap() {
+  for (let key in storage.allProjectWins2) {
+    const item = storage.allProjectWins2[key];
+    const twitterHandle = item.twitterHandle;
+    if (!storage.allProjectWinsMap[twitterHandle]) {
+      storage.allProjectWinsMap[twitterHandle] = {
+        twitterHandle,
+        wallets: [],
+      };
+    }
+    storage.allProjectWinsMap[twitterHandle].wallets.push({ wallet: item.wallet, hxSortKey: item.hxSortKey });
+  }
 }
 
 // MISC HELPERS -----------------------------------------------------
