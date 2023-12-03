@@ -1,0 +1,116 @@
+@import url('https://cdn.jsdelivr.net/npm/fork-awesome@1.2.0/css/fork-awesome.min.css');
+
+@import 'hx-chrome-lib/dist/extension.css';
+@import '../../styles/baseVars.css';
+@import '../../styles/statusbar.css';
+
+body.success {
+  background-color: limegreen;
+}
+
+td {
+  white-space: nowrap;
+}
+
+ul.status {
+  list-style-type: none;
+  background-color: rgb(248, 248, 24);
+  background-color: unset;
+  padding: 0;
+  li {
+    padding: 3px 0;
+  }
+}
+
+#hx-status-main {
+  margin-top: 20px;
+  font-weight: bold;
+}
+
+img.collab-banner {
+  width: 400px !important;
+}
+
+td {
+  vertical-align: top;
+  white-space: nowrap;
+}
+
+table tr td {
+  vertical-align: top;
+}
+
+body tr:nth-child(even) {
+  background-color: rgb(241 239 235);
+}
+
+span.mint-date,
+span.mint-time,
+span.raffle-date {
+  color: black;
+  .restarted {
+    color: #cfcbcb;
+  }
+}
+
+span.restarted {
+  color: #cfcbcb;
+}
+
+span.mint-date:not(.first),
+span.mint-time:not(.first),
+span.raffle-date:not(.first) {
+  color: #cfcbcb;
+}
+
+span.account-name {
+  color: black;
+}
+
+span.mint-address {
+  color: black;
+}
+
+span.team-name {
+  color: #cfcbcb;
+}
+
+.sort-key {
+  color: #cfcbcb;
+}
+
+a.raffle-link,
+a.twitter-link {
+  color: black;
+  text-decoration: none;
+}
+
+a.discord-link {
+  color: #cfcbcb;
+  text-decoration: none;
+}
+
+a:hover.raffle-link,
+a:hover.twitter-link,
+a:hover.discord-link {
+  text-decoration: underline;
+}
+
+a.raffle-link:not(.first) {
+  color: #cfcbcb;
+}
+
+.winner-count,
+.entry-count {
+  white-space: nowrap;
+}
+
+thead {
+  text-transform: uppercase;
+}
+
+thead tr td {
+  background-color: black;
+  color: white;
+  border: 1px solid lightgray;
+}

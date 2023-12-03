@@ -11,7 +11,7 @@ import {
   STATUSBAR_DEFAULT_TEXT,
 } from './premintHelperLib';
 
-import { getStorageItems, createHashArgs, dispatch, myConsole } from 'hx-lib';
+import { getStorageItems, createHashArgs, dispatch, myConsole, sleep } from 'hx-lib';
 import { createStatusbar } from 'hx-statusbar';
 import { getPermissions } from './permissions';
 
@@ -39,6 +39,17 @@ let pageState = {
 runNow();
 
 async function runNow() {
+  window.addEventListener('load', onLoad);
+  window.addEventListener('DOMContentLoaded', onLoad);
+  //setTimeout(onLoad, 1000);
+
+  pageState.observer = await createObserver({ permissions: null, autoFollowers: false });
+  pageState.twitterObserver = await createTwitterObserver({
+    permissions: null,
+    logger: { info: updateStatusbar, error: updateStatusbarError },
+  });
+  pageState.permissions = await getPermissions();
+
   storage = await getStorageItems(['runtime', 'options']);
   console2.log('storage', storage);
 
@@ -52,15 +63,9 @@ async function runNow() {
     return;
   }
 
-  pageState.permissions = await getPermissions();
-  pageState.observer = await createObserver({ permissions: pageState.permissions, autoFollowers: false });
-  pageState.twitterObserver = await createTwitterObserver({
-    permissions: pageState.permissions,
-    logger: { info: updateStatusbar, error: updateStatusbarError },
-  });
+  // pageState.observer = await createObserver({ permissions: pageState.permissions, autoFollowers: false });
 
-  window.addEventListener('load', onLoad);
-  window.addEventListener('DOMContentLoaded', onLoad);
+  pageState.initialized = true;
 }
 
 async function onLoad() {
@@ -71,6 +76,11 @@ async function onLoad() {
     return;
   }
   pageState.loaded = true;
+
+  while (!pageState.initialized) {
+    console2.info('Wait for initialized...');
+    await sleep(200);
+  }
 
   const hashArgs = createHashArgs(window.location.hash);
 

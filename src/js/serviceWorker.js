@@ -46,6 +46,11 @@ function messageHandler(request, sender, sendResponse) {
   });
   */
 
+    case 'ping':
+      console.log('sender.tab:', sender.tab);
+      chrome.tabs.sendMessage(sender.tab.id, { cmd: 'pong' });
+      break;
+
     case 'lookupTwitterFollowersFromMenu':
       chrome.tabs.query({ active: true, currentWindow: true }, function (tabs) {
         const currTab = tabs[0];
@@ -94,10 +99,10 @@ function messageHandler(request, sender, sendResponse) {
       });
       break;
     case 'getMyTabIdAsync':
-      //console.log('sender.tab.id:', sender.tab.id);
+      console.log('sender.tab:', sender.tab);
       chrome.tabs.sendMessage(sender.tab.id, { cmd: 'getMyTabIdAsyncResponse', response: sender.tab.id });
       sendResponse(sender.tab.id);
-      return;
+      return false;
     case 'revealAlphabotRaffles':
       revealAlphabotRaffles();
       break;

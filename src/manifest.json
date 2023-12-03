@@ -90,7 +90,7 @@
       "run_at": "document_start"
     },
     {
-      "matches": ["https://luckygo.io/myraffles"],
+      "matches": ["https://luckygo.io/myraffles", "https://luckygo.io/raffle"],
       "exclude_matches": [],
       "css": [],
       "js": ["luckygoPage.js"],

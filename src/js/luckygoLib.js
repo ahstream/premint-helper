@@ -1,5 +1,5 @@
 import { sleep, fetchHelper, rateLimitHandler, myConsole } from 'hx-lib';
-import { normalizeTwitterHandle } from './premintHelperLib.js';
+import { normalizeTwitterHandle, getMyTabIdFromExtension, getFromWebPage } from './premintHelperLib.js';
 
 const console2 = myConsole();
 
@@ -8,6 +8,9 @@ const console2 = myConsole();
 const ACCOUNT_URL = 'https://luckygo.io/profile';
 
 const WINS_BASE_URL = 'https://api.luckygo.io/raffle/list/me?type=won&page={PAGE}&size={SIZE}';
+
+const RAFFLES_BASE_URL =
+  'https://api.luckygo.io/raffle/list?community_type={COMMUNITY_TYPE}&project_type={PROJECT_TYPE}&sort_type={SORT_TYPE}&free_mint={FREE_MINT}&my_partial_guild_ids={MY_PARTIAL_GUILD_IDS}&my_particial_project_ids={MY_PARTIAL_PROJECT_IDS}&key_words={KEY_WORDS}&page={PAGE}&size={SIZE}';
 
 // ACCOUNT -----------------------
 
@@ -31,6 +34,147 @@ export async function getAccount() {
     address,
     userId: null,
     userName: null,
+  };
+}
+
+// AUTH -------------------------------------------
+
+export async function getLuckygoAuth(context) {
+  if (!context.myTabId) {
+    await getMyTabIdFromExtension(context, 5000);
+  }
+  if (!context.myTabId) {
+    console2.error('Invalid myTabId');
+    return null;
+  }
+  const authKey = await getFromWebPage(`https://luckygo.io/myraffles`, 'getAuth', context.myTabId, context);
+  console2.log('authKey', authKey);
+  console2.log('context', context);
+
+  if (typeof authKey !== 'string') {
+    return null;
+  }
+
+  const authKeyTrim = authKey.replace('%20', ' ');
+
+  return authKeyTrim;
+}
+
+// RAFFLES ----------------------------------------------------------------------------------
+
+// https://api.luckygo.io/raffle/list?
+/*
+community_type=All&
+project_type=All&
+sort_type=End%20Soon&
+free_mint=0&
+my_partial_guild_ids=&
+my_particial_project_ids=&
+key_words=&
+page=1&
+size=20
+*/
+
+export async function getRaffles(authKey, options) {
+  const raffles = await fetchRaffles(authKey, options);
+  console.log('raffles', raffles);
+  return raffles.map((x) => convertRaffle(x));
+}
+
+async function fetchRaffles(
+  authKey,
+  {
+    community_type = 'All',
+    project_type = 'All',
+    sort_type = 'End%20Soon&',
+    free_mint = 0,
+    my_partial_guild_ids = '',
+    my_particial_project_ids = '',
+    key_words = '',
+    size = 20,
+    interval = 2000,
+    max,
+  } = {}
+) {
+  console2.log('fetchRaffles');
+
+  const raffles = [];
+  let page = 0;
+  let count = 0;
+
+  while (page >= 0) {
+    page++;
+
+    const url = RAFFLES_BASE_URL.replace('{COMMUNITY_TYPE}', community_type)
+      .replace('{PROJECT_TYPE}', project_type)
+      .replace('{SORT_TYPE}', sort_type)
+      .replace('{FREE_MINT}', free_mint)
+      .replace('{MY_PARTIAL_GUILD_IDS}', my_partial_guild_ids)
+      .replace('{MY_PARTIAL_PROJECT_IDS}', my_particial_project_ids)
+      .replace('{KEY_WORDS}', key_words)
+      .replace('{PAGE}', page)
+      .replace('{SIZE}', size);
+
+    console2.log(`fetchRaffles page: ${page}, ${url}`);
+    const headers = { Authorization: authKey };
+    const result = await fetchHelper(url, { method: 'GET', headers }, rateLimitHandler);
+    console2.log('result', result);
+
+    if (result.error) {
+      return { error: true, result, raffles };
+    }
+
+    if (result?.data?.data?.list && !result.data.data.list.length) {
+      return raffles;
+    }
+
+    raffles.push(...result.data.data.list);
+
+    if (!result.data.data.has_next) {
+      return raffles;
+    }
+
+    count += result.data.data.list.length;
+    if (max && count > max) {
+      console2.log('Max fetched:', count, '>=', max);
+      return raffles;
+    }
+
+    console2.info(`Sleep ${interval} ms before next fetch`);
+    await sleep(interval);
+  }
+
+  return raffles;
+}
+
+function convertRaffle(obj) {
+  console.log('obj', obj);
+  return {
+    provider: 'luckygo',
+    id: obj.id,
+    name: obj.name,
+    slug: obj.vanity_url,
+    url: `https://luckygo.io/r/${obj.vanity_url}`,
+    myEntry: obj.my_entry,
+    hasEntered: !!obj.my_entry,
+    winnerCount: obj.winner_count,
+    entryCount: obj.entry_count,
+    startDate: obj.start_time,
+    endDate: obj.end_time,
+    remainingSeconds: obj.remaining_seconds,
+    status: obj.status,
+    active: obj.status === 'ACTIVE',
+    whitelistMethod: obj.whitelist_method,
+    collabId: obj.project?.id,
+    collabLogo: obj.project?.logo,
+    collabBanner: obj.project?.banner,
+    blockchain: obj.project?.blockchain,
+    chain: obj.project?.chain,
+    mintDate: obj.project?.mint_date,
+    teamId: obj.campaign?.id,
+    teamName: obj.campaign?.name,
+    teamLogo: obj.campaign?.logo,
+    teamTwitterUrl: obj.campaign?.twitter_link,
   };
 }
 
@@ -359,172 +503,6 @@ function convertWin(html, account) {
   };
 }
 
-/*
-function convertEntryMetadata(entries) {
-  return entries.map((x) => {
-    console2.log('convert entry:', x);
-
-    const provider = 'luckygo';
-
-    const raffleId = x.id;
-    const startDate = x.start_time || null;
-    const endDate = x.end_time || null;
-    const mintDate = x.project?.mint_date || null;
-    const id = raffleId;
-    const name = x.name;
-    const slug = x.vanity_url;
-    const url = `https://luckygo.io/r/${slug}`;
-    const teamName = x.campaign?.name;
-    const teamId = x.campaign?.id;
-    const blockchain = x.project?.blockchain;
-    const entryCount = x.entryCount || null;
-    const winnerCount = x.winnerCount || null;
-    const type = x.type;
-    const status = x.status;
-    const collabId = x.project?.id;
-    const collabName = null;
-
-    return {
-      provider,
-      id,
-      name,
-      slug,
-      url,
-      startDate,
-      endDate,
-      mintDate,
-      teamName,
-      teamId,
-      blockchain,
-      entryCount,
-      winnerCount,
-      type,
-      status,
-      collabId,
-      collabName,
-      // custom props
-      myEntryId: x.myEntry?.id,
-      whitelistMethod: x.whitelist_method,
-    };
-  });
-}
-*/
-
-/*
-function convertWins(wins, account) {
-  return wins.map((x) => {
-    console2.log('convert win:', x);
-    const provider = 'luckygo';
-
-    const raffleId = x.id;
-    const userId = x.userId || account.userId;
-    const userName = x.discordUsername || x.discordUsername || null;
-
-    const accountUserId = account.userId;
-
-    const startDate = makeDate(x.startDate, null);
-    const endDate = makeDate(x.endDate, null);
-    const pickedDate = endDate;
-    const modifyDate = makeDate(x.modifyDate, null);
-    const mintDate = makeDate(x.mintDate, null);
-    const mintTime = null;
-
-    const twitterHandle = normalizeTwitterHandle(x.twitterHandle);
-    const twitterHandleGuess = twitterHandle;
-    const discordUrl = null;
-    const websiteUrl = null;
-
-    const wallets = x.mintWallet ? [x.mintWallet] : [];
-
-    const hxId = `${provider}-${userId}-${raffleId}`;
-    const hxSortKey = mintDate || endDate;
-    //const hxUpdated = null;
-
-    const id = raffleId;
-    const name = x.name;
-    const slug = x.slug;
-    const url = `https://luckygo.io/r/${slug}`;
-
-    const teamName = x.teamId;
-    const teamId = x.teamId;
-
-    const blockchain = x.blockchain || x.project?.blockchain || null;
-    const dtc = null;
-    const entryCount = x.entryCount || null;
-    const winnerCount = x.winnerCount || x.winner_count || null;
-    const maxWinners = null;
-
-    const supply = x.supply || null;
-    const pubPrice = x.pubPrice || null;
-    const wlPrice = x.wlPrice || null;
-    const mintPrice = null;
-
-    const dataId = null;
-    const type = x.type;
-    const status = x.status;
-
-    const collabId = x.project?.id;
-    const collabName = null;
-
-    return {
-      hxId,
-      hxSortKey,
-      //hxUpdated,
-
-      provider,
-      userId,
-      userName,
-
-      accountUserId,
-
-      id,
-      name,
-      slug,
-      url,
-
-      startDate,
-      endDate,
-      pickedDate,
-      modifyDate,
-      mintDate,
-      mintTime,
-
-      twitterHandle,
-      twitterHandleGuess,
-      discordUrl,
-      websiteUrl,
-
-      wallets,
-
-      teamName,
-      teamId,
-      blockchain,
-      dtc,
-      entryCount,
-      winnerCount,
-      maxWinners,
-
-      supply,
-      pubPrice,
-      wlPrice,
-      mintPrice,
-
-      dataId,
-      type,
-
-      status,
-      collabId,
-      collabName,
-
-      // custom props
-      myEntryId: x.myEntry?.id,
-      whitelistMethod: x.whitelist_method,
-      has_won_mint_wallets: x.has_won_mint_wallets,
-    };
-  });
-}
-*/
-
 // HTML DOM
 
 /*
@@ -585,27 +563,6 @@ function makeDate(val, nullVal) {
     return nullVal;
   }
 }
-
-/*
-function stringToArray(s, nullVal) {
-  try {
-    return JSON.parse(s);
-  } catch (e) {
-    console2.error(e);
-    return nullVal;
-  }
-}
-
-function matchNum(html, regexp, nullVal) {
-  try {
-    const val = matchAny(html, regexp, nullVal);
-    return typeof val === 'string' ? Number(val) : nullVal;
-  } catch (e) {
-    console2.error(e);
-    return nullVal;
-  }
-}
-*/
 
 function matchAny(html, regexp, nullVal) {
   const m = html.match(regexp);

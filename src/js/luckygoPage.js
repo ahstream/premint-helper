@@ -2,6 +2,7 @@ console.info('luckygoPage.js begin', window?.location?.href);
 
 import { getStorageItems, myConsole, sleep, createHashArgs, dispatch } from 'hx-lib';
 import { getCookie } from './premintHelperLib';
+// import { getRaffles } from './luckygoLib.js';
 
 const console2 = myConsole();
 
@@ -35,6 +36,7 @@ async function runNow() {
 
   // window.addEventListener('load', onLoad);
   window.addEventListener('DOMContentLoaded', onLoad);
+  //setTimeout(onLoad, 1000);
 }
 
 function onLoad() {
@@ -46,6 +48,8 @@ function onLoad() {
 
 async function runPage() {
   console2.log('runPage');
+
+  // console.log(await getRaffles());
 
   if (window.location.href.includes('/myraffles')) {
     return runMyRafflesPage();

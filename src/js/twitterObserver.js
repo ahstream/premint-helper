@@ -315,7 +315,7 @@ function updateTwitterUserLinksOnPage(user, href) {
   console2.trace('elems', elems);
 
   if (elems?.length) {
-    console2.info('Update Twitter followers:', user.handle, user.followers);
+    console2.log('Update Twitter followers:', user.handle, user.followers);
   }
 
   for (let elem of elems) {

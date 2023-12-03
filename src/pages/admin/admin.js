@@ -5,6 +5,7 @@ import './admin.scss';
 import {
   optimizeStorage,
   createStatusbarButtons,
+  getMyTabIdFromExtension,
   STATUSBAR_DEFAULT_TEXT,
 } from '../../js/premintHelperLib.js';
 
@@ -55,11 +56,15 @@ async function runPage() {
 
   updateMainStatus('');
 
+  await chrome.runtime.sendMessage({ cmd: 'ping' });
+
   document.getElementById('hx-optimize-storage').addEventListener('click', () => optimizeStorageHandler());
   document.getElementById('hx-get-alphabot-calendar').addEventListener('click', () => getAlphabotCalendar());
 }
 
 async function getAlphabotCalendar() {
+  const x = await getMyTabIdFromExtension(pageState, 5000);
+  console.log('x', x);
   const result = await getCalendar(new Date());
   console.log('result', result);
   const result2 = await getCalendars(new Date(), 1, 2);

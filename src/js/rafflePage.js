@@ -62,9 +62,17 @@ export async function initRafflePage(raffleProvider) {
   console2.info('Init raffle page, provider:', raffleProvider?.name);
   provider = raffleProvider;
 
-  await loadStorage();
+  window.addEventListener('load', onLoad);
+  window.addEventListener('DOMContentLoaded', onLoad);
 
-  //console2.log('storageAll', await getStorageData());
+  pageState.observer = await provider.createObserver({ permissions: null });
+  pageState.twitterObserver = await provider.createObserver2({ permissions: null });
+  const permissions = await getPermissions();
+  pageState.permissions = permissions;
+  console2.info('PageState:', pageState);
+
+  await loadStorage();
+  console2.info('storage:', storage);
 
   if (!storage?.options) {
     return console2.info('Options missing, exit!');
@@ -76,14 +84,8 @@ export async function initRafflePage(raffleProvider) {
 
   initEventHandlers();
 
-  const permissions = await getPermissions();
-
-  pageState.permissions = permissions;
-  pageState.observer = await provider.createObserver({ permissions });
-  pageState.twitterObserver = await provider.createObserver2({ permissions });
-
-  window.addEventListener('load', onLoad);
-  window.addEventListener('DOMContentLoaded', onLoad);
+  pageState.initialized = true;
+  //setTimeout(onLoad, 1000);
 }
 
 async function onLoad() {
@@ -93,6 +95,11 @@ async function onLoad() {
     return console2.log('Page already loaded, ignore load event!');
   }
   pageState.loaded = true;
+
+  while (!pageState.initialized) {
+    console2.info('Wait for initialized...');
+    await sleep(200);
+  }
 
   const hashArgs = createHashArgs(window.location.hash);
 
@@ -118,6 +125,7 @@ async function onLoad() {
 }
 
 function initEventHandlers() {
+  console2.info('Init event handlers');
   chrome.runtime.onMessage.addListener(async (request, sender, sendResponse) => {
     console2.info('Received message:', request, sender);
 

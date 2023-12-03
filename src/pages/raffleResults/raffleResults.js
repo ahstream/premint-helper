@@ -4,7 +4,11 @@ import './raffleResults.scss';
 
 import { getAccount as getAtlasAccount, getWins as getAtlasWins } from '../../js/atlasLib';
 
-import { getAccount as getLuckygoAccount, getWins as getLuckygoWins } from '../../js/luckygoLib.js';
+import {
+  getAccount as getLuckygoAccount,
+  getWins as getLuckygoWins,
+  getLuckygoAuth,
+} from '../../js/luckygoLib.js';
 
 import {
   getAccount as getAlphabotAccount,
@@ -23,6 +27,7 @@ import {
   readProjectWins2,
   writeProjectWins,
   writeProjectWins2,
+  countProjectWins2,
 } from '../../js/cloudLib';
 
 // import { waitForUser } from '../../js/twitterLib';
@@ -30,26 +35,30 @@ import {
 import {
   createStatusbarButtons,
   checkIfSubscriptionEnabled,
-  STATUSBAR_DEFAULT_TEXT,
   toShortWallet,
   walletToAlias,
   sortWallets,
   trimWallet,
   accountToAlias,
-  reloadOptions,
-  getMyTabIdFromExtension,
+  //getMyTabIdFromExtension,
   normalizeTwitterHandle,
   // normalizeDiscordUrl,
   lookupTwitterFollowersClickEventHandler,
+  // getMyTabIdFromExtension,
+  loadStorage,
+  reloadOptions,
+  updateMainStatus,
+  updateSubStatus,
+  resetSubStatus,
+  STATUSBAR_DEFAULT_TEXT,
 } from '../../js/premintHelperLib.js';
 
 import { trimPrice, trimText, trimTextNum } from '../../js/raffleResultsLib.js';
 
 import {
   ONE_DAY,
-  sleep,
+  //sleep,
   createHashArgs,
-  getStorageItems,
   setStorageData,
   dynamicSortMultiple,
   noDuplicatesByKey,
@@ -70,9 +79,10 @@ import {
   minutesBetween,
   secondsBetween,
   // kFormatter,
-  addPendingRequest,
+  //addPendingRequest,
   myConsole,
   extractTwitterHandle,
+  toObjArray,
 } from 'hx-lib';
 
 import { getPermissions } from '../../js/permissions';
@@ -101,7 +111,7 @@ const MAX_LEN_TWITTER_HANDLE = 24;
 const MAX_LEN_DISCORD_HANDLE = 15;
 const MAX_LEN_TEAM_NAME = 24;
 
-let storage;
+let storage = {};
 let pageState = {
   shownProvider: 'all-providers',
 };
@@ -119,81 +129,54 @@ async function runNow() {
   runPage();
 }
 
-function initStorage() {
-  storage.results = storage.results || {};
-
-  storage.alphabot = storage.alphabot || {};
-  storage.alphabot.myWins = storage.alphabot.myWins || [];
-  storage.alphabot.cloudWins = storage.alphabot.cloudWins || [];
-  storage.alphabot.wins = storage.alphabot.wins || [];
-
-  storage.premint = storage.premint || {};
-  storage.premint.myWins = storage.premint.myWins || [];
-  storage.premint.myLost = storage.premint.myLost || [];
-  storage.premint.cloudWins = storage.premint.cloudWins || [];
-  storage.premint.wins = storage.premint.wins || [];
-
-  storage.atlas = storage.atlas || {};
-  storage.atlas.myWins = storage.atlas.myWins || [];
-  storage.atlas.cloudWins = storage.atlas.cloudWins || [];
-  storage.atlas.wins = storage.atlas.wins || [];
-
-  storage.luckygo = storage.luckygo || {};
-  storage.luckygo.myWins = storage.luckygo.myWins || [];
-  storage.luckygo.cloudWins = storage.luckygo.cloudWins || [];
-  storage.luckygo.wins = storage.luckygo.wins || [];
-
-  storage.wins = storage.wins || [];
-  storage.allProjectWins = storage.allProjectWins || {};
-  storage.allProjectWins2 = storage.allProjectWins2 || {};
-  storage.allProjectWinsMap = storage.allProjectWinsMap || {};
-}
-
 async function runPage() {
   console2.log('runPage');
 
-  storage = await getStorageItems([
-    'options',
-    'wins',
-    'allProjectWins',
-    'allProjectWins2',
-    'allProjectWinsMap',
-    'results',
-    'alphabot',
-    'premint',
-    'atlas',
-    'luckygo',
-  ]);
-  console2.log('storage:', storage);
-
-  if (!storage?.options) {
-    return console2.log('Options missing, exit!');
-  }
-
-  initStorage();
-
-  console2.log('storage after checks:', storage);
-
-  const hashArgs = createHashArgs(window.location.hash);
-  const permissions = await getPermissions();
-  pageState = {
-    ...pageState,
-    hashArgs,
-    statusbar: createStatusbar(STATUSBAR_DEFAULT_TEXT),
-    permissions,
-    observer: await createTwitterObserver({ permissions }),
-  };
-
-  console2.info('PageState:', pageState);
-
-  pageState.statusbar.buttons(
-    createStatusbarButtons({
+  const statusbar = createStatusbar(STATUSBAR_DEFAULT_TEXT, {
+    buttons: createStatusbarButtons({
       options: true,
       results: 'disabled',
       reveal: 'disabled',
       followers: lookupTwitterFollowersClickEventHandler,
-    })
+    }),
+  });
+  const hashArgs = createHashArgs(window.location.hash);
+  const permissions = await getPermissions();
+
+  storage = await loadStorage(
+    {},
+    null,
+    [
+      'options',
+      'wins',
+      'allProjectWins',
+      'allProjectWins2',
+      'allProjectWinsMap',
+      'results',
+      'alphabot',
+      'premint',
+      'atlas',
+      'luckygo',
+    ],
+    [{ key: 'raffles', val: {} }]
   );
+  console.log('storage', storage);
+
+  initEventHandlers(pageState);
+
+  pageState = {
+    ...pageState,
+    hashArgs,
+    statusbar,
+    permissions,
+    observer: await createTwitterObserver({ permissions }),
+  };
+  console2.info('PageState:', pageState);
+
+  resetSubStatus();
+  updateMainStatus('');
+
+  initStorage();
 
   checkIfSubscriptionEnabled(pageState.permissions, false, pageState.statusbar.warn);
 
@@ -229,6 +212,64 @@ async function runPage() {
   showPage();
 }
 
+async function initEventHandlers() {
+  console2.info('Init event handlers');
+
+  chrome.runtime.onMessage.addListener(async (request, sender, sendResponse) => {
+    console2.log('Received message:', request, sender);
+
+    if (request.cmd === 'getAuth') {
+      console2.log('Received getAuth');
+      pageState[`${request.cmd}`] = true;
+      pageState[`${request.cmd}Val`] = request.val;
+    }
+
+    if (request.cmd === 'switchedToTwitterUser') {
+      pageState.switchedToTwitterUser = request;
+    }
+
+    if (request.cmd === 'getMyTabIdAsyncResponse') {
+      pageState.myTabId = request.response;
+    }
+
+    sendResponse();
+    return true;
+  });
+}
+
+// STORAGE ---------------
+
+function initStorage() {
+  storage.results = storage.results || {};
+
+  storage.alphabot = storage.alphabot || {};
+  storage.alphabot.myWins = storage.alphabot.myWins || [];
+  storage.alphabot.cloudWins = storage.alphabot.cloudWins || [];
+  storage.alphabot.wins = storage.alphabot.wins || [];
+
+  storage.premint = storage.premint || {};
+  storage.premint.myWins = storage.premint.myWins || [];
+  storage.premint.myLost = storage.premint.myLost || [];
+  storage.premint.cloudWins = storage.premint.cloudWins || [];
+  storage.premint.wins = storage.premint.wins || [];
+
+  storage.atlas = storage.atlas || {};
+  storage.atlas.myWins = storage.atlas.myWins || [];
+  storage.atlas.cloudWins = storage.atlas.cloudWins || [];
+  storage.atlas.wins = storage.atlas.wins || [];
+
+  storage.luckygo = storage.luckygo || {};
+  storage.luckygo.myWins = storage.luckygo.myWins || [];
+  storage.luckygo.cloudWins = storage.luckygo.cloudWins || [];
+  storage.luckygo.wins = storage.luckygo.wins || [];
+
+  storage.wins = storage.wins || [];
+  storage.allProjectWins = storage.allProjectWins || {};
+  storage.allProjectWins2 = storage.allProjectWins2 || {};
+  storage.allProjectWinsMap = storage.allProjectWinsMap || {};
+}
+
+// XXX ----------------------
 async function updateWins() {
   updateMainStatus('Updating results');
   resetSubStatus();
@@ -236,6 +277,7 @@ async function updateWins() {
   document.getElementById('main-table').innerHTML = '';
 
   const checkTime = Date.now();
+  console2.info(`Check time:`, checkTime);
 
   let cloudWins = [];
 
@@ -248,7 +290,7 @@ async function updateWins() {
     if (cloudWins.error) {
       statusLogger.sub('Failed getting results from Cloud! Error:' + cloudWins.msg);
     } else {
-      console2.info(`Fetched <b>${cloudWins.length}</b> new or updated winners from Cloud:`, cloudWins);
+      console2.info(`Fetched ${cloudWins.length} new or updated winners from Cloud:`, cloudWins);
       statusLogger.sub(`Fetched <b>${cloudWins.length}</b> new or updated winners from Cloud`);
       storage.results.lastCloudTimestamp = checkTime;
       console2.log('storage.results.lastCloudTimestamp', storage.results.lastCloudTimestamp);
@@ -276,6 +318,7 @@ async function updateWins() {
   await updateAlphabotCalendarMintDates(checkTime);
 
   storage.results.lastProviderUpdate = checkTime;
+  storage.results.lastWinsUpdatePrev = storage.results.lastWinsUpdate;
   storage.results.lastWinsUpdate = checkTime;
 
   const prevProjectWins = storage.allProjectWins;
@@ -301,13 +344,21 @@ async function updateWins() {
 
   const newProjectWins2 = addNewProjectWins();
   console2.info('newProjectWins2', newProjectWins2);
-  if (newProjectWins2?.length && storage.options.CLOUD_MODE === 'load') {
-    const writeResult2 = await writeProjectWins2(newProjectWins2, storage.options);
+
+  const ct = await countProjectWins2(storage.options);
+  console2.log('Count projectWins:', ct);
+
+  // if no wins in cloud, upload everything we got!
+  const winsToUpload = ct > 0 ? newProjectWins2 : toObjArray(storage.allProjectWins2);
+  console2.log('winsToUpload', winsToUpload);
+
+  if (winsToUpload?.length && storage.options.CLOUD_MODE === 'load') {
+    const writeResult2 = await writeProjectWins2(winsToUpload, storage.options);
     if (writeResult2.error) {
       statusLogger.sub(`Failed uploading won wallets to Cloud. Network problems?`);
     } else {
       storage.results.lastCloudUploadProjectWins2 = Date.now();
-      statusLogger.sub(`Uploaded ${newProjectWins2.length} won wallets to Cloud`);
+      statusLogger.sub(`Uploaded ${winsToUpload.length} won wallets to Cloud`);
     }
   }
 
@@ -482,48 +533,6 @@ async function resetWins() {
 
   resetSubStatus();
   showPage({ updateStatus: true });
-}
-
-// EVENT HANDLERS ----------------------------------------------------------------------------------
-
-chrome.runtime.onMessage.addListener(async (request, sender, sendResponse) => {
-  console2.log('Received message:', request, sender);
-
-  if (request.cmd === 'getAuth') {
-    console2.log('Received getAuth');
-    pageState[`${request.cmd}`] = true;
-    pageState[`${request.cmd}Val`] = request.val;
-  }
-
-  if (request.cmd === 'switchedToTwitterUser') {
-    pageState.switchedToTwitterUser = request;
-  }
-
-  if (request.cmd === 'getMyTabIdAsyncResponse') {
-    pageState.myTabId = request.response;
-  }
-
-  sendResponse();
-  return true;
-});
-
-async function getFromWebPage(url, key, tabId, maxWait = 30000, interval = 10) {
-  console2.log('getFromWebPage:', url);
-
-  await addPendingRequest(url, { action: key, tabId });
-  // window.open(url);
-  chrome.runtime.sendMessage({ cmd: 'openTab', url });
-
-  const stopTime = millisecondsAhead(maxWait);
-  while (Date.now() <= stopTime) {
-    if (pageState[key]) {
-      const result = pageState[`${key}Val`];
-      pageState[key] = null;
-      return result;
-    }
-    await sleep(interval);
-  }
-  return null;
 }
 
 // MAIN ------------------------------
@@ -757,9 +766,7 @@ async function updateAlphabotCalendarMintDates(checkTime) {
     `Updated <b>${storage.wins.filter((x) => x.isModified).length}</b> wins with new mint date or price info`
   );
   console2.info(
-    `Updated <b>${
-      storage.wins.filter((x) => x.isModified).length
-    }</b> wins with new mint date or price info:`,
+    `Updated ${storage.wins.filter((x) => x.isModified).length} wins with new mint date or price info:`,
     storage.wins.filter((x) => x.isModified)
   );
 }
@@ -926,7 +933,7 @@ async function updateLuckygoWins(checkTime, allCloudWins) {
     return [];
   }
 
-  const authKey = await getLuckygoAuth();
+  const authKey = await getLuckygoAuth(pageState);
   if (!authKey) {
     statusLogger.sub(`Failed getting ${providerName} authentication key. Check if logged in to website.`);
     return [];
@@ -977,6 +984,7 @@ async function updateLuckygoWins(checkTime, allCloudWins) {
   return raffleStorage.wins;
 }
 
+/*
 async function getLuckygoAuth() {
   await getMyTabIdFromExtension(pageState, 5000);
   if (!pageState.myTabId) {
@@ -994,6 +1002,7 @@ async function getLuckygoAuth() {
 
   return authKeyTrim;
 }
+*/
 
 // WINS ------------------------------
 
@@ -1085,8 +1094,11 @@ function packWins(wins, allRaffles = false) {
 
   winsWithTwitter.forEach((x) => {
     x.hxSortKey = Math.max(...x.wins.map((w) => w.hxSortKey || 0));
-    x.mintDateLast = Math.max(...x.wins.map((w) => w.mintDate || 0));
-    x.mintDate = x.wins.some((w) => isRestarted(w)) ? null : Math.max(...x.wins.map((w) => w.mintDate || 0));
+    const mintDateLast = Math.max(...x.wins.map((w) => w.mintDate || 0));
+    x.mintDateLast = mintDateLast;
+    x.mintDate = x.wins.some((w) => isRestarted(w, mintDateLast))
+      ? null
+      : Math.max(...x.wins.map((w) => w.mintDate || 0));
   });
 
   const winsWithoutTwitter = winsWithoutTwitterRaw.map((x) => {
@@ -1157,9 +1169,12 @@ function isWinnerToShow(win, minMintDate) {
   return false;
 }
 
-function isRestarted(win) {
+function isRestarted(win, mintDateLast) {
   // already minted but new raffle, probably restarted drop
-  return win.startDate && win.mintDate && win.startDate >= win.mintDate;
+  return (
+    (win.startDate && win.mintDate && win.startDate >= win.mintDate) ||
+    (win.startDate && mintDateLast && win.startDate >= mintDateLast)
+  );
 }
 
 function createWinsTableHeadRow(extended = false) {
@@ -1284,8 +1299,8 @@ function createWinsTable(
 
     // CELL: raffle links
     const raffleLinks = wins.map((x) => {
-      const isNew = x.hxCreated && x.hxCreated >= storage.results.lastWinsUpdate;
-      const isUpdated = x.hxUpdated && x.hxUpdated >= storage.results.lastWinsUpdate;
+      const isNew = x.hxCreated && x.hxCreated >= storage.results.lastWinsUpdatePrev;
+      const isUpdated = x.hxUpdated && x.hxUpdated >= storage.results.lastWinsUpdatePrev;
       return {
         url: x.url,
         text: trimText(x.name, MAX_LEN_RAFFLE_NAME),
@@ -1649,80 +1664,7 @@ function showCheckboxedClickHandler() {
   });
 }
 
-// WINS FUNCS -----------------------------------------------------
-
 // MISC HELPERS -----------------------------------------------------
-
-// STATUS FUNCS -----------------------------------------------------
-
-function updateMainStatus(text) {
-  console2.log('updateMainStatus', text);
-
-  const elem = document.getElementById('hx-status-main');
-  if (elem) {
-    elem.innerText = text;
-  }
-}
-
-function resetSubStatus() {
-  document.getElementById('hx-status').replaceChildren();
-}
-
-function updateSubStatus(html, reuseLast = false) {
-  console2.log('updateSubStatus', html);
-
-  const elem = document.getElementById('hx-status');
-  if (!elem) {
-    console2.error('Missing status element in HTML!');
-    return false;
-  }
-  let item;
-  let isReused = false;
-  if (reuseLast) {
-    const items = Array.from(elem.getElementsByTagName('LI'));
-    if (items.length) {
-      item = items[items.length - 1];
-      isReused = true;
-    }
-  }
-  if (isReused) {
-    item.innerHTML = html;
-  } else {
-    item = document.createElement('LI');
-    item.innerHTML = html;
-    elem.appendChild(item);
-  }
-}
-
-/*
-function resetSubStatus() {
-  document.getElementById('hx-status').replaceChildren();
-}
-
-function updateSubStatus(html, reuseLast = false) {
-  const elem = document.getElementById('hx-status');
-  if (!elem) {
-    console2.error('Missing status element in HTML!');
-    return false;
-  }
-  let item;
-  let isReused = false;
-  if (reuseLast) {
-    const items = Array.from(elem.getElementsByTagName('LI'));
-    if (items.length) {
-      item = items[items.length - 1];
-      isReused = true;
-    }
-  }
-  if (isReused) {
-    item.innerHTML = html;
-  } else {
-    item = document.createElement('LI');
-    item.innerHTML = html;
-    elem.appendChild(item);
-  }
-}
-*/
 
 async function setDateishOnPackedWins(packedWins) {
   if (!packedWins?.length) {

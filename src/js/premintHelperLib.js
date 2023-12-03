@@ -1,7 +1,6 @@
 import {
   sleep,
   millisecondsAhead,
-  getStorageItems,
   addPendingRequest,
   pluralize,
   dynamicSortMultiple,
@@ -10,12 +9,17 @@ import {
   simulateClick,
   myConsole,
   getStorageData,
+  setStorageData,
+  getStorageItems,
   // setStorageData,
 } from 'hx-lib';
 
 const console2 = myConsole();
 
 // DATA ----------------------------------------------------------------------------------
+
+const GLOBAL_REAL_CLICK_ELEMENT = true;
+const GLOBAL_SIMULATE_CLICK_ELEMENT = true;
 
 export const JOIN_BUTTON_TEXT = 'PH Auto Join';
 export const JOIN_BUTTON_IN_PROGRESS_TEXT = 'PH Auto Join in progress...';
@@ -419,37 +423,6 @@ function handleRetries(context, retries, retrySecs) {
   }
 }
 
-export async function getMyTabIdFromExtension(context, maxWait, intervall = 100) {
-  console2.log('getMyTabIdFromExtension', context, maxWait, intervall);
-  if (!context) {
-    return null;
-  }
-
-  if (context?.myTabId) {
-    return context?.myTabId;
-  }
-
-  setTimeout(async () => {
-    console2.log('sendMessage getMyTabId');
-    const result = await chrome.runtime.sendMessage({ cmd: 'getMyTabIdAsync' });
-    if (result) {
-      // this is set elsewhere, not here! context.myTabId = result;
-    }
-    console2.log('context.myTabId after fetch; context.myTabId, result:', context.myTabId, result);
-  }, 1);
-
-  const stopTime = millisecondsAhead(maxWait);
-  while (Date.now() <= stopTime) {
-    if (context.myTabId) {
-      console2.log('context.myTabId after waited:', context.myTabId);
-      return context.myTabId;
-    }
-    await sleep(intervall);
-  }
-  console2.log('context.myTabId after waited in vain:', context.myTabId);
-  return context.myTabId;
-}
-
 export async function removeDoneLinks(handle, links, pageState) {
   const validLinks = [];
   for (const link of links) {
@@ -598,17 +571,18 @@ export async function finishTask(request, sender, context) {
 }
 
 export function clickElement(elem) {
-  console2.trace('clickElement:', elem);
-  if (elem.click) {
+  let clicked = false;
+  if (GLOBAL_REAL_CLICK_ELEMENT && elem?.click) {
     elem.click();
-  } else {
-    simulateClick(elem);
+    clicked = true;
   }
-}
-
-export async function reloadOptions(storage) {
-  const { options } = await getStorageItems(['options']);
-  storage.options = options;
+  if (GLOBAL_SIMULATE_CLICK_ELEMENT && elem) {
+    simulateClick(elem);
+    clicked = true;
+  }
+  if (!clicked) {
+    throw new Error('Not configured to click element!');
+  }
 }
 
 export function removeBadStuffFromTwitterHandle(s) {
@@ -805,4 +779,165 @@ export async function optimizeStorage() {
   // projectObserver: lowercase + remove old entries
   // twitterObserver: lowercase + remove old entries
   // wins: remove old?
+}
+
+// MY TAB ID -------------------------------------------------------------------
+
+export async function getMyTabIdFromExtension(context, maxWait, intervall = 100) {
+  console2.log('getMyTabIdFromExtension', context, maxWait, intervall);
+  if (!context) {
+    return null;
+  }
+
+  if (context?.myTabId) {
+    return context?.myTabId;
+  }
+
+  setTimeout(async () => {
+    console2.log('sendMessage getMyTabId');
+    const result = await chrome.runtime.sendMessage({ cmd: 'getMyTabIdAsync' });
+    console2.log('result', result);
+    if (result) {
+      context.myTabId = result;
+    }
+    console2.log('context.myTabId after fetch; context.myTabId, result:', context.myTabId, result);
+  }, 1);
+
+  const stopTime = millisecondsAhead(maxWait);
+  while (Date.now() <= stopTime) {
+    if (context.myTabId) {
+      console2.log('context.myTabId after waited:', context.myTabId);
+      return context.myTabId;
+    }
+    await sleep(intervall);
+  }
+  console2.log('context.myTabId after waited in vain:', context.myTabId);
+  return context.myTabId;
+}
+
+// GET FROM WEBPAGE -------------------------------------------------------------------
+
+export async function getFromWebPage(url, key, tabId, context, maxWait = 30000, interval = 100) {
+  console2.log('getFromWebPage:', url);
+
+  await addPendingRequest(url, { action: key, tabId });
+  // window.open(url);
+  chrome.runtime.sendMessage({ cmd: 'openTab', url });
+
+  const stopTime = millisecondsAhead(maxWait);
+  while (Date.now() <= stopTime) {
+    if (context[key]) {
+      const result = context[`${key}Val`];
+      context[key] = null;
+      return result;
+    }
+    console2.log('context', context);
+    await sleep(interval);
+  }
+  return null;
+}
+
+// EVENT HANDLERS -----------------------------------------------------
+
+export function initBaseEventHandlers(pageState) {
+  console2.info('Init base event handlers');
+
+  chrome.runtime.onMessage.addListener(async (request, sender, sendResponse) => {
+    console2.info('Received message:', request, sender);
+
+    if (request.cmd === 'pong') {
+      // do nothing
+    }
+
+    if (request.cmd === 'getAuth') {
+      console.log('Received getAuth');
+      pageState[`${request.cmd}`] = true;
+      pageState[`${request.cmd}Val`] = request.val;
+      console.log('pageState', pageState);
+    }
+
+    if (request.cmd === 'getMyTabIdAsyncResponse') {
+      pageState.myTabId = request.response;
+    }
+
+    sendResponse();
+    return true;
+  });
+}
+
+// STORAGE -----------------------------------------------------
+
+export async function loadStorage(storage, key = null, keys = [], base = []) {
+  console.log('loadStorage', storage, key, keys, base);
+
+  if (key) {
+    const storageTemp = await getStorageItems([key]);
+    storage[key] = storageTemp[key];
+    console2.info('Load storage by key:', key, storage);
+  } else {
+    storage = await getStorageItems(keys?.length ? keys : null);
+    console2.info('Load storage by keys:', keys, storage);
+  }
+  return await setBaseStorage(storage, base);
+}
+
+async function setBaseStorage(storage, base) {
+  console2.info('Set base storage:', storage, base);
+  let modified = false;
+  base.forEach((b) => {
+    if (!storage[b.key]) {
+      storage[b.key] = b.val;
+      modified = true;
+    }
+  });
+  if (modified) {
+    await setStorageData(storage);
+    console2.info('Base storage modified!', storage);
+  }
+  return storage;
+}
+
+export async function reloadOptions(storage) {
+  const { options } = await getStorageItems(['options']);
+  storage.options = options;
+  console2.log('storage.options:', storage.options);
+}
+
+// STATUS  -----------------------------------------------------
+
+export function updateMainStatus(text) {
+  console2.log('updateMainStatus', text);
+  const elem = document.getElementById('hx-status-main');
+  if (elem) {
+    elem.innerText = text;
+  }
+}
+
+export function updateSubStatus(html, reuseLast = false) {
+  console2.log('updateSubStatus', html);
+  const elem = document.getElementById('hx-status');
+  if (!elem) {
+    console2.error('Missing status element in HTML!');
+    return false;
+  }
+  let item;
+  let isReused = false;
+  if (reuseLast) {
+    const items = Array.from(elem.getElementsByTagName('LI'));
+    if (items.length) {
+      item = items[items.length - 1];
+      isReused = true;
+    }
+  }
+  if (isReused) {
+    item.innerHTML = html;
+  } else {
+    item = document.createElement('LI');
+    item.innerHTML = html;
+    elem.appendChild(item);
+  }
+}
+
+export function resetSubStatus() {
+  document.getElementById('hx-status').replaceChildren();
 }

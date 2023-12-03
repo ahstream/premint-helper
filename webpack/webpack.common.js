@@ -15,6 +15,7 @@ module.exports = {
     admin: './src/pages/admin/admin.js',
     shortcuts: './src/pages/shortcuts/shortcuts.js',
     raffleResults: './src/pages/raffleResults/raffleResults.js',
+    raffles: './src/pages/raffles/raffles.js',
     genericPage: './src/js/genericPage.js',
     premintRafflePage: './src/js/premintRafflePage.js',
     alphabotRafflePage: './src/js/alphabotRafflePage.js',

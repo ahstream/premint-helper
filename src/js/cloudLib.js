@@ -234,3 +234,29 @@ export async function writeProjectWins2(wins, options) {
 
   return { ...data, count: data.length };
 }
+
+export async function countProjectWins2(options) {
+  const url = options.CLOUD_COUNT_PROJECT_WINS_URL2;
+  const tag = options.CLOUD_TAG;
+
+  if (!url) {
+    return { error: true, msg: 'Missing CLOUD_COUNT_PROJECT_WINS_URL2' };
+  }
+  if (!tag) {
+    return { error: true, msg: 'Missing CLOUD_TAG' };
+  }
+
+  const result = await fetchHelper(url, {
+    method: 'POST',
+    body: JSON.stringify({
+      hxTag: tag,
+    }),
+  });
+  console2.log('cloud count result:', result);
+
+  if (result.error) {
+    return { error: true, msg: result.msg || 'Invalid data returned from CLOUD_COUNT_PROJECT_WINS_URL2' };
+  }
+
+  return result.data.count;
+}

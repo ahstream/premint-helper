@@ -524,7 +524,7 @@ export async function createObserver({
       return null;
     }
 
-    const hidden = pageState.permissions?.enabled ? '' : '[ PREMIUM FEATURE HIDDEN ]';
+    const hidden = ''; // todo pageState.permissions?.enabled ? '' : '[ PREMIUM FEATURE HIDDEN ]';
     console2.trace('hidden', hidden);
 
     const wallets = sortWallets(walletsWon, storage.options);
@@ -568,7 +568,7 @@ export async function createObserver({
       return null;
     }
 
-    const hidden = pageState.permissions?.enabled ? '' : '[ PREMIUM FEATURE HIDDEN ]';
+    const hidden = ''; // todo pageState.permissions?.enabled ? '' : '[ PREMIUM FEATURE HIDDEN ]';
     console2.trace('hidden', hidden);
 
     const wallets = sortWallets(walletsWon, storage.options);
