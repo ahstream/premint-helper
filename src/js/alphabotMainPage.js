@@ -39,16 +39,16 @@ let pageState = {
 runNow();
 
 async function runNow() {
-  window.addEventListener('load', onLoad);
-  window.addEventListener('DOMContentLoaded', onLoad);
-  //setTimeout(onLoad, 1000);
-
   pageState.observer = await createObserver({ permissions: null, autoFollowers: false });
   pageState.twitterObserver = await createTwitterObserver({
     permissions: null,
     logger: { info: updateStatusbar, error: updateStatusbarError },
   });
   pageState.permissions = await getPermissions();
+
+  window.addEventListener('load', onLoad);
+  window.addEventListener('DOMContentLoaded', onLoad);
+  //setTimeout(onLoad, 1000);
 
   storage = await getStorageItems(['runtime', 'options']);
   console2.log('storage', storage);

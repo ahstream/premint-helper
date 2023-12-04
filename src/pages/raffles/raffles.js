@@ -17,7 +17,7 @@ import {
   createHashArgs,
   myConsole,
   toObjArray,
-  dynamicSortMultiple,
+  dynamicSort,
   setStorageData,
   addClassName,
   textAsClass,
@@ -29,12 +29,18 @@ import {
   minutesBetween,
   hoursBetween,
   daysBetween,
+  secondsBetween,
+  makeTwitterURL,
 } from 'hx-lib';
 
 import { getPermissions } from '../../js/permissions.js';
 import { getRaffles as getLuckygoRaffles, getLuckygoAuth } from '../../js/luckygoLib.js';
+import { getRaffles as getAlphabotRaffles } from '../../js/alphabotLib.js';
 
 import { createStatusbar } from 'hx-statusbar';
+
+import { createObserver as createTwitterObserver } from '../../js/twitterObserver.js';
+import { createObserver } from '../../js/observerGeneric.js';
 
 const console2 = myConsole();
 
@@ -47,8 +53,12 @@ let pageState = {};
 
 const SHORTENED_TEXT_SUFFIX = '...';
 const MAX_LEN_RAFFLE_NAME = 32;
+const MAX_LEN_TWITTER_HANDLE = 24;
 
 const SORT_ORDER_LOCALE = 'sv-SE';
+const MAX_RAFFLES = 300;
+
+const statusLogger = { main: updateMainStatus, sub: updateSubStatus };
 
 // STARTUP ------------------------------
 
@@ -71,8 +81,11 @@ async function runPage() {
   });
   const hashArgs = createHashArgs(window.location.hash);
   const permissions = await getPermissions();
+  const twitterObserver = await createTwitterObserver({ permissions });
+  const observer = await createObserver({ permissions, autoFollowers: false });
 
-  storage = await loadStorage({}, null, [], [{ key: 'raffles', val: {} }]);
+  // storage = await loadStorage({}, null, [], [{ key: 'raffles', val: {} }]);
+  storage = await loadStorage({}, null, [], []);
   console.log('storage', storage);
 
   initEventHandlers(pageState);
@@ -82,6 +95,8 @@ async function runPage() {
     hashArgs,
     statusbar,
     permissions,
+    twitterObserver,
+    observer,
   };
   console2.info('PageState:', pageState);
 
@@ -120,12 +135,20 @@ async function initEventHandlers() {
 async function updateRaffles() {
   console.log('updateRaffles');
 
+  resetPage();
+
+  statusLogger.main(`Update raffles...`);
+
   await reloadOptions(storage);
 
   await getMyTabIdFromExtension(pageState, 5000);
   console.log('pageState', pageState);
 
   await updateLuckygoRaffles();
+  statusLogger.sub(`Fetched ${storage.raffles.luckygo?.length || 0} LuckyGo raffles`);
+  await updateAlphabotRaffles();
+  statusLogger.sub(`Fetched ${storage.raffles.alphabot?.length || 0} Alphabot raffles`);
+
   await setStorageData(storage);
 
   showPage();
@@ -142,42 +165,88 @@ async function updateLuckygoRaffles() {
 
   const authKey = await getLuckygoAuth(pageState);
   if (!authKey) {
-    updateSubStatus(`Failed getting LuckyGo authentication key. Check if logged in to website.`);
+    statusLogger.sub(`Failed getting LuckyGo authentication key. Check if logged in to website.`);
     return;
   }
   console.log('authKey', authKey);
 
-  const r1 = await getLuckygoRaffles(authKey);
+  const r1 = await getLuckygoRaffles(authKey, {
+    statusLogger,
+    max: MAX_RAFFLES,
+  });
   console.log('r1', r1);
+  if (!r1) {
+    statusLogger.sub(`No raffles found at LuckyGo!`);
+    console2.error('Empty raffles from LuckyGo!');
+    return;
+  }
 
-  const r2 = processLuckygoRaffles(r1);
+  const r2 = processRaffles(r1);
   console.log('r2', r2);
 
+  storage.raffles.luckygoLast = storage.raffles.luckygo;
   storage.raffles.luckygo = r2;
+
+  await setStorageData(storage);
 }
 
-function processLuckygoRaffles(raffles) {
-  const obj = {};
+// ALPHABOT ------------------------------
 
+async function updateAlphabotRaffles() {
+  console.log('updateAlphabotRaffles');
+
+  const authKey = null;
+  console.log('authKey', authKey);
+
+  const r1 = await getAlphabotRaffles(authKey, {
+    statusLogger,
+    max: MAX_RAFFLES,
+  });
+  console.log('r1', r1);
+  if (!r1) {
+    statusLogger.sub(`No raffles found at Alphabot!`);
+    console2.error('Empty raffles from Alphabot!');
+    return;
+  }
+
+  const r2 = processRaffles(r1);
+  console.log('r2', r2);
+  storage.raffles.alphabotLast = storage.raffles.alphabot;
+  storage.raffles.alphabot = r2;
+
+  await setStorageData(storage);
+}
+
+// RAFFLES ------------------------------
+
+function processRaffles(raffles) {
+  const obj = {};
   for (let raffle of raffles) {
-    let item = obj[raffle.collabId];
+    const id = raffle.collabId || raffle.collabTwitterHandle || raffle.id;
+    let item = obj[id];
     if (!item) {
-      obj[raffle.collabId] = {
-        collabId: raffle.collabId,
-        collabBanner: raffle.collabBanner,
-        collabLogo: raffle.collabLogo,
-        mintDate: raffle.mintDate,
-        provider: raffle.provider,
-        blockchain: raffle.blockchain,
-        remainingSeconds: raffle.remainingSeconds,
-        raffles: [],
-      };
-      item = obj[raffle.collabId];
+      obj[id] = createNewRaffle(id, raffle);
+      item = obj[id];
     }
     item.raffles.push(raffle);
   }
+  return toObjArray(obj).sort(dynamicSort('endDate'));
+}
 
-  return toObjArray(obj).sort(dynamicSortMultiple('remainingSeconds'));
+function createNewRaffle(id, raffle) {
+  return {
+    sortKey: raffle.mintDate || raffle.endDate || raffle.startDate,
+    collabId: id,
+    collabBanner: raffle.collabBanner,
+    collabLogo: raffle.collabLogo,
+    mintDate: raffle.mintDate,
+    endDate: raffle.endDate,
+    provider: raffle.provider,
+    blockchain: raffle.blockchain,
+    remainingSeconds: raffle.remainingSeconds || secondsBetween(raffle.endDate, Date.now()) || 0,
+    collabTwitterHandle: raffle.collabTwitterHandle,
+    raffles: [],
+  };
 }
 
 // SHOW PAGE -----------------------------------------------------
@@ -185,13 +254,18 @@ function processLuckygoRaffles(raffles) {
 async function showPage() {
   console2.log('showPage');
 
-  document.getElementById('main-table').innerHTML = '';
+  resetPage();
 
-  appendRafflesTable(createRafflesTable(storage.raffles.luckygo, 'LuckyGo'));
+  appendRafflesTable(createRafflesTable(storage.raffles.alphabot.sort(dynamicSort('endDate')), 'Alphabot'));
+  appendRafflesTable(createRafflesTable(storage.raffles.luckygo.sort(dynamicSort('endDate')), 'LuckyGo'));
 
   updateMainStatus('Showing raffles below');
 
   console2.log('Done showing raffles page!');
+}
+
+function resetPage() {
+  document.getElementById('main-table').innerHTML = '';
 }
 
 // TABLES -----------------------------------------------------
@@ -207,14 +281,18 @@ function createTableHeadRow() {
   //row.appendChild(createCell('#M', 'Remaining minutes'));
   //row.appendChild(createCell('#R', 'Number of raffles'));
   row.appendChild(createCell('', 'tooltip'));
+  row.appendChild(createCell('Twitter', ''));
+  row.appendChild(createCell('Wins', ''));
   row.appendChild(createCell('%', 'Win odds'));
   row.appendChild(createCell('#W', 'Number of winners'));
   row.appendChild(createCell('#E', 'Number of winners'));
   row.appendChild(createCell('R?', 'Registered?'));
   row.appendChild(createCell('', ''));
+  row.appendChild(createCell('Req', 'Requirements'));
+  row.appendChild(createCell('P', 'Require premium subscription?'));
   row.appendChild(createCell('Mint Date', ''));
-  row.appendChild(createCell('#M', 'Remaining minutes'));
-  row.appendChild(createCell('DTC?', ''));
+  row.appendChild(createCell('Ends', 'Remaining time'));
+  row.appendChild(createCell('Method', ''));
   row.appendChild(createCell('Chain', ''));
   row.appendChild(createCell('Team', ''));
 
@@ -245,9 +323,30 @@ function createRafflesTable(packedRafflesIn, header, allColumns = false) {
   for (const parent of packedRaffles) {
     const row = document.createElement('TR');
 
-    //row.appendChild(createCell(Math.floor(parent.remainingSeconds / 60)));
-    //row.appendChild(createCell(parent.raffles.length));
+    // CELL: collab-banner
     row.appendChild(createImage(parent.collabBanner, 'collab-banner'));
+
+    // CELL: collabTwitterHandle
+    const twitterHandle = pageState.permissions?.enabled ? parent.collabTwitterHandle || '?' : 'hidden';
+    row.appendChild(
+      createCell(
+        createLink(makeTwitterURL(twitterHandle), trimText(twitterHandle, MAX_LEN_TWITTER_HANDLE), {
+          dataset: [{ key: 'username', val: parent.collabTwitterHandle }],
+          className: 'twitter-link',
+          target: '_blank',
+          fullText: twitterHandle,
+        })
+      )
+    );
+
+    // CELL: wins
+    const elem = document.createElement('SPAN');
+    elem.classList.toggle('wins-id', true);
+    elem.classList.toggle('win', false);
+    elem.innerText = '';
+    elem.dataset.twitterHandle = twitterHandle;
+    elem.dataset.wins = '';
+    row.appendChild(createCell(elem));
 
     // CELL: odds
     const winnerOdds = parent.raffles.map((x) => {
@@ -268,8 +367,12 @@ function createRafflesTable(packedRafflesIn, header, allColumns = false) {
     row.appendChild(createCell(createMultiTexts(entryCounts, { className: 'entry-count', hideDups: false })));
 
     // CELL: Has entered
-    const hasEntereds = parent.raffles.map((x) => (x.hasEntered ? 'Yes' : ''));
-    row.appendChild(createCell(createMultiTexts(hasEntereds, { className: 'has-entered', hideDups: false })));
+    const hasEntereds = parent.raffles.map((x) => (x.hasEntered ? 'x' : ''));
+    row.appendChild(
+      createCell(
+        createMultiTexts(hasEntereds, { className: 'has-entered', useTextAsClass: true, hideDups: false })
+      )
+    );
 
     // CELL: raffle links
     const raffleLinks = parent.raffles.map((x) => {
@@ -281,6 +384,16 @@ function createRafflesTable(packedRafflesIn, header, allColumns = false) {
     });
     row.appendChild(
       createCell(createMultiLinks(raffleLinks, { className: 'raffle-link', target: '_blank' }))
+    );
+
+    // CELL: reqStrings
+    const reqStrings = parent.raffles.map((x) => x.reqString || '');
+    row.appendChild(createCell(createMultiTexts(reqStrings, { className: 'req-string', hideDups: false })));
+
+    // CELL: reqStrings
+    const requirePremiums = parent.raffles.map((x) => (x.requirePremium ? 'Yes' : ''));
+    row.appendChild(
+      createCell(createMultiTexts(requirePremiums, { className: 'require-premium', hideDups: false }))
     );
 
     // CELL: mintDates
@@ -387,7 +500,8 @@ function createMultiTexts(texts, { className, useTextAsClass, hideDups = true, f
   elem.style.whiteSpace = 'nowrap';
   let isFirst = true;
   let lastText = null;
-  for (const [index, text] of texts.entries()) {
+  for (const [index, textIn] of texts.entries()) {
+    const text = textIn || '';
     if (!isFirst) {
       elem.appendChild(document.createElement('BR'));
     }

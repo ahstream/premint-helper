@@ -28,7 +28,8 @@ ul.status {
 }
 
 img.collab-banner {
-  width: 400px !important;
+  width: 500px !important;
+  min-height: 100px;
 }
 
 td {
@@ -57,10 +58,27 @@ span.restarted {
   color: #cfcbcb;
 }
 
+span.restarted {
+  color: #cfcbcb;
+}
+
 span.mint-date:not(.first),
 span.mint-time:not(.first),
+span.time-left:not(.first),
+span.dtc:not(.first),
+span.blockchain:not(.first),
+span.team-name:not(.first),
+span.winner-count:not(.first),
+span.entry-count:not(.first),
 span.raffle-date:not(.first) {
   color: #cfcbcb;
+}
+
+span.has-entered.x {
+  color: white;
+  font-weight: normal;
+  background-color: green;
+  padding: 0 5px;
 }
 
 span.account-name {
@@ -72,7 +90,7 @@ span.mint-address {
 }
 
 span.team-name {
-  color: #cfcbcb;
+  color: black;
 }
 
 .sort-key {
@@ -113,4 +131,18 @@ thead tr td {
   background-color: black;
   color: white;
   border: 1px solid lightgray;
+}
+
+span.wins-id.win {
+  color: black;
+  background-color: yellow;
+  display: inline-block;
+  font-size: 16px;
+  padding: 4px;
+  font-weight: bold;
+  border: solid 1px black;
+}
+
+span.wins-id:after {
+  content: attr(data-wins);
 }

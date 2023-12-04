@@ -14,6 +14,11 @@ const WINS_BASE_URL =
 const CALENDAR_URL =
   'https://www.alphabot.app/api/projectData?calendar=true&startDate={START_DATE}&endDate={END_DATE}&selectedMonth={SELECTED_MONTH}';
 
+const RAFFLES_BASE_URL =
+  'https://www.alphabot.app/api/projects?sort={SORT}&scope={SCOPE}&showHidden={SHOW_HIDDEN}&pageSize={PAGE_SIZE}&pageNum={PAGE_NUM}&search={SEARCH}&project={PROJECT}&filter={FILTER}';
+
+//https://www.alphabot.app/api/projects?sort=ending&scope=all&showHidden=false&pageSize=16&pageNum=0&search=&project=&filter=unregistered
+
 export const winnersSortedByNewestURL = `https://www.alphabot.app/api/projects?sort=newest&scope=all&sortDir=-1&showHidden=true&pageSize=16&filter=winners`;
 export const winnersSortedByMintingURL = `https://www.alphabot.app/api/projects?sort=minting&scope=all&sortDir=-1&showHidden=true&pageSize=16&filter=winners`;
 
@@ -165,6 +170,128 @@ function getAlphabotFilterParams() {
   return params;
 }
 
+// RAFFLES ----------------------------------------------------------------------------------
+
+export async function getRaffles(authKey, options) {
+  const raffles = await fetchRaffles(authKey, options);
+  console.log('raffles', raffles);
+  return raffles.map((x) => convertRaffle(x));
+}
+
+async function fetchRaffles(
+  authKey,
+  {
+    sort = 'ending',
+    scope = 'all',
+    show_hidden = false,
+    search = '',
+    project = '',
+    filter = 'unregistered',
+    page_size = 16,
+    interval = 2000,
+    max,
+    statusLogger,
+  } = {}
+) {
+  console2.log('fetchRaffles');
+
+  if (statusLogger) {
+    statusLogger.main(`Get Alphabot raffles...`);
+  }
+
+  const raffles = [];
+  let page = 0;
+  let count = 0;
+
+  while (page >= 0) {
+    page++;
+
+    const url = RAFFLES_BASE_URL.replace('{SORT}', sort)
+      .replace('{SCOPE}', scope)
+      .replace('{SHOW_HIDDEN}', show_hidden)
+      .replace('{SEARCH}', search)
+      .replace('{PROJECT}', project)
+      .replace('{FILTER}', filter)
+      .replace('{PAGE_SIZE}', page_size)
+      .replace('{PAGE_NUM}', page);
+
+    if (statusLogger) {
+      statusLogger.main(`Get Alphabot raffles page ${page}`);
+    }
+
+    console2.log(`fetchRaffles page: ${page}, ${url}`);
+    const headers = authKey ? { Authorization: authKey } : {};
+    const result = await fetchHelper(url, { method: 'GET', headers }, rateLimitHandler);
+    console2.log('result', result);
+
+    if (result.error) {
+      if (statusLogger) {
+        statusLogger.sub('Failed getting Alphabot raffles. Error:' + result.error.toString());
+      }
+      return { error: true, result, raffles };
+    }
+
+    if (result?.data && !result.data.length) {
+      return raffles;
+    }
+
+    raffles.push(...result.data);
+
+    count += result.data.length;
+    if (max && count > max) {
+      console2.log('Max fetched:', count, '>=', max);
+      return raffles;
+    }
+
+    console2.info(`Sleep ${interval} ms before next fetch`);
+    await sleep(interval);
+  }
+
+  return raffles;
+}
+
+function convertRaffle(obj) {
+  console.log('obj', obj);
+
+  return {
+    provider: 'alphabot',
+    id: obj._id,
+    name: obj.name,
+    slug: obj.slug,
+    url: `https://www.alphabot.app/${obj.slug}`,
+    myEntry: null,
+    hasEntered: obj.isRegistered,
+    winnerCount: obj.winnerCount,
+    entryCount: obj.entryCount,
+    startDate: obj.startDate,
+    endDate: obj.endDate,
+    mintDate: obj.project?.mintDate,
+
+    blockchain: obj.blockchain,
+    chain: obj.blockchain,
+    remainingSeconds: undefined,
+    status: obj.status,
+    active: obj.status === 'active',
+    whitelistMethod: typeof obj.dtc !== 'undefined' ? (obj.dtc ? 'DTC' : 'NOT_DTC') : '',
+    dtc: typeof obj.dtc !== 'undefined' ? obj.dtc : undefined,
+
+    collabId: undefined,
+    collabLogo: undefined,
+    collabBanner: obj.bannerImageUrl,
+    collabTwitterUrl: obj.twitterUrl,
+    collabTwitterHandle: normalizeTwitterHandle(obj.twitterUrl),
+    collabDiscordUrl: obj.discordUrl,
+
+    teamId: obj.teamId,
+    teamName: obj.alphaTeam?.name,
+    teamLogo: obj.alphaTeam?.imageUrl,
+    teamTwitterUrl: undefined,
+
+    reqString: obj.reqString,
+    requirePremium: obj.requirePremium,
+  };
+}
+
 // ACCOUNT -----------------------
 
 export async function getAccount() {
@@ -189,7 +316,7 @@ export async function getUserId() {
   return result?.data?._id;
 }
 
-// obsolete, replace with getAccount()
+// TODO obsolete, replace with getAccount()
 export async function fetchAccountAddress() {
   const result = await fetchHelper(ACCOUNT_URL, {});
   console2.log('fetchAccountAddress:', result);

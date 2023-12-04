@@ -94,9 +94,14 @@ async function fetchRaffles(
     size = 20,
     interval = 2000,
     max,
+    statusLogger,
   } = {}
 ) {
   console2.log('fetchRaffles');
+
+  if (statusLogger) {
+    statusLogger.main(`Get LuckyGo raffles...`);
+  }
 
   const raffles = [];
   let page = 0;
@@ -115,12 +120,19 @@ async function fetchRaffles(
       .replace('{PAGE}', page)
       .replace('{SIZE}', size);
 
+    if (statusLogger) {
+      statusLogger.main(`Get LuckyGo raffles page ${page}`);
+    }
+
     console2.log(`fetchRaffles page: ${page}, ${url}`);
-    const headers = { Authorization: authKey };
+    const headers = authKey ? { Authorization: authKey } : {};
     const result = await fetchHelper(url, { method: 'GET', headers }, rateLimitHandler);
     console2.log('result', result);
 
     if (result.error) {
+      if (statusLogger) {
+        statusLogger.sub('Failed getting LuckyGo raffles. Error:' + result.error.toString());
+      }
       return { error: true, result, raffles };
     }
 
@@ -161,16 +173,23 @@ function convertRaffle(obj) {
     entryCount: obj.entry_count,
     startDate: obj.start_time,
     endDate: obj.end_time,
+    mintDate: obj.project?.mint_date,
+
+    blockchain: obj.project?.blockchain,
+    chain: obj.project?.chain,
     remainingSeconds: obj.remaining_seconds,
     status: obj.status,
     active: obj.status === 'ACTIVE',
     whitelistMethod: obj.whitelist_method,
+    dtc: undefined,
+
     collabId: obj.project?.id,
     collabLogo: obj.project?.logo,
     collabBanner: obj.project?.banner,
-    blockchain: obj.project?.blockchain,
-    chain: obj.project?.chain,
-    mintDate: obj.project?.mint_date,
+    collabTwitterUrl: undefined,
+    collabTwitterHandlel: undefined,
+    collabDiscordUrl: undefined,
+
     teamId: obj.campaign?.id,
     teamName: obj.campaign?.name,
     teamLogo: obj.campaign?.logo,

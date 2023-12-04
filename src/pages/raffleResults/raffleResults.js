@@ -362,8 +362,6 @@ async function updateWins() {
     }
   }
 
-  // todo create storage.allProjectWins3 with twitterHandle keyd projectWins!
-
   await setStorageData(storage);
 
   updateMainStatus('Raffle results updated!');
@@ -460,8 +458,6 @@ async function updateProjectWins2() {
 
     updateAllProjectWinsMap();
 
-    // todo create storage.allProjectWins3 with twitterHandle keyd projectWins!
-
     await setStorageData(storage);
 
     updateMainStatus('Done getting wallets won from Cloud!');
@@ -499,14 +495,12 @@ function hasProjectWinsChanged(oldWins, newWins) {
   );
 
   if (Object.getOwnPropertyNames(oldWins).length !== Object.getOwnPropertyNames(newWins).length) {
-    console2.log('foobar 1');
     return true;
   }
 
   for (const [key] of Object.entries(oldWins)) {
     console2.log(key, oldWins[key], newWins[key]);
     if (JSON.stringify(oldWins[key]) !== JSON.stringify(newWins[key])) {
-      console2.log('foobar 2');
       return true;
     }
   }
@@ -1965,11 +1959,9 @@ function addNewProjectWins() {
       storage.allProjectWins2[id] = newProjectWin;
       newProjectWins.push(newProjectWin);
     });
-
-    updateAllProjectWinsMap();
-
-    return newProjectWins;
   });
+
+  updateAllProjectWinsMap();
 
   return newProjectWins;
 }
@@ -1984,7 +1976,12 @@ function updateAllProjectWinsMap() {
         wallets: [],
       };
     }
-    storage.allProjectWinsMap[twitterHandle].wallets.push({ wallet: item.wallet, hxSortKey: item.hxSortKey });
+    if (!storage.allProjectWinsMap[twitterHandle].wallets.find((x) => x.wallet === item.wallet)) {
+      storage.allProjectWinsMap[twitterHandle].wallets.push({
+        wallet: item.wallet,
+        hxSortKey: item.hxSortKey,
+      });
+    }
   }
 }
 

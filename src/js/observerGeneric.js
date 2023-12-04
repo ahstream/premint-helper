@@ -92,6 +92,14 @@ export async function createObserver({
         continue;
       }
 
+      if (pageState.autoWins) {
+        console2.trace('getRafflesPageWinElems 1...');
+        const elems = getRafflesPageWinElems(mutation.addedNodes);
+        for (const elem of elems) {
+          handleRafflesPageWin(elem);
+        }
+      }
+
       if (pageState.autoFollowers) {
         if (mutation.target.nodeName === 'A' && isTwitterURL(mutation.target.href)) {
           console2.trace('handle mutation:', mutation);
@@ -480,6 +488,7 @@ export async function createObserver({
     const twitterHandle = extractTwitterHandle(twitterLink?.href);
     console2.trace('twitterHandle', twitterHandle);
 
+    /*
     const div = createPreviousWonSection(twitterHandle, false);
     console2.trace('div', div);
     if (div) {
@@ -490,8 +499,9 @@ export async function createObserver({
       );
       document.documentElement.style.setProperty('--raffle-wins-color', storage.options.RAFFLE_WINS_COLOR);
     }
+    */
 
-    const div2 = createPreviousWonSection2(twitterHandle, false);
+    const div2 = createPreviousWonSection(twitterHandle, false);
     console2.trace('div2', div2);
     if (div2) {
       raffleBox.append(div2);
@@ -517,6 +527,7 @@ export async function createObserver({
     }
   }
 
+  /*
   function createPreviousWonSection(twitterHandle, showAll = false) {
     console2.log('createPreviousWonSection', twitterHandle, showAll);
     const walletsWon = getPreviousWalletsWon(twitterHandle);
@@ -560,10 +571,11 @@ export async function createObserver({
 
     return div;
   }
+  */
 
-  function createPreviousWonSection2(twitterHandle, showAll = false) {
-    console2.log('createPreviousWonSection2', twitterHandle, showAll);
-    const walletsWon = getPreviousWalletsWon2(twitterHandle);
+  function createPreviousWonSection(twitterHandle, showAll = false) {
+    console2.log('createPreviousWonSection', twitterHandle, showAll);
+    const walletsWon = getPreviousWalletsWon(twitterHandle);
     if (!walletsWon.length) {
       return null;
     }
@@ -632,8 +644,88 @@ export async function createObserver({
   };
 }
 
+// RAFFLES PAGE
+
+function getRafflesPageWinElems(nodes) {
+  console2.trace('getRafflesPageWinElems, nodes:', nodes);
+  const elems = [];
+  console.log('nodes', nodes);
+  for (const node of nodes) {
+    if (!node.querySelectorAll) {
+      continue;
+    }
+    const items = node.querySelectorAll('span.wins-id');
+    if (!items.length) {
+      continue;
+    }
+    elems.push(...items);
+  }
+  return elems;
+}
+
+function handleRafflesPageWin(elem) {
+  console2.trace('handleRafflesPageWin', elem);
+
+  const twitterHandle = elem.dataset.twitterHandle;
+  console2.trace('twitterHandle', twitterHandle);
+
+  const winMap = createPreviousWonMap(twitterHandle, false);
+  console2.trace('winMap', winMap);
+
+  if (!winMap.ok) {
+    return;
+  }
+
+  elem.dataset.wins = winMap.wins;
+  elem.classList.toggle('win', winMap.wins > 0);
+  elem.title = winMap.title || 'error';
+}
+
+function createPreviousWonMap(twitterHandle, showAll = false) {
+  console2.log('createPreviousWonMap', twitterHandle, showAll);
+  const walletsWon = getPreviousWalletsWon(twitterHandle);
+  if (!walletsWon.length) {
+    return {};
+  }
+
+  const hidden = ''; // todo pageState.permissions?.enabled ? '' : '[ PREMIUM FEATURE HIDDEN ]';
+  console2.trace('hidden', hidden);
+
+  const wallets = sortWallets(walletsWon, storage.options);
+  const wallet = wallets[0];
+  const walletAliasFirst = walletToAlias(wallet, storage.options);
+
+  console2.trace('walletAliasFirst', walletAliasFirst);
+  const walletAliasTextFirst = walletAliasFirst ? ` (${walletAliasFirst})` : '';
+  let htmltext = hidden || `${trimWallet(wallet)}${walletAliasTextFirst}`;
+  if (wallets.length > 1) {
+    htmltext = `[x${wallets.length}] ` + htmltext;
+    if (showAll) {
+      wallets.shift();
+      for (const addr of wallets) {
+        const walletAlias = walletToAlias(addr, storage.options);
+        const walletAliasText = walletAlias ? ` (${walletAlias})` : '';
+        const mintAddrText = hidden || `${trimWallet(addr)}${walletAliasText}`;
+        htmltext = htmltext + `\n${mintAddrText}`;
+      }
+    }
+  }
+
+  const text = wallets
+    .map((x) => {
+      const walletAlias = walletToAlias(x, storage.options);
+      const walletAliasText = walletAlias ? ` (${walletAlias})` : '';
+      return `${trimWallet(x)}${walletAliasText}`;
+    })
+    .join('\n');
+  const title = `Wallets with previous wins:\n\n` + (hidden || text);
+
+  return { ok: true, htmltext, title, wins: walletsWon.length };
+}
+
 // HELPERS FUNCS ----------------------------------------------------------------------------------
 
+/*
 export function getPreviousWalletsWon(twitterHandle) {
   console2.trace('getPreviousWalletsWon:', twitterHandle);
   if (!twitterHandle || typeof twitterHandle !== 'string') {
@@ -648,55 +740,11 @@ export function getPreviousWalletsWon(twitterHandle) {
   }
 
   return wallets;
-
-  /*
-  const minMintDate = millisecondsAhead(-(storage.options.RESULTS_PREV_WINS_LIFETIME_MINT_DAYS * ONE_DAY));
-  const minPickedDate = millisecondsAhead(
-    -(storage.options.RESULTS_PREV_WINS_LIFETIME_PICKED_DAYS * ONE_DAY)
-  );
-
-
-  console2.log(
-    'getPreviousWalletsWon minMintDate:',
-    minMintDate,
-    storage.options.RESULTS_PREV_WINS_LIFETIME_MINT_DAYS,
-    timestampToLocaleString(minMintDate)
-  );
-  console2.log(
-    'getPreviousWalletsWon minPickedDate:',
-    minPickedDate,
-    storage.options.RESULTS_PREV_WINS_LIFETIME_PICKED_DAYS,
-    timestampToLocaleString(minPickedDate)
-  );
-
-  const wallets = wallets.wins
-    .filter((win) => {
-      if (win.mintDate) {
-        if (win.mintDate >= minMintDate) {
-          console2.trace('getPreviousWalletsWonmintDate still valid, keep:', win);
-          return true;
-        }
-        console2.trace('getPreviousWalletsWonmintDate too early:', win);
-        return false;
-      }
-      return win.pickedDate >= minPickedDate;
-    })
-    .map((x) => x.wallets)
-    .flat();
-  console2.trace('getPreviousWalletsWonwallets', wallets);
-
-  const noDupsWallets = noDuplicates(wallets.map((x) => x.toLowerCase()));
-  console2.trace('getPreviousWalletsWonnoDupsWallets', noDupsWallets);
-
-  if (noDupsWallets.length) {
-    console2.info(`Previous won wallet for ${twitterHandle}:`, noDupsWallets);
-  }
-  return wallets;
-  */
 }
+*/
 
-export function getPreviousWalletsWon2(twitterHandle) {
-  console2.trace('getPreviousWalletsWon2:', twitterHandle);
+export function getPreviousWalletsWon(twitterHandle) {
+  console2.trace('getPreviousWalletsWon:', twitterHandle);
   if (!twitterHandle || typeof twitterHandle !== 'string') {
     console2.trace('return []');
     return [];
@@ -712,7 +760,7 @@ export function getPreviousWalletsWon2(twitterHandle) {
   const wallets = noDuplicates(storage.allProjectWinsMap[handleLow].wallets.map((x) => x.wallet));
   console2.log('wallets:', wallets);
   if (wallets.length) {
-    console2.info(`Previous 2 won wallet for ${twitterHandle}:`, wallets);
+    console2.info(`Previous won wallet for ${twitterHandle}:`, wallets);
   }
 
   return wallets;
@@ -769,6 +817,7 @@ function makeRaffleOdds(entries, winners) {
 }
 
 async function reloadStorage(key = null) {
+  console.info('reloadStorage start');
   if (!key) {
     storage = await getStorageItems([
       'options',
@@ -782,5 +831,6 @@ async function reloadStorage(key = null) {
     const storageTemp = await getStorageItems([key]);
     storage[key] = storageTemp[key];
   }
+  console.info('reloadStorage end', storage);
   console2.all('reloadStorage:', storage);
 }
