@@ -100,7 +100,7 @@ async function fetchRaffles(
   console2.log('fetchRaffles');
 
   if (statusLogger) {
-    statusLogger.main(`Get LuckyGo raffles...`);
+    statusLogger.mid(`Get LuckyGo raffles...`);
   }
 
   const raffles = [];
@@ -121,7 +121,7 @@ async function fetchRaffles(
       .replace('{SIZE}', size);
 
     if (statusLogger) {
-      statusLogger.main(`Get LuckyGo raffles page ${page}`);
+      statusLogger.mid(`Get LuckyGo raffles page ${page}`);
     }
 
     console2.log(`fetchRaffles page: ${page}, ${url}`);
@@ -216,7 +216,7 @@ async function fetchWins(account, authKey, { interval, max, skip, statusLogger }
   let count = 0;
 
   if (statusLogger) {
-    statusLogger.main(`Get LuckyGo entries...`);
+    statusLogger.mid(`Get LuckyGo entries...`);
   }
 
   const entries = await fetchEntries(authKey, { interval, max, skip, statusLogger });
@@ -234,7 +234,7 @@ async function fetchWins(account, authKey, { interval, max, skip, statusLogger }
 
   for (const baseEntry of entries) {
     if (statusLogger) {
-      statusLogger.main(`Get LuckyGo results for raffle ${count + 1} of ${entries.length}${maxText}`);
+      statusLogger.mid(`Get LuckyGo results for raffle ${count + 1} of ${entries.length}${maxText}`);
     }
     if (max && count > max) {
       console2.log('Max wins fetched:', count, '>=', max);
@@ -291,7 +291,7 @@ async function fetchEntries(
     pageNum++;
 
     if (statusLogger) {
-      statusLogger.main(`Get LuckyGo entries page ${count + 1}`);
+      statusLogger.mid(`Get LuckyGo entries page ${count + 1}`);
     }
 
     const url = WINS_BASE_URL.replace('{PAGE}', pageNum).replace('{SIZE}', pageLength);

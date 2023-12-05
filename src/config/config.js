@@ -197,6 +197,9 @@ export const defaultOptions = {
   PREMINT_RESULTS_MAX_FETCH_WINS: 300, //  300,
   ATLAS_RESULTS_MAX_FETCH_WINS: 5000, // 5000,
   LUCKYGO_RESULTS_MAX_FETCH_WINS: 300, //  300,
+
+  RAFFLES_SEARCH_QUERY: [],
+  RAFFLES_MY_TEAMS: [],
 };
 
 export const overrideOptions = {

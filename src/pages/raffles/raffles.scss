@@ -12,23 +12,8 @@ td {
   white-space: nowrap;
 }
 
-ul.status {
-  list-style-type: none;
-  background-color: rgb(248, 248, 24);
-  background-color: unset;
-  padding: 0;
-  li {
-    padding: 3px 0;
-  }
-}
-
-#hx-status-main {
-  margin-top: 20px;
-  font-weight: bold;
-}
-
 img.collab-banner {
-  width: 500px !important;
+  width: 350px !important;
   min-height: 100px;
 }
 
@@ -70,6 +55,7 @@ span.blockchain:not(.first),
 span.team-name:not(.first),
 span.winner-count:not(.first),
 span.entry-count:not(.first),
+span.provider:not(.first),
 span.raffle-date:not(.first) {
   color: #cfcbcb;
 }
@@ -78,7 +64,7 @@ span.has-entered.x {
   color: white;
   font-weight: normal;
   background-color: green;
-  padding: 0 5px;
+  padding: 0 8px;
 }
 
 span.account-name {
@@ -138,11 +124,18 @@ span.wins-id.win {
   background-color: yellow;
   display: inline-block;
   font-size: 16px;
-  padding: 4px;
+  padding: 4px 16px;
   font-weight: bold;
   border: solid 1px black;
 }
 
 span.wins-id:after {
   content: attr(data-wins);
+}
+
+.show-provider:after {
+  content: attr(data-hx-count);
+  display: inline-block;
+  font-size: 16px;
+  margin-left: 5px;
 }

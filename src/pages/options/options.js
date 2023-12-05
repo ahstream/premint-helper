@@ -65,49 +65,6 @@ const options = [
     ],
   },
 
-  // Results Page
-  {
-    header: 'Results Page',
-    hiddenKey: '',
-    options: [
-      [
-        'property',
-        'RESULTS_DAYS_TO_KEEP_MINTED_WINS',
-        'Show this many previous days of results',
-        '',
-        'Default behaviour is that wins with a set mint date will not be shown when date has passed. If drop have multiple day phases, it would not be shown after first day has passed. Use this setting to prevent that.',
-      ],
-      [
-        'property',
-        'RESULTS_PREV_WINS_LIFETIME_MINT_DAYS',
-        'RESULTS_PREV_WINS_LIFETIME_MINT_DAYS',
-        '',
-        'RESULTS_PREV_WINS_LIFETIME_MINT_DAYS',
-      ],
-      [
-        'property',
-        'RESULTS_PREV_WINS_LIFETIME_PICKED_DAYS',
-        'RESULTS_PREV_WINS_LIFETIME_PICKED_DAYS',
-        '',
-        'RESULTS_PREV_WINS_LIFETIME_PICKED_DAYS',
-      ],
-      [
-        'property',
-        'ALPHABOT_CALENDAR_BACK_MONTHS',
-        'ALPHABOT_CALENDAR_BACK_MONTHS',
-        '',
-        'ALPHABOT_CALENDAR_BACK_MONTHS',
-      ],
-      [
-        'property',
-        'ALPHABOT_CALENDAR_FORWARD_MONTHS',
-        'ALPHABOT_CALENDAR_FORWARD_MONTHS',
-        '',
-        'ALPHABOT_CALENDAR_FORWARD_MONTHS',
-      ],
-    ],
-  },
-
   // Raffle Behaviour
   {
     header: 'Raffle Behaviour',
@@ -260,39 +217,6 @@ const options = [
     ],
   },
 
-  // External automation
-  {
-    header: 'External automation',
-    hiddenKey: '',
-    options: [
-      [
-        'description',
-        'These are only applicable when using Shortcuts to automate raffle joins. Minimize options makes it much easier to see which raffles need manual operation (captchas etc). See help page for more info.',
-      ],
-      ['property', 'RAFFLE_MINIMIZE_WHEN_FINISHED', 'Minimize browser window when finished', null, ''],
-      [
-        'property',
-        'RAFFLE_CLEANUP_WHEN_FINISHED',
-        'Close all tabs except raffle tab when finished',
-        null,
-        '',
-      ],
-      ['space', 10],
-      [
-        'property',
-        'ALPHABOT_IGNORED_NAMES',
-        'Ignore Alphabot Teams',
-        null,
-        'Name of Alphabot teams to ignore when auto-start raffle join. Typically you may want to ignore raffles from teams that require an NFT you do not have.',
-      ],
-      ['space', 10],
-
-      ['property', 'IS_MAIN_ACCOUNT', 'IS_MAIN_ACCOUNT', null, 'IS_MAIN_ACCOUNT'],
-
-      ['property', 'IS_FIRST_SUB_ACCOUNT', 'IS_FIRST_SUB_ACCOUNT', null, 'IS_FIRST_SUB_ACCOUNT'],
-    ],
-  },
-
   // Cloud
   {
     header: 'Cloud',
@@ -359,6 +283,93 @@ const options = [
           ['propertyCell', 'USER_INFO_TEZ_WALLET', 'TEZ wallet'],
         ],
       ],
+    ],
+  },
+
+  // Results Page
+  {
+    header: 'Results Page',
+    hiddenKey: '',
+    options: [
+      [
+        'property',
+        'RESULTS_DAYS_TO_KEEP_MINTED_WINS',
+        'Show this many previous days of results',
+        '',
+        'Default behaviour is that wins with a set mint date will not be shown when date has passed. If drop have multiple day phases, it would not be shown after first day has passed. Use this setting to prevent that.',
+      ],
+      [
+        'property',
+        'RESULTS_PREV_WINS_LIFETIME_MINT_DAYS',
+        'RESULTS_PREV_WINS_LIFETIME_MINT_DAYS',
+        '',
+        'RESULTS_PREV_WINS_LIFETIME_MINT_DAYS',
+      ],
+      [
+        'property',
+        'RESULTS_PREV_WINS_LIFETIME_PICKED_DAYS',
+        'RESULTS_PREV_WINS_LIFETIME_PICKED_DAYS',
+        '',
+        'RESULTS_PREV_WINS_LIFETIME_PICKED_DAYS',
+      ],
+      [
+        'property',
+        'ALPHABOT_CALENDAR_BACK_MONTHS',
+        'ALPHABOT_CALENDAR_BACK_MONTHS',
+        '',
+        'ALPHABOT_CALENDAR_BACK_MONTHS',
+      ],
+      [
+        'property',
+        'ALPHABOT_CALENDAR_FORWARD_MONTHS',
+        'ALPHABOT_CALENDAR_FORWARD_MONTHS',
+        '',
+        'ALPHABOT_CALENDAR_FORWARD_MONTHS',
+      ],
+    ],
+  },
+
+  // Raffles Page
+  {
+    header: 'Raffles Page',
+    hiddenKey: '',
+    options: [
+      ['property', 'RAFFLES_SEARCH_QUERY', 'RAFFLES_SEARCH_QUERY', '', 'RAFFLES_SEARCH_QUERY'],
+
+      ['property', 'RAFFLES_MY_TEAMS', 'RAFFLES_MY_TEAMS', '', 'RAFFLES_MY_TEAMS'],
+    ],
+  },
+
+  // External automation
+  {
+    header: 'External automation',
+    hiddenKey: '',
+    options: [
+      [
+        'description',
+        'These are only applicable when using Shortcuts to automate raffle joins. Minimize options makes it much easier to see which raffles need manual operation (captchas etc). See help page for more info.',
+      ],
+      ['property', 'RAFFLE_MINIMIZE_WHEN_FINISHED', 'Minimize browser window when finished', null, ''],
+      [
+        'property',
+        'RAFFLE_CLEANUP_WHEN_FINISHED',
+        'Close all tabs except raffle tab when finished',
+        null,
+        '',
+      ],
+      ['space', 10],
+      [
+        'property',
+        'ALPHABOT_IGNORED_NAMES',
+        'Ignore Alphabot Teams',
+        null,
+        'Name of Alphabot teams to ignore when auto-start raffle join. Typically you may want to ignore raffles from teams that require an NFT you do not have.',
+      ],
+      ['space', 10],
+
+      ['property', 'IS_MAIN_ACCOUNT', 'IS_MAIN_ACCOUNT', null, 'IS_MAIN_ACCOUNT'],
+
+      ['property', 'IS_FIRST_SUB_ACCOUNT', 'IS_FIRST_SUB_ACCOUNT', null, 'IS_FIRST_SUB_ACCOUNT'],
     ],
   },
 ];

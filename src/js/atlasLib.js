@@ -47,7 +47,7 @@ async function fetchWins({ pageLength = 12, interval, max, statusLogger }, check
     pageNum++;
 
     if (statusLogger) {
-      statusLogger.main(`Get Atlas results page ${count + 1}`);
+      statusLogger.mid(`Get Atlas results page ${count + 1}`);
     }
 
     const url = WINS_BASE_URL.replace('{PAGE}', pageNum).replace('{PAGE_LENGTH}', pageLength);

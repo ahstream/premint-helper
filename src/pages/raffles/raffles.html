@@ -13,8 +13,29 @@
       <div id="main">
         <div class="button-row">
           <button id="hx-update" title="">Update</button>
+          <span>
+            &nbsp;&nbsp;&nbsp;&nbsp;
+            <input type="checkbox" id="do-search" checked />&nbsp;<label for="do-search" title="">Search Queries</label>&nbsp;
+            <input type="checkbox" id="do-my-alphabot" checked />&nbsp;<label for="do-my-alphabot" title="">My Alphabot</label>&nbsp;
+            <input type="checkbox" id="do-all-alphabot" checked />&nbsp;<label for="do-all-alphabot" title="">All Alphabot</label>&nbsp;
+            <input type="checkbox" id="do-my-luckygo" checked />&nbsp;<label for="do-my-luckygo" title="">My LuckyGo</label>&nbsp;
+            <input type="checkbox" id="do-all-luckygo" checked />&nbsp;<label for="do-all-luckygo" title="">All LuckyGo</label>&nbsp;
+          </span>
         </div>
-        <div id="hx-status-main">Status</div>
+        <div>
+          <span>
+            <br />
+            <a class="show-raffles" id="show-search">Search Queries</a> &nbsp;|&nbsp;
+            <a class="show-raffles" id="show-my-alphabot">My Alphabot</a> &nbsp;|&nbsp;
+            <a class="show-raffles" id="show-all-alphabot">All Alphabot</a> &nbsp;|&nbsp;
+            <a class="show-raffles" id="show-my-luckygo">My LuckyGo</a> &nbsp;|&nbsp;
+            <a class="show-raffles" id="show-all-luckygo">All LuckyGo</a>
+          </span>
+        </div>
+        <hr />
+
+        <div id="hx-status-main"></div>
+        <div id="hx-status-mid" class="hidden"></div>
         <div id="status-row">
           <ul id="hx-status" class="status"></ul>
         </div>

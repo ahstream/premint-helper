@@ -49,7 +49,7 @@ async function fetchWins({ interval, max, skip, statusLogger }) {
   let count = 0;
 
   if (statusLogger) {
-    statusLogger.main(`Get Premint entries...`);
+    statusLogger.mid(`Get Premint entries...`);
   }
 
   const entries = await fetchEntries();
@@ -66,7 +66,7 @@ async function fetchWins({ interval, max, skip, statusLogger }) {
 
   for (const entryMetadata of entries) {
     if (statusLogger) {
-      statusLogger.main(`Get Premint results for raffle ${count + 1} of ${entries.length}${maxText}`);
+      statusLogger.mid(`Get Premint results for raffle ${count + 1} of ${entries.length}${maxText}`);
     }
 
     if (max && count > max) {

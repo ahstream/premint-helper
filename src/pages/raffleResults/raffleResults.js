@@ -48,6 +48,7 @@ import {
   loadStorage,
   reloadOptions,
   updateMainStatus,
+  updateMidStatus,
   updateSubStatus,
   resetSubStatus,
   STATUSBAR_DEFAULT_TEXT,
@@ -116,7 +117,7 @@ let pageState = {
   shownProvider: 'all-providers',
 };
 
-const statusLogger = { main: updateMainStatus, sub: updateSubStatus };
+const statusLogger = { main: updateMainStatus, mid: updateMidStatus, sub: updateSubStatus };
 
 const DEFAULT_LOCALE = 'SV-se'; // undefined; // 'SV-se'; // string() | undefined
 const SORT_ORDER_LOCALE = 'sv-SE';
@@ -158,7 +159,7 @@ async function runPage() {
       'atlas',
       'luckygo',
     ],
-    [{ key: 'raffles', val: {} }]
+    []
   );
   console.log('storage', storage);
 

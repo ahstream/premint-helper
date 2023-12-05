@@ -910,6 +910,16 @@ export function updateMainStatus(text) {
   const elem = document.getElementById('hx-status-main');
   if (elem) {
     elem.innerText = text;
+    elem.classList.toggle('hidden', !text);
+  }
+}
+
+export function updateMidStatus(text) {
+  console2.log('updateMidStatus', text);
+  const elem = document.getElementById('hx-status-mid');
+  if (elem) {
+    elem.innerText = text;
+    elem.classList.toggle('hidden', !text);
   }
 }
 

@@ -196,7 +196,7 @@ async function fetchRaffles(
   console2.log('fetchRaffles');
 
   if (statusLogger) {
-    statusLogger.main(`Get Alphabot raffles...`);
+    statusLogger.mid(`Get Alphabot raffles...`);
   }
 
   const raffles = [];
@@ -204,8 +204,6 @@ async function fetchRaffles(
   let count = 0;
 
   while (page >= 0) {
-    page++;
-
     const url = RAFFLES_BASE_URL.replace('{SORT}', sort)
       .replace('{SCOPE}', scope)
       .replace('{SHOW_HIDDEN}', show_hidden)
@@ -216,7 +214,7 @@ async function fetchRaffles(
       .replace('{PAGE_NUM}', page);
 
     if (statusLogger) {
-      statusLogger.main(`Get Alphabot raffles page ${page}`);
+      statusLogger.mid(`Get Alphabot raffles page ${page + 1}`);
     }
 
     console2.log(`fetchRaffles page: ${page}, ${url}`);
@@ -245,6 +243,8 @@ async function fetchRaffles(
 
     console2.info(`Sleep ${interval} ms before next fetch`);
     await sleep(interval);
+
+    page++;
   }
 
   return raffles;
@@ -434,7 +434,7 @@ async function fetchWins({ interval, max, sortBy, pageLength = 16, checkIfContin
 
   while (pageNum >= 0) {
     if (statusLogger) {
-      statusLogger.main(`Get Alphabot results page ${count + 1}`);
+      statusLogger.mid(`Get Alphabot results page ${count + 1}`);
     }
     const url = WINS_BASE_URL.replace('{PAGE_NUM}', pageNum)
       .replace('{PAGE_SIZE}', pageLength)
