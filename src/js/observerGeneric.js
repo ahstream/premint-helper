@@ -649,7 +649,7 @@ export async function createObserver({
 function getRafflesPageWinElems(nodes) {
   console2.trace('getRafflesPageWinElems, nodes:', nodes);
   const elems = [];
-  console.log('nodes', nodes);
+  //console.log('nodes', nodes);
   for (const node of nodes) {
     if (!node.querySelectorAll) {
       continue;

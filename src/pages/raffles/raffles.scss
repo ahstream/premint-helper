@@ -47,6 +47,11 @@ span.restarted {
   color: #cfcbcb;
 }
 
+span.winner-count,
+span.entry-count {
+  color: #cfcbcb;
+}
+
 span.mint-date:not(.first),
 span.mint-time:not(.first),
 span.time-left:not(.first),
@@ -59,6 +64,9 @@ span.provider:not(.first),
 span.raffle-date:not(.first) {
   color: #cfcbcb;
 }
+span.team-name:not(.first) {
+  color: #b2b0b0;
+}
 
 span.has-entered.x {
   color: white;
@@ -67,20 +75,35 @@ span.has-entered.x {
   padding: 0 8px;
 }
 
-span.account-name {
+span.team-name,
+span.odds {
   color: black;
 }
 
-span.mint-address {
+.odds {
   color: black;
+  font-weight: 500;
 }
 
-span.team-name {
-  color: black;
+.odds[data-n='0'] {
+  color: #e7e0e0;
+}
+.odds[data-n='1'] {
+  color: #e7e0e0;
+}
+.odds[data-n='2'] {
+  color: #e7e0e0;
 }
 
-.sort-key {
-  color: #cfcbcb;
+.odds[data-n='3'],
+.odds[data-n='4'],
+.odds[data-n='5'],
+.odds[data-n='6'],
+.odds[data-n='7'],
+.odds[data-n='8'],
+.odds[data-n='9'] {
+  color: black;
+  font-weight: normal;
 }
 
 a.raffle-link,
@@ -123,9 +146,9 @@ span.wins-id.win {
   color: black;
   background-color: yellow;
   display: inline-block;
-  font-size: 16px;
-  padding: 4px 16px;
-  font-weight: bold;
+  font-size: 14px;
+  padding: 0 4px;
+  font-weight: normal;
   border: solid 1px black;
 }
 
@@ -138,4 +161,37 @@ span.wins-id:after {
   display: inline-block;
   font-size: 16px;
   margin-left: 5px;
+}
+
+a.hx-twitter-link:after {
+  margin-right: 0;
+  display: block;
+  margin: 10px 0;
+  width: 40px;
+}
+
+.sticky {
+  position: -webkit-sticky; /* Safari */
+  position: sticky;
+  top: 50px;
+  background: white;
+  padding: 10px 0;
+}
+
+.show-provider:after {
+  content: attr(data-hx-count);
+  display: inline-block;
+  font-size: 16px;
+  margin-left: 5px;
+}
+
+#show-providers {
+  margin-top: 15px;
+  a {
+    cursor: pointer;
+  }
+}
+
+a.show-provider {
+  cursor: pointer;
 }

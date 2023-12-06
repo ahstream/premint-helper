@@ -34,6 +34,7 @@ import {
   makeTwitterURL,
   pluralize,
   sleep,
+  noDuplicates,
 } from 'hx-lib';
 
 import { getPermissions } from '../../js/permissions.js';
@@ -56,7 +57,8 @@ let pageState = {};
 
 const SHORTENED_TEXT_SUFFIX = '...';
 const MAX_LEN_RAFFLE_NAME = 32;
-const MAX_LEN_TWITTER_HANDLE = 24;
+const MAX_LEN_TEAM_NAME = 24;
+const MAX_LEN_TWITTER_HANDLE = 16;
 
 const DEFAULT_LOCALE = 'SV-se'; // undefined; // 'SV-se'; // string() | undefined
 const SORT_ORDER_LOCALE = 'sv-SE';
@@ -146,6 +148,8 @@ async function showPage() {
 
   const queryText = `Queries: ${storage.options.RAFFLES_SEARCH_QUERY.join(', ')}`;
   showRafflesTableForOne('search', 'Search Query Raffles', queryText);
+  updateAlphabotSelectedRaffles();
+  showRafflesTableForOne('alphabotSelected', 'Selected Alphabot Raffles');
   showRafflesTableForOne('alphabotMine', 'My Alphabot Raffles');
   showRafflesTableForOne('alphabotAll', 'All Alphabot Raffles');
   showRafflesTableForOne('luckygoMine', 'My LuckyGo Raffles');
@@ -157,11 +161,12 @@ async function showPage() {
 
 function showRafflesTableForOne(key, header, subHeader = '') {
   const items = storage.raffles[key] ? storage.raffles[key] : [];
-  appendRafflesTable(createRafflesTable(items.sort(dynamicSort('endDate')), header, subHeader));
+  appendRafflesTable(createRafflesTable(items.sort(dynamicSort('endDate')), header, subHeader, key));
 }
 
 function resetPage() {
   document.getElementById('main-table').innerHTML = '';
+  resetSubStatus();
 }
 
 // UPDATE ------------------------------
@@ -205,6 +210,8 @@ async function updateRaffles() {
     `Fetched ${storage.raffles.alphabotMine?.length || 0} of my Alphabot raffle projects (My communities)`
   );
   statusLogger.mid(``);
+  updateAlphabotSelectedRaffles();
+  showRafflesTableForOne('alphabotSelected', 'Selected Alphabot Raffles');
   showRafflesTableForOne('alphabotMine', 'My Alphabot Raffles');
 
   statusLogger.main(`Updating All Alphabot raffles...`);
@@ -247,10 +254,12 @@ async function updateSearchRaffles(luckygoAuthKey) {
   const search = storage.options.RAFFLES_SEARCH_QUERY;
   console.log('search', search);
 
-  const queries = search
-    .map((x) => x.split(','))
-    .flat()
-    .map((x) => x.trim());
+  const queries = noDuplicates(
+    search
+      .map((x) => x.split(','))
+      .flat()
+      .map((x) => x.trim())
+  );
   console.log('queries', queries);
 
   const raffles = [];
@@ -262,7 +271,7 @@ async function updateSearchRaffles(luckygoAuthKey) {
       statusLogger.sub(`Invalid search query:`, query);
       continue;
     }
-    statusLogger.main(`Fetching raffles for search query "${query}"...`);
+    statusLogger.main(`Fetching raffles for search query ${i + 1} of ${queries.length}: ${query}`);
 
     const alphabotRaffles = await getAlphabotRaffles(null, {
       statusLogger,
@@ -281,6 +290,8 @@ async function updateSearchRaffles(luckygoAuthKey) {
         });
     console.log('luckygoRaffles:', query, luckygoRaffles);
     raffles.push(...luckygoRaffles);
+
+    await sleep(300);
   }
 
   const processedRaffles = processRaffles(raffles);
@@ -307,6 +318,31 @@ async function updateAlphabotRaffles(key, authKey, options = {}) {
   const r2 = processRaffles(r1 || []);
   console.log('r2', r2);
   storage.raffles[key] = r2;
+}
+
+async function updateAlphabotSelectedRaffles() {
+  console.log('updateAlphabotSelectedRaffles');
+
+  const myTeams = noDuplicates(
+    storage.options.RAFFLES_MY_TEAMS.map((x) => x.split(','))
+      .flat()
+      .map((x) => x.trim())
+      .map((x) => x.toLowerCase())
+  );
+  console.log('myTeams', myTeams);
+
+  const raffles = [];
+  storage.raffles.alphabotMine.forEach((r) => {
+    r.raffles.forEach((raffle) => {
+      console.log('raffle', raffle);
+      const teamName = raffle.teamName?.toLowerCase ? raffle.teamName.toLowerCase() : '';
+      console.log('teamName', teamName);
+      if (myTeams.includes(teamName)) {
+        raffles.push({ ...raffle });
+      }
+    });
+  });
+  storage.raffles.alphabotSelected = processRaffles(raffles);
 }
 
 // LUCKYGO ------------------------------
@@ -368,7 +404,7 @@ function createNewRaffle(id, raffle) {
 
 // TABLE -----------------------------------------------------
 
-function createRafflesTable(packedRafflesIn, header, subHeader, allColumns = false) {
+function createRafflesTable(packedRafflesIn, header, subHeader, sectionId, { allColumns = false } = {}) {
   console2.log('createRafflesTable', packedRafflesIn, header, subHeader, allColumns);
 
   const packedRaffles = packedRafflesIn?.length ? packedRafflesIn : [];
@@ -389,7 +425,7 @@ function createRafflesTable(packedRafflesIn, header, subHeader, allColumns = fal
   table.appendChild(createTableHeadRow());
 
   for (const parent of packedRaffles) {
-    console.log('parent', parent);
+    //console.log('parent', parent);
 
     const row = document.createElement('TR');
 
@@ -409,6 +445,16 @@ function createRafflesTable(packedRafflesIn, header, subHeader, allColumns = fal
       )
     );
 
+    // CELL: reqStrings
+    const reqStrings = parent.raffles.map((x) => x.reqString || '');
+    row.appendChild(createCell(createMultiTexts(reqStrings, { className: 'req-string', hideDups: false })));
+
+    // CELL: easy
+    const easys = parent.raffles.map((x) =>
+      x.reqString && !x.reqString.toLowerCase().includes('d') ? 'Yes' : ''
+    );
+    row.appendChild(createCell(createMultiTexts(easys, { className: 'easy', hideDups: false })));
+
     // CELL: wins
     const elem = document.createElement('SPAN');
     elem.classList.toggle('wins-id', true);
@@ -422,27 +468,57 @@ function createRafflesTable(packedRafflesIn, header, subHeader, allColumns = fal
     const winnerOdds = parent.raffles.map((x) => {
       const odds = makeRaffleOdds(x.entryCount, x.winnerCount);
       console2.trace('odds', odds);
-      return `${odds.toString()}`;
+      return odds.toString();
     });
-    row.appendChild(createCell(createMultiTexts(winnerOdds, { className: 'winner-count', hideDups: false })));
-
-    // CELL: winner-count
-    const winnerCounts = parent.raffles.map((x) => trimTextNum(x.winnerCount, 6));
     row.appendChild(
-      createCell(createMultiTexts(winnerCounts, { className: 'winner-count', hideDups: false }))
+      createCell(createMultiTexts(winnerOdds, { className: 'odds', useTextAsDataset: true, hideDups: false }))
     );
 
-    // CELL: entry-count
-    const entryCounts = parent.raffles.map((x) => trimTextNum(x.entryCount, 6));
-    row.appendChild(createCell(createMultiTexts(entryCounts, { className: 'entry-count', hideDups: false })));
-
-    // CELL: Has entered
+    // CELL: entered
     const hasEntereds = parent.raffles.map((x) => (x.hasEntered ? 'x' : ''));
     row.appendChild(
       createCell(
         createMultiTexts(hasEntereds, { className: 'has-entered', useTextAsClass: true, hideDups: false })
       )
     );
+
+    // CELL: teamName
+    /*
+    row.appendChild(
+      createCell(
+        createMultiTexts(
+          parent.raffles.map((x) => x.teamName),
+          { className: 'team-name', hideDups: false }
+        )
+      )
+    );
+    */
+
+    // CELL: teamName + raffle links
+    const teamNames = parent.raffles.map((x) => {
+      return {
+        url: x.url,
+        text: trimText(x.teamName, MAX_LEN_TEAM_NAME),
+        fullText: x.name,
+      };
+    });
+    row.appendChild(createCell(createMultiLinks(teamNames, { className: 'raffle-link', target: '_blank' })));
+
+    // CELL: timeLeft
+    const now = Date.now();
+    const timeLeft = parent.raffles.map((x) => {
+      const m = minutesBetween(x.endDate, now);
+      const h = hoursBetween(x.endDate, now);
+      const d = daysBetween(x.endDate, now);
+      if (m <= 60) {
+        return `${m} m`;
+      } else if (h <= 24) {
+        return `${h} hours`;
+      } else {
+        return `${d} days`;
+      }
+    });
+    row.appendChild(createCell(createMultiTexts(timeLeft, { className: 'time-left', hideDups: false })));
 
     // CELL: raffle links
     const raffleLinks = parent.raffles.map((x) => {
@@ -456,15 +532,23 @@ function createRafflesTable(packedRafflesIn, header, subHeader, allColumns = fal
       createCell(createMultiLinks(raffleLinks, { className: 'raffle-link', target: '_blank' }))
     );
 
-    // CELL: reqStrings
-    const reqStrings = parent.raffles.map((x) => x.reqString || '');
-    row.appendChild(createCell(createMultiTexts(reqStrings, { className: 'req-string', hideDups: false })));
+    // CELL: winner-count
+    const winnerCounts = parent.raffles.map((x) => trimTextNum(x.winnerCount, 6));
+    row.appendChild(
+      createCell(createMultiTexts(winnerCounts, { className: 'winner-count', hideDups: false }))
+    );
+
+    // CELL: entry-count
+    const entryCounts = parent.raffles.map((x) => trimTextNum(x.entryCount, 6));
+    row.appendChild(createCell(createMultiTexts(entryCounts, { className: 'entry-count', hideDups: false })));
 
     // CELL: requirePremium
+    /*
     const requirePremiums = parent.raffles.map((x) => (x.requirePremium ? 'Yes' : ''));
     row.appendChild(
       createCell(createMultiTexts(requirePremiums, { className: 'require-premium', hideDups: false }))
     );
+    */
 
     // CELL: provider
     row.appendChild(
@@ -490,22 +574,6 @@ function createRafflesTable(packedRafflesIn, header, subHeader, allColumns = fal
     row.appendChild(createCell(createMultiDates(endDates, '', { className: 'end-date' })));
     */
 
-    // CELL: timeLeft
-    const now = Date.now();
-    const timeLeft = parent.raffles.map((x) => {
-      const m = minutesBetween(x.endDate, now);
-      const h = hoursBetween(x.endDate, now);
-      const d = daysBetween(x.endDate, now);
-      if (m <= 60) {
-        return `${m} m`;
-      } else if (h <= 24) {
-        return `${h} hours`;
-      } else {
-        return `${d} days`;
-      }
-    });
-    row.appendChild(createCell(createMultiTexts(timeLeft, { className: 'time-left', hideDups: false })));
-
     // CELL: whitelistMethod
     row.appendChild(
       createCell(
@@ -526,26 +594,22 @@ function createRafflesTable(packedRafflesIn, header, subHeader, allColumns = fal
       )
     );
 
-    // CELL: teamName
-    row.appendChild(
-      createCell(
-        createMultiTexts(
-          parent.raffles.map((x) => x.teamName),
-          { className: 'team-name', hideDups: false }
-        )
-      )
-    );
-
     table.appendChild(row);
   }
 
-  console2.log('table', table);
-  const div = document.createElement('div');
-  div.className = 'provider-wins';
   const numProjects = packedRaffles.length;
   const numRaffles = packedRaffles.map((x) => x.raffles).flat().length;
+
+  const sectionLinkElem = document.getElementById(`show-${sectionId}`);
+  sectionLinkElem.dataset.hxCount = `(${numRaffles})`;
+
+  console2.log('table', table);
+  const div = document.createElement('div');
+  // div.id = id;
+  div.className = 'provider-raffles';
   div.innerHTML =
-    (header ? `<h4>${header} (${numProjects}/${numRaffles})</h4>` : '') +
+    `<a name='${sectionId}'></a>` +
+    (header ? `<h4 class='sticky'>${header} (${numProjects}/${numRaffles})</h4>` : '') +
     (subHeader ? `<span>${subHeader}</span><br>` : '') +
     (numRaffles ? table.outerHTML : 'No raffles');
   return div;
@@ -563,20 +627,21 @@ function createTableHeadRow() {
   //row.appendChild(createCell('#R', 'Number of raffles'));
   row.appendChild(createCell('', 'tooltip'));
   row.appendChild(createCell('Twitter', ''));
-  row.appendChild(createCell('Wins', ''));
-  row.appendChild(createCell('%', 'Win odds'));
-  row.appendChild(createCell('#W', 'Number of winners'));
-  row.appendChild(createCell('#E', 'Number of winners'));
-  row.appendChild(createCell('R?', 'Registered?'));
-  row.appendChild(createCell('', ''));
   row.appendChild(createCell('Req', 'Requirements'));
-  row.appendChild(createCell('P', 'Require premium subscription?'));
+  row.appendChild(createCell('Easy', 'Is raffle considered easy to fulfill?'));
+  row.appendChild(createCell('W', 'Num wallets already won for this project'));
+  row.appendChild(createCell('%', 'Win odds'));
+  row.appendChild(createCell('E', 'Have i entered this raffle?'));
+  row.appendChild(createCell('Team', ''));
+  row.appendChild(createCell('Ends', 'Remaining time'));
+  row.appendChild(createCell('Name', ''));
+  row.appendChild(createCell('#W', 'Number of winners'));
+  row.appendChild(createCell('#E', 'Number of entrants now'));
+  // row.appendChild(createCell('P', 'Require premium subscription?'));
   row.appendChild(createCell('Provider', ''));
   row.appendChild(createCell('Mint Date', ''));
-  row.appendChild(createCell('Ends', 'Remaining time'));
   row.appendChild(createCell('Method', ''));
   row.appendChild(createCell('Chain', ''));
-  row.appendChild(createCell('Team', ''));
 
   head.appendChild(row);
   return head;
@@ -599,22 +664,28 @@ function createCell(content, title = '') {
   return elem;
 }
 
+const MISSING_BANNER_URL = 'https://plchldr.co/i/500x250?text=Missing%20Banner&bg=111111';
+
 function createProjectImage(raffle, className = '') {
   const elem = document.createElement('TD');
   const img = document.createElement('IMG');
-  img.src = raffle.collabBanner;
-  if (raffle.collabLogo) {
-    img.addEventListener('error', () => {
-      img.src = raffle.collabLogo;
-    });
-  }
+  const url = raffle.collabBanner || MISSING_BANNER_URL;
+  img.src = url;
+  img.addEventListener('error', () => {
+    img.src = raffle.collabLogo || MISSING_BANNER_URL;
+  });
   addClassName(img, className);
   elem.appendChild(img);
   return elem;
 }
 
-function createMultiTexts(texts, { className, useTextAsClass, hideDups = true, fullTexts } = {}) {
+function createMultiTexts(
+  texts,
+  { className, useTextAsClass, useTextAsDataset, hideDups = true, fullTexts } = {}
+) {
   // console.log('texts', texts);
+
+  // const texts = textsIn.map((x) => (typeof x === 'number' ? x.toString() : x));
 
   const elem = document.createElement('SPAN');
   elem.style.whiteSpace = 'nowrap';
@@ -638,6 +709,9 @@ function createMultiTexts(texts, { className, useTextAsClass, hideDups = true, f
     addClassName(newElem, className);
     addClassName(newElem, isFirst ? 'first' : null);
     addClassName(newElem, useTextAsClass ? textAsClass(text) : null);
+    if (useTextAsDataset) {
+      newElem.dataset.n = text;
+    }
     elem.appendChild(newElem);
     isFirst = false;
   }
@@ -648,6 +722,7 @@ function createMultiLinks(links, { target, className } = {}) {
   const elem = document.createElement('SPAN');
   elem.style.whiteSpace = 'nowrap';
   let isFirst = true;
+
   for (const link of links) {
     if (!isFirst) {
       elem.appendChild(document.createElement('BR'));
@@ -672,7 +747,7 @@ function createLink(url, text, { dataset, target, className, fullText } = {}) {
   addTarget(elem, target);
   addClassName(elem, className);
   elem.innerText = text.trim();
-  if (text.includes(SHORTENED_TEXT_SUFFIX) && fullText) {
+  if (fullText) {
     elem.title = fullText;
   }
   if (dataset?.length) {
@@ -754,7 +829,7 @@ function makeRaffleOdds(entries, winners) {
   }
   const pct = (winners / entries) * 100;
   if (pct < 1) {
-    return round(pct, 2);
+    return round(pct, 0);
   } else {
     return round(pct, 0);
   }
