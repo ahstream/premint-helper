@@ -1,4 +1,4 @@
-import { trimWallet, walletToAlias, sortWallets } from './premintHelperLib';
+import { trimWallet, walletToAlias, sortWallets, loadStorage } from './premintHelperLib';
 import {
   sleep,
   millisecondsAhead,
@@ -42,23 +42,27 @@ export async function createObserver({
     permissions,
   };
 
-  await reloadStorage();
+  storage = await loadStorage(
+    {},
+    null,
+    [
+      'options',
+      'twitterObserver',
+      'projectObserver',
+      'allProjectWins',
+      'allProjectWins2',
+      'allProjectWinsMap',
+    ],
+    [
+      { key: 'twitterObserver', val: {} },
+      { key: 'projectObserver', val: {} },
+      { key: 'allProjectWins', val: {} },
+      { key: 'allProjectWins2', val: {} },
+      { key: 'allProjectWinsMap', val: {} },
+    ]
+  );
 
-  if (!storage.twitterObserver) {
-    storage.twitterObserver = {};
-    pageState.twitterModified = true;
-  }
-
-  if (!storage.projectObserver) {
-    storage.projectObserver = {};
-    pageState.projectsModified = true;
-  }
   console2.trace('storage:', storage);
-
-  if (pageState.projectsModified || pageState.projectsModified) {
-    console2.trace('save storage');
-    await setStorageData(storage);
-  }
 
   pageState.cacheTwitterHours =
     typeof cacheTwitterHours === 'undefined'

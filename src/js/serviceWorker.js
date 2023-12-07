@@ -3,7 +3,11 @@ console.info('serviceWorker.js begin');
 import { defaultOptions, overrideOptions } from '../config/config';
 import { initStorageWithOptions, fetchHelper } from 'hx-lib';
 import { defaultMessageHandler } from 'hx-chrome-lib';
-import { addRevealAlphabotRafflesRequest, isAlphabotURL } from './premintHelperLib.js';
+import {
+  addRevealAlphabotRafflesRequest,
+  isAlphabotURL,
+  isClosableInternalWebPage,
+} from './premintHelperLib.js';
 
 const customStorage = { runtime: { pendingRequests: [] }, pendingPremintReg: {} };
 
@@ -49,6 +53,24 @@ function messageHandler(request, sender, sendResponse) {
     case 'ping':
       console.log('sender.tab:', sender.tab);
       chrome.tabs.sendMessage(sender.tab.id, { cmd: 'pong' });
+      break;
+
+    case 'cleanupInternalWebPages':
+      chrome.tabs.query({}, function (tabs) {
+        tabs.forEach((tab) => {
+          if (!tab || !tab.url || tab.id === sender.tab.id) {
+            return;
+          }
+          if (isClosableInternalWebPage(tab.url)) {
+            chrome.tabs.remove(tab.id, () => console.info('Close tab:', tab));
+            return;
+          }
+          if (tab.url === sender.tab.url) {
+            chrome.tabs.remove(tab.id, () => console.info('Close tab:', tab));
+            return;
+          }
+        });
+      });
       break;
 
     case 'lookupTwitterFollowersFromMenu':

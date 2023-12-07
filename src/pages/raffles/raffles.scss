@@ -13,8 +13,16 @@ td {
 }
 
 img.collab-banner {
-  width: 350px !important;
-  min-height: 100px;
+  //width: 350px !important;
+  //min-height: 100px;
+  //max-height: 500px;
+  display: block;
+  background-size: cover;
+  background-repeat: no-repeat;
+  background-position: center center;
+  height: 155px;
+  max-height: 155px;
+  max-width: 310px;
 }
 
 td {
@@ -88,11 +96,11 @@ span.odds {
 .odds[data-n='0'] {
   color: #e7e0e0;
 }
-.odds[data-n='1'] {
-  color: #e7e0e0;
-}
+
+.odds[data-n='1'],
 .odds[data-n='2'] {
-  color: #e7e0e0;
+  color: black;
+  font-weight: normal;
 }
 
 .odds[data-n='3'],

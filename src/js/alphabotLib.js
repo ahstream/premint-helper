@@ -241,6 +241,11 @@ async function fetchRaffles(
       return raffles;
     }
 
+    if (result.data.length < page_size) {
+      console2.log('Less than page_size results, no more result after this!');
+      return raffles;
+    }
+
     console2.info(`Sleep ${interval} ms before next fetch`);
     await sleep(interval);
 

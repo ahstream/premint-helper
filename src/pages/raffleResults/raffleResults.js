@@ -23,9 +23,8 @@ import {
   readWins,
   writeWins,
   countWins,
-  readProjectWins,
   readProjectWins2,
-  writeProjectWins,
+  //writeProjectWins,
   writeProjectWins2,
   countProjectWins2,
 } from '../../js/cloudLib';
@@ -181,6 +180,8 @@ async function runPage() {
 
   checkIfSubscriptionEnabled(pageState.permissions, false, pageState.statusbar.warn);
 
+  chrome.runtime.sendMessage({ cmd: 'cleanupInternalWebPages' });
+
   document.getElementById('hx-update').addEventListener('click', () => updateWins());
   document.getElementById('hx-reset').addEventListener('click', () => resetWins());
 
@@ -205,7 +206,6 @@ async function runPage() {
   }
 
   if (pageState.hashArgs.has('action', 'updateProjectWins')) {
-    await updateProjectWins();
     await updateProjectWins2();
     return;
   }
@@ -331,6 +331,7 @@ async function updateWins() {
   const hasChanged = hasProjectWinsChanged(prevProjectWins, newProjectWins);
   console2.info('Has won wallets changed:', hasChanged);
 
+  /*
   if (hasChanged && storage.options.CLOUD_MODE === 'load') {
     const writeResult = await writeProjectWins(storage.allProjectWins, storage.options);
     if (writeResult.error) {
@@ -340,6 +341,7 @@ async function updateWins() {
       statusLogger.sub(`Uploaded ${countProjectWinsWallets()} won wallets to Cloud`);
     }
   }
+  */
 
   // test code: storage.allProjectWins2 = {};
 
@@ -374,41 +376,6 @@ async function updateWins() {
       document.title = 'premint-helper-main-account-new-project-wins';
     } else {
       document.title = 'premint-helper-main-account-no-new-project-wins';
-    }
-  }
-}
-
-async function updateProjectWins() {
-  updateMainStatus('Getting wallets won from Cloud...');
-  resetSubStatus();
-
-  document.getElementById('main-table').innerHTML = '';
-
-  if (storage.options.CLOUD_MODE === 'load') {
-    statusLogger.sub(
-      `Won wallets is only fetched from Cloud when saving own wins to Cloud (this account is reading results from Cloud)`
-    );
-    return;
-  }
-
-  if (storage.options.CLOUD_MODE === 'save') {
-    const readResult = await readProjectWins(storage.options);
-    if (readResult.error) {
-      statusLogger.sub(`Failed getting won wallets from Cloud. Network problems?`);
-    } else {
-      storage.allProjectWins = readResult;
-      statusLogger.sub(`Fetched ${countProjectWinsWallets()} won wallets from Cloud`);
-      console2.info('storage.allProjectWins', storage.allProjectWins);
-    }
-
-    await setStorageData(storage);
-
-    updateMainStatus('Done getting wallets won from Cloud!');
-
-    // document.body.classList.toggle('success', true);
-
-    if (storage.options.IS_FIRST_SUB_ACCOUNT && storage.options.CLOUD_MODE === 'save') {
-      document.title = 'premint-helper-sub-account-read-project-wins';
     }
   }
 }
@@ -471,6 +438,7 @@ async function updateProjectWins2() {
   }
 }
 
+/*
 function countProjectWinsWallets() {
   let ct = 0;
   for (const wallets in storage.allProjectWins) {
@@ -478,16 +446,17 @@ function countProjectWinsWallets() {
   }
   return ct;
 }
+*/
 
 function hasProjectWinsChanged(oldWins, newWins) {
-  console2.log(
+  console.log(
     'Object.entries(projectWins1).length',
     Object.getOwnPropertyNames(oldWins).length,
     Object.entries(oldWins).length,
     Object.entries(oldWins),
     oldWins
   );
-  console2.log(
+  console.log(
     'Object.entries(projectWins2).length',
     Object.getOwnPropertyNames(newWins).length,
     Object.entries(newWins).length,
@@ -496,12 +465,16 @@ function hasProjectWinsChanged(oldWins, newWins) {
   );
 
   if (Object.getOwnPropertyNames(oldWins).length !== Object.getOwnPropertyNames(newWins).length) {
+    console.log('length <> length');
     return true;
   }
 
   for (const [key] of Object.entries(oldWins)) {
     console2.log(key, oldWins[key], newWins[key]);
     if (JSON.stringify(oldWins[key]) !== JSON.stringify(newWins[key])) {
+      console.log('oldWins <> newWins', key);
+      console.log('oldWins[key]', oldWins[key]);
+      console.log('newWins[key]', newWins[key]);
       return true;
     }
   }
@@ -1791,7 +1764,7 @@ function showLastUpdatedStatus() {
     }
     updateSubStatus(`Results last uploaded to Cloud at ${timeText2} (<b>${agoText2}</b>)`);
   } else {
-    updateSubStatus(`Results never uploaded to Cloud`);
+    //updateSubStatus(`Results never uploaded to Cloud`);
   }
 }
 

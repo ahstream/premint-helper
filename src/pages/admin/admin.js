@@ -4,22 +4,22 @@ import './admin.scss';
 
 import {
   optimizeStorage,
+  resetStorage,
   createStatusbarButtons,
   getMyTabIdFromExtension,
   STATUSBAR_DEFAULT_TEXT,
 } from '../../js/premintHelperLib.js';
 
-import { createHashArgs, myConsole, getStorageData, setStorageData } from 'hx-lib';
+import { createHashArgs, getStorageData, setStorageData } from 'hx-lib';
 
 import { getPermissions } from '../../js/permissions.js';
 import { getCalendar, getCalendars } from '../../js/alphabotLib.js';
 
 import { createStatusbar } from 'hx-statusbar';
 
-const console2 = myConsole();
-
 // DATA ------------------------------
 
+let storage = {};
 let pageState = {};
 
 // STARTUP ------------------------------
@@ -31,7 +31,10 @@ async function runNow() {
 }
 
 async function runPage() {
-  console2.log('runPage');
+  console.log('runPage');
+
+  storage = await getStorageData();
+  console.log('storage', storage);
 
   const hashArgs = createHashArgs(window.location.hash);
   const permissions = await getPermissions();
@@ -42,7 +45,7 @@ async function runPage() {
     permissions,
   };
 
-  console2.info('PageState:', pageState);
+  console.info('PageState:', pageState);
   resetSubStatus();
 
   pageState.statusbar.buttons(
@@ -59,6 +62,7 @@ async function runPage() {
   await chrome.runtime.sendMessage({ cmd: 'ping' });
 
   document.getElementById('hx-optimize-storage').addEventListener('click', () => optimizeStorageHandler());
+  document.getElementById('hx-reset-storage').addEventListener('click', () => resetStorageHandler());
   document.getElementById('hx-get-alphabot-calendar').addEventListener('click', () => getAlphabotCalendar());
 }
 
@@ -73,16 +77,34 @@ async function getAlphabotCalendar() {
 
 async function optimizeStorageHandler() {
   if (!window.confirm('Do you want to optimize browser storage?')) {
-    return console2.log('no');
+    return console.log('no');
   }
 
-  console2.info('Old storage:', await getStorageData());
+  console.info('Old storage:', await getStorageData());
   const newStorage = await optimizeStorage();
-  console2.info('New storage:', newStorage);
+  console.info('New storage:', newStorage);
 
   await setStorageData(newStorage);
 
   updateSubStatus('Storage optimized!');
+}
+
+async function resetStorageHandler() {
+  if (!window.confirm('Do you want to reset browser storage?')) {
+    return console.log('no');
+  }
+
+  console.info('Old storage:', await getStorageData());
+  const resettedStorage = await resetStorage();
+  console.info('Resetted storage:', resettedStorage);
+
+  chrome.storage.local.clear();
+  console.info('Storage after clear:', await getStorageData());
+
+  await setStorageData(resettedStorage);
+  console.info('Storage after reset:', await getStorageData());
+
+  updateSubStatus('Storage reset!');
 }
 
 // WINS FUNCS -----------------------------------------------------
@@ -92,7 +114,7 @@ async function optimizeStorageHandler() {
 // STATUS FUNCS -----------------------------------------------------
 
 function updateMainStatus(text) {
-  console2.log('updateMainStatus', text);
+  console.log('updateMainStatus', text);
 
   const elem = document.getElementById('hx-status-main');
   if (elem) {
@@ -105,11 +127,11 @@ function resetSubStatus() {
 }
 
 function updateSubStatus(html, reuseLast = false) {
-  console2.log('updateSubStatus', html);
+  console.log('updateSubStatus', html);
 
   const elem = document.getElementById('hx-status');
   if (!elem) {
-    console2.error('Missing status element in HTML!');
+    console.error('Missing status element in HTML!');
     return false;
   }
   let item;

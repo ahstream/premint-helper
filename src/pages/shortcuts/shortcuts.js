@@ -76,5 +76,15 @@ getStorageItems(['options']).then((storage) => {
         });
       },
     },
+
+    {
+      cmd: 'update-raffles',
+      callback: () => {
+        return chrome.runtime.sendMessage({
+          cmd: 'openInSameTab',
+          url: chrome.runtime.getURL('/raffles.html#action=update'),
+        });
+      },
+    },
   ]);
 });

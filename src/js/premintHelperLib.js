@@ -781,6 +781,21 @@ export async function optimizeStorage() {
   // wins: remove old?
 }
 
+export async function resetStorage() {
+  const baseStorage = await getStorageData();
+  console2.log('baseStorage', baseStorage);
+
+  const storage = {
+    hxhistory: baseStorage.hxhistory,
+    options: baseStorage.options,
+    permissions: baseStorage.permissions,
+    runtime: { pendingRequests: [] },
+    pendingPremintReg: {},
+  };
+
+  return storage;
+}
+
 // MY TAB ID -------------------------------------------------------------------
 
 export async function getMyTabIdFromExtension(context, maxWait, intervall = 100) {
@@ -950,4 +965,13 @@ export function updateSubStatus(html, reuseLast = false) {
 
 export function resetSubStatus() {
   document.getElementById('hx-status').replaceChildren();
+}
+
+export function isClosableInternalWebPage(url) {
+  const closeableHrefs = [
+    //'chrome-extension://ceegpiflkjflcklliibajfhlgoljefio/raffleResults.html',
+    //'chrome-extension://ceegpiflkjflcklliibajfhlgoljefio/raffles.html',
+    'chrome-extension://ceegpiflkjflcklliibajfhlgoljefio/help.html',
+  ];
+  return !!closeableHrefs.some((x) => url && url.startsWith(x));
 }

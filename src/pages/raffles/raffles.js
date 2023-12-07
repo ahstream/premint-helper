@@ -105,11 +105,17 @@ async function runPage() {
   };
   console2.info('PageState:', pageState);
 
+  chrome.runtime.sendMessage({ cmd: 'cleanupInternalWebPages' });
+
   statusLogger.main('');
   statusLogger.mid('');
   resetSubStatus();
 
   document.getElementById('hx-update').addEventListener('click', () => updateRaffles());
+
+  if (pageState.hashArgs.has('action', 'update')) {
+    return updateRaffles();
+  }
 
   showPage();
 }
@@ -161,7 +167,19 @@ async function showPage() {
 
 function showRafflesTableForOne(key, header, subHeader = '') {
   const items = storage.raffles[key] ? storage.raffles[key] : [];
-  appendRafflesTable(createRafflesTable(items.sort(dynamicSort('endDate')), header, subHeader, key));
+  console.log('items', items);
+
+  const now = Date.now();
+
+  items.forEach((i) => {
+    i.raffles = i.raffles.filter((x) => x.endDate > now);
+    i.endDate = i.raffles.length ? i.raffles[0].endDate : null;
+  });
+
+  const validItems = items.filter((x) => x.endDate > now);
+  console.log('validItems', validItems);
+
+  appendRafflesTable(createRafflesTable(validItems.sort(dynamicSort('endDate')), header, subHeader, key));
 }
 
 function resetPage() {
@@ -511,11 +529,11 @@ function createRafflesTable(packedRafflesIn, header, subHeader, sectionId, { all
       const h = hoursBetween(x.endDate, now);
       const d = daysBetween(x.endDate, now);
       if (m <= 60) {
-        return `${m} m`;
+        return `${m} min`;
       } else if (h <= 24) {
-        return `${h} hours`;
+        return `${h} h`;
       } else {
-        return `${d} days`;
+        return `${d} d`;
       }
     });
     row.appendChild(createCell(createMultiTexts(timeLeft, { className: 'time-left', hideDups: false })));
@@ -664,12 +682,13 @@ function createCell(content, title = '') {
   return elem;
 }
 
-const MISSING_BANNER_URL = 'https://plchldr.co/i/500x250?text=Missing%20Banner&bg=111111';
+const MISSING_BANNER_URL = 'https://plchldr.co/i/250x250?text=Missing%20Banner&bg=111111';
 
 function createProjectImage(raffle, className = '') {
   const elem = document.createElement('TD');
   const img = document.createElement('IMG');
-  const url = raffle.collabBanner || MISSING_BANNER_URL;
+  // const url = raffle.collabBanner || MISSING_BANNER_URL;
+  const url = raffle.collabBanner || raffle.collabLogo || MISSING_BANNER_URL;
   img.src = url;
   img.addEventListener('error', () => {
     img.src = raffle.collabLogo || MISSING_BANNER_URL;
