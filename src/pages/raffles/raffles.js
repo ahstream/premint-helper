@@ -35,6 +35,7 @@ import {
   pluralize,
   sleep,
   noDuplicates,
+  ONE_DAY,
 } from 'hx-lib';
 
 import { getPermissions } from '../../js/permissions.js';
@@ -56,13 +57,15 @@ let storage = {};
 let pageState = {};
 
 const SHORTENED_TEXT_SUFFIX = '...';
-const MAX_LEN_RAFFLE_NAME = 32;
+const MAX_LEN_RAFFLE_NAME = 44;
 const MAX_LEN_TEAM_NAME = 24;
 const MAX_LEN_TWITTER_HANDLE = 16;
 
+const RAFFLE_LIST_MAX_DAYS_OLD = 3;
+const RAFFLE_LIST_MAX_ITEMS = 300;
+
 const DEFAULT_LOCALE = 'SV-se'; // undefined; // 'SV-se'; // string() | undefined
 const SORT_ORDER_LOCALE = 'sv-SE';
-const MAX_RAFFLES = 300;
 
 const statusLogger = { main: updateMainStatus, mid: updateMidStatus, sub: updateSubStatus };
 
@@ -166,13 +169,21 @@ async function showPage() {
 }
 
 function showRafflesTableForOne(key, header, subHeader = '') {
-  const items = storage.raffles[key] ? storage.raffles[key] : [];
+  const itemsBase = storage.raffles[key] ? storage.raffles[key] : [];
+  console.log('itemsBase', itemsBase);
+
+  const filters = getFilters();
+  console.log('filters', filters);
+  const items = filterRaffles(itemsBase, filters);
   console.log('items', items);
+  if (filters.text) {
+    subHeader = subHeader + (subHeader ? '<br><br>' : '') + 'Filters: ' + filters.text;
+  }
 
   const now = Date.now();
 
   items.forEach((i) => {
-    i.raffles = i.raffles.filter((x) => x.endDate > now);
+    i.raffles = i.raffles.filter((x) => x.endDate > now && !isRaffleToLongToShow(x));
     i.endDate = i.raffles.length ? i.raffles[0].endDate : null;
   });
 
@@ -185,6 +196,79 @@ function showRafflesTableForOne(key, header, subHeader = '') {
 function resetPage() {
   document.getElementById('main-table').innerHTML = '';
   resetSubStatus();
+}
+
+// FILTER
+
+function getFilters() {
+  const f = {
+    minutes: 720, //  720, // 600, // 120,
+    winPct: 2,
+    easy: null, // null, // true,
+    text: '',
+  };
+  const filters = [];
+  filters.push(f.minutes !== null ? `Ends in < ${f.minutes} minutes` : '');
+  filters.push(f.minOdds !== null ? `${f.winPct}+ win % ` : '');
+  filters.push(f.easy !== null ? `Easy` : '');
+  f.text = filters.filter((x) => !!x).join(', ');
+  return f;
+}
+
+function filterRaffles(raffles, filters) {
+  const baseRaffles = [...raffles];
+  baseRaffles.forEach((r) => {
+    r.raffles = r.raffles.filter((x) => isFiltered(x, filters));
+  });
+  console.log('baseRaffles', baseRaffles);
+  const newRaffles = baseRaffles.filter((x) => x.raffles.length > 0);
+  newRaffles.forEach((x) => (x.endDate = x.raffles[0].endDate));
+  console.log('newRaffles', newRaffles);
+  return newRaffles;
+}
+
+function isFiltered(raffle, filters) {
+  console.log('isFiltered', raffle, filters);
+  const now = Date.now();
+
+  if (filters.easy !== null && !isRaffleEasy(raffle)) {
+    console.log('false1');
+    return false;
+  }
+
+  if (filters.minutes !== null && raffle.endDate - filters.minutes * 60 * 1000 > now) {
+    console.log('false2');
+    return false;
+  }
+
+  if (filters.winPct !== null && getWinPct(raffle) * 100 < filters.winPct) {
+    console.log('false2');
+    return false;
+  }
+
+  console.log('true');
+  return true;
+}
+
+function isRaffleEasy(r) {
+  return r.reqString ? !r.reqString.includes('d') && getWinPct(r) >= 0.01 : false;
+}
+
+function isRaffleToLongToShow(r) {
+  return r.endDate + RAFFLE_LIST_MAX_DAYS_OLD * ONE_DAY <= Date.now();
+}
+
+function getWinPct(r) {
+  if (typeof r.entryCount !== 'number' || typeof r.winnerCount !== 'number') {
+    return 0;
+  }
+  if (!r.winnerCount) {
+    return 0;
+  }
+  if (!r.entryCount) {
+    return 1;
+  }
+  return r.winnerCount / r.entryCount;
 }
 
 // UPDATE ------------------------------
@@ -225,7 +309,7 @@ async function updateRaffles() {
   statusLogger.main(`Updating My Alphabot raffles...`);
   await updateMyAlphabotRaffles();
   statusLogger.sub(
-    `Fetched ${storage.raffles.alphabotMine?.length || 0} of my Alphabot raffle projects (My communities)`
+    `Fetched ${storage.raffles.alphabotMine?.length || 0} Alphabot raffle projects (My communities)`
   );
   statusLogger.mid(``);
   updateAlphabotSelectedRaffles();
@@ -235,7 +319,7 @@ async function updateRaffles() {
   statusLogger.main(`Updating All Alphabot raffles...`);
   await updateAllAlphabotRaffles();
   statusLogger.sub(
-    `Fetched ${storage.raffles.alphabotAll?.length || 0} of all Alphabot raffle projects (All communities)`
+    `Fetched ${storage.raffles.alphabotAll?.length || 0} Alphabot raffle projects (All communities)`
   );
   statusLogger.mid(``);
   showRafflesTableForOne('alphabotAll', 'All Alphabot Raffles');
@@ -251,7 +335,7 @@ async function updateRaffles() {
   statusLogger.main(`Updating All LuckyGo raffles...`);
   await updateAllLuckygoRaffles(authKeyLuckygo);
   statusLogger.sub(
-    `Fetched ${storage.raffles.luckygoAll?.length || 0} of all LuckyGo raffle projects (All communities)`
+    `Fetched ${storage.raffles.luckygoAll?.length || 0} LuckyGo raffle projects (All communities)`
   );
   statusLogger.mid(``);
   showRafflesTableForOne('luckygoAll', 'All LuckyGo Raffles');
@@ -283,17 +367,20 @@ async function updateSearchRaffles(luckygoAuthKey) {
   const raffles = [];
 
   for (let i = 0; i < queries.length; i++) {
-    const query = queries[i];
+    const query = queries[i].trim();
     console.log('query', query);
-    if (!query || query.length < 2) {
-      statusLogger.sub(`Invalid search query:`, query);
+    if (!query) {
+      continue;
+    }
+    if (query.length < 2) {
+      statusLogger.sub(`Invalid search query (need to be >= 2 characters):`, query);
       continue;
     }
     statusLogger.main(`Fetching raffles for search query ${i + 1} of ${queries.length}: ${query}`);
 
     const alphabotRaffles = await getAlphabotRaffles(null, {
       statusLogger,
-      max: MAX_RAFFLES,
+      max: RAFFLE_LIST_MAX_ITEMS,
       search: query,
     });
     console.log('alphabotRaffles:', query, alphabotRaffles);
@@ -303,7 +390,7 @@ async function updateSearchRaffles(luckygoAuthKey) {
       ? []
       : await getLuckygoRaffles(luckygoAuthKey, {
           statusLogger,
-          max: MAX_RAFFLES,
+          max: RAFFLE_LIST_MAX_ITEMS,
           key_words: query,
         });
     console.log('luckygoRaffles:', query, luckygoRaffles);
@@ -331,7 +418,7 @@ async function updateMyAlphabotRaffles() {
 
 async function updateAlphabotRaffles(key, authKey, options = {}) {
   console.log('updateAlphabotRaffles', key, authKey, options);
-  const r1 = await getAlphabotRaffles(authKey, { statusLogger, max: MAX_RAFFLES, ...options });
+  const r1 = await getAlphabotRaffles(authKey, { statusLogger, max: RAFFLE_LIST_MAX_ITEMS, ...options });
   console.log('r1', r1);
   const r2 = processRaffles(r1 || []);
   console.log('r2', r2);
@@ -379,7 +466,7 @@ async function updateLuckygoRaffles(key, authKey, options = {}) {
     return;
   }
   console.log('updateLuckygoRaffles', key, authKey, options);
-  const r1 = await getLuckygoRaffles(authKey, { statusLogger, max: MAX_RAFFLES, ...options });
+  const r1 = await getLuckygoRaffles(authKey, { statusLogger, max: RAFFLE_LIST_MAX_ITEMS, ...options });
   console.log('r1', r1);
   const r2 = processRaffles(r1 || []);
   console.log('r2', r2);
@@ -629,7 +716,7 @@ function createRafflesTable(packedRafflesIn, header, subHeader, sectionId, { all
     `<a name='${sectionId}'></a>` +
     (header ? `<h4 class='sticky'>${header} (${numProjects}/${numRaffles})</h4>` : '') +
     (subHeader ? `<span>${subHeader}</span><br>` : '') +
-    (numRaffles ? table.outerHTML : 'No raffles');
+    (numRaffles ? table.outerHTML : '<br>No raffles');
   return div;
 }
 
