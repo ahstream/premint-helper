@@ -22,6 +22,7 @@ const options = [
       ['property', 'ALPHABOT_ENABLE_TWITTER_TASKS', 'Enable Twitter tasks'],
       ['property', 'ALPHABOT_ENABLE_RESULTS', 'Enable fetch of results'],
       ['property', 'ALPHABOT_RESULTS_MAX_FETCH_WINS', 'Max new results to fetch'],
+      ['property', 'ALPHABOT_ENABLE_RAFFLE_LIST', 'ALPHABOT_ENABLE_RAFFLE_LIST'],
     ],
   },
 
@@ -38,6 +39,20 @@ const options = [
     ],
   },
 
+  // LuckyGo.io Raffles
+  {
+    header: 'LuckyGo.io Raffles',
+    hiddenKey: '',
+    options: [
+      ['property', 'LUCKYGO_ENABLE', 'Enable raffle automation on luckygo.io website'],
+      ['property', 'LUCKYGO_ENABLE_TWITTER_TASKS', 'Enable Twitter tasks'],
+      ['property', 'LUCKYGO_ENABLE_DISCORD_TASKS', 'Enable Discord tasks'],
+      ['property', 'LUCKYGO_ENABLE_RESULTS', 'Enable fetch of results'],
+      ['property', 'LUCKYGO_RESULTS_MAX_FETCH_WINS', 'Max new results to fetch'],
+      ['property', 'LUCKYGO_ENABLE_RAFFLE_LIST', 'LUCKYGO_ENABLE_RAFFLE_LIST'],
+    ],
+  },
+
   // Atlas3.io Raffles
   {
     header: 'Atlas3.io Raffles',
@@ -49,19 +64,6 @@ const options = [
       ['property', 'ATLAS_ENABLE_RESULTS', 'Enable fetch of results'],
       ['property', 'ATLAS_RESULTS_MAX_FETCH_WINS', 'Max new results to fetch'],
       ['property', 'ATLAS_SKIP_REQS_IF_READY', 'Skip task requirements if ready to register'],
-    ],
-  },
-
-  // LuckyGo.io Raffles
-  {
-    header: 'LuckyGo.io Raffles',
-    hiddenKey: '',
-    options: [
-      ['property', 'LUCKYGO_ENABLE', 'Enable raffle automation on luckygo.io website'],
-      ['property', 'LUCKYGO_ENABLE_TWITTER_TASKS', 'Enable Twitter tasks'],
-      ['property', 'LUCKYGO_ENABLE_DISCORD_TASKS', 'Enable Discord tasks'],
-      ['property', 'LUCKYGO_ENABLE_RESULTS', 'Enable fetch of results'],
-      ['property', 'LUCKYGO_RESULTS_MAX_FETCH_WINS', 'Max new results to fetch'],
     ],
   },
 
@@ -334,9 +336,27 @@ const options = [
     header: 'Raffles Page',
     hiddenKey: '',
     options: [
-      ['property', 'RAFFLES_SEARCH_QUERY', 'RAFFLES_SEARCH_QUERY', '', 'RAFFLES_SEARCH_QUERY'],
+      ['property', 'RAFFLE_LIST_FILTER_MINUTES', 'RAFFLE_LIST_FILTER_MINUTES', '', ''],
+      ['space', 10],
+      ['property', 'RAFFLE_LIST_FILTER_PCT', 'RAFFLE_LIST_FILTER_PCT', '', ''],
+      ['space', 10],
+      ['property', 'RAFFLE_LIST_FILTER_EASY', 'RAFFLE_LIST_FILTER_EASY', '', ''],
+      ['space', 10],
+      ['property', 'RAFFLE_LIST_FILTER_REQ_DISCORD', 'RAFFLE_LIST_FILTER_REQ_DISCORD', '', ''],
+      ['property', 'RAFFLE_LIST_FILTER_REQ_FOLLOW', 'RAFFLE_LIST_FILTER_REQ_FOLLOW', '', ''],
+      ['property', 'RAFFLE_LIST_FILTER_REQ_LIKE', 'RAFFLE_LIST_FILTER_REQ_LIKE', '', ''],
+      ['property', 'RAFFLE_LIST_FILTER_REQ_RETWEET', 'RAFFLE_LIST_FILTER_REQ_RETWEET', '', ''],
+      ['space', 10],
+      ['property', 'RAFFLE_LIST_MAX_DAYS_OLD', 'RAFFLE_LIST_MAX_DAYS_OLD', '', ''],
+      ['property', 'RAFFLE_LIST_MAX_ITEMS', 'RAFFLE_LIST_MAX_ITEMS', '', ''],
+      ['space', 10],
+      ['property', 'RAFFLE_LIST_FETCH_LUCKYGO_RAFFLES', 'RAFFLE_LIST_FETCH_LUCKYGO_RAFFLES', '', ''],
 
-      ['property', 'RAFFLES_MY_TEAMS', 'RAFFLES_MY_TEAMS', '', 'RAFFLES_MY_TEAMS'],
+      ['space', 10],
+      ['property', 'RAFFLE_LIST_SEARCH_QUERY', 'RAFFLE_LIST_SEARCH_QUERY', '', 'RAFFLE_LIST_SEARCH_QUERY'],
+
+      ['space', 10],
+      ['property', 'RAFFLE_LIST_MY_TEAMS', 'RAFFLE_LIST_MY_TEAMS', '', 'RAFFLE_LIST_MY_TEAMS'],
     ],
   },
 

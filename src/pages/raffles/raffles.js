@@ -39,7 +39,11 @@ import {
 } from 'hx-lib';
 
 import { getPermissions } from '../../js/permissions.js';
-import { getRaffles as getLuckygoRaffles, getLuckygoAuth } from '../../js/luckygoLib.js';
+import {
+  getRaffles as getLuckygoRaffles,
+  getLuckygoAuth,
+  getRaffle as getLuckygoRaffle,
+} from '../../js/luckygoLib.js';
 import { getRaffles as getAlphabotRaffles } from '../../js/alphabotLib.js';
 
 import { createStatusbar } from 'hx-statusbar';
@@ -61,11 +65,11 @@ const MAX_LEN_RAFFLE_NAME = 44;
 const MAX_LEN_TEAM_NAME = 24;
 const MAX_LEN_TWITTER_HANDLE = 16;
 
-const RAFFLE_LIST_MAX_DAYS_OLD = 3;
-const RAFFLE_LIST_MAX_ITEMS = 300;
-
 const DEFAULT_LOCALE = 'SV-se'; // undefined; // 'SV-se'; // string() | undefined
 const SORT_ORDER_LOCALE = 'sv-SE';
+
+const SLEEP_RAFFLE_LIST_LUCKYGO_RAFFLE_MAP_FETCH = 500;
+const SLEEP_RAFFLE_LIST_QUERY_FETCH = 300;
 
 const statusLogger = { main: updateMainStatus, mid: updateMidStatus, sub: updateSubStatus };
 
@@ -120,6 +124,8 @@ async function runPage() {
     return updateRaffles();
   }
 
+  // storage.raffles.luckygoMap = {}; // todo
+
   showPage();
 }
 
@@ -155,7 +161,7 @@ async function showPage() {
   await sleep(300);
   showLastUpdatedStatus();
 
-  const queryText = `Queries: ${storage.options.RAFFLES_SEARCH_QUERY.join(', ')}`;
+  const queryText = `Queries: ${storage.options.RAFFLE_LIST_SEARCH_QUERY.join(', ')}`;
   showRafflesTableForOne('search', 'Search Query Raffles', queryText);
   updateAlphabotSelectedRaffles();
   showRafflesTableForOne('alphabotSelected', 'Selected Alphabot Raffles');
@@ -169,28 +175,34 @@ async function showPage() {
 }
 
 function showRafflesTableForOne(key, header, subHeader = '') {
-  const itemsBase = storage.raffles[key] ? storage.raffles[key] : [];
-  console.log('itemsBase', itemsBase);
+  console.log('showRafflesTableForOne', key, header, subHeader);
+
+  const now = Date.now();
+
+  const raffles = (storage.raffles[key] ? storage.raffles[key] : []).filter(
+    (x) => x.endDate > now && !isRaffleToLongToShow(x)
+  );
+  console.log('itemsBase', raffles);
 
   const filters = getFilters();
   console.log('filters', filters);
-  const items = filterRaffles(itemsBase, filters);
-  console.log('items', items);
+
+  const filteredRaffles = filterRaffles(raffles, filters);
+  console.log('filteredRaffles', filteredRaffles);
   if (filters.text) {
     subHeader = subHeader + (subHeader ? '<br><br>' : '') + 'Filters: ' + filters.text;
   }
 
-  const now = Date.now();
+  updateLuckygoTwitterHandles(filteredRaffles);
 
-  items.forEach((i) => {
-    i.raffles = i.raffles.filter((x) => x.endDate > now && !isRaffleToLongToShow(x));
+  const packedRaffles = processRaffles(filteredRaffles);
+  console.log('packedRaffles', packedRaffles);
+
+  packedRaffles.forEach((i) => {
     i.endDate = i.raffles.length ? i.raffles[0].endDate : null;
   });
 
-  const validItems = items.filter((x) => x.endDate > now);
-  console.log('validItems', validItems);
-
-  appendRafflesTable(createRafflesTable(validItems.sort(dynamicSort('endDate')), header, subHeader, key));
+  appendRafflesTable(createRafflesTable(packedRaffles.sort(dynamicSort('endDate')), header, subHeader, key));
 }
 
 function resetPage() {
@@ -200,24 +212,13 @@ function resetPage() {
 
 // FILTER
 
-function getFilters() {
-  const f = {
-    minutes: 720, //  720, // 600, // 120,
-    winPct: 2,
-    easy: null, // null, // true,
-    text: '',
-  };
-  const filters = [];
-  filters.push(f.minutes !== null ? `Ends in < ${f.minutes} minutes` : '');
-  filters.push(f.minOdds !== null ? `${f.winPct}+ win % ` : '');
-  filters.push(f.easy !== null ? `Easy` : '');
-  f.text = filters.filter((x) => !!x).join(', ');
-  return f;
-}
-
 function filterRaffles(raffles, filters) {
+  return raffles.filter((x) => isFiltered(x, filters));
+  /*
+  console.log('filterRaffles', raffles, filters);
   const baseRaffles = [...raffles];
   baseRaffles.forEach((r) => {
+    console.log('r.raffles', r.raffles);
     r.raffles = r.raffles.filter((x) => isFiltered(x, filters));
   });
   console.log('baseRaffles', baseRaffles);
@@ -225,28 +226,74 @@ function filterRaffles(raffles, filters) {
   newRaffles.forEach((x) => (x.endDate = x.raffles[0].endDate));
   console.log('newRaffles', newRaffles);
   return newRaffles;
+  */
+}
+
+function getFilters() {
+  const f = {
+    minutes: storage.options.RAFFLE_LIST_FILTER_MINUTES
+      ? Number(storage.options.RAFFLE_LIST_FILTER_MINUTES)
+      : null,
+    winPct: storage.options.RAFFLE_LIST_FILTER_PCT ? Number(storage.options.RAFFLE_LIST_FILTER_PCT) : null,
+    easy: storage.options.RAFFLE_LIST_FILTER_EASY,
+    reqDiscord: storage.options.RAFFLE_LIST_FILTER_REQ_DISCORD,
+    reqFollow: storage.options.RAFFLE_LIST_FILTER_REQ_FOLLOW,
+    reqLike: storage.options.RAFFLE_LIST_FILTER_REQ_LIKE,
+    reqRetweet: storage.options.RAFFLE_LIST_FILTER_REQ_RETWEET,
+    text: '',
+  };
+  const filters = [];
+  filters.push(f.minutes !== null ? `Ends in ${f.minutes} minutes` : '');
+  filters.push(f.winPct !== null ? `Win % >= ${f.winPct}` : '');
+  filters.push(f.easy ? `Easy flagged` : '');
+  filters.push(f.reqDiscord ? `No Discord req` : '');
+  filters.push(f.reqFollow ? `Follow` : '');
+  filters.push(f.reqLike ? `Like` : '');
+  filters.push(f.reqRetweet ? `Retweet` : '');
+  f.text = filters.filter((x) => !!x).join(', ');
+  return f;
 }
 
 function isFiltered(raffle, filters) {
-  console.log('isFiltered', raffle, filters);
+  console2.log('isFiltered', raffle, filters);
   const now = Date.now();
 
-  if (filters.easy !== null && !isRaffleEasy(raffle)) {
-    console.log('false1');
+  if (filters.easy && !isRaffleEasy(raffle)) {
+    console2.log('false: easy');
     return false;
   }
 
   if (filters.minutes !== null && raffle.endDate - filters.minutes * 60 * 1000 > now) {
-    console.log('false2');
+    console2.log('false: minutes');
     return false;
   }
 
   if (filters.winPct !== null && getWinPct(raffle) * 100 < filters.winPct) {
-    console.log('false2');
+    console2.log('false: winPct');
     return false;
   }
 
-  console.log('true');
+  if (filters.reqDiscord && raffle.reqString.includes('d')) {
+    console2.log('false: reqDiscord');
+    return false;
+  }
+
+  if (filters.reqFollow && !raffle.reqString.includes('f')) {
+    console2.log('false: reqFollow');
+    return false;
+  }
+
+  if (filters.reqLike && !raffle.reqString.includes('l')) {
+    console2.log('false: reqLike');
+    return false;
+  }
+
+  if (filters.reqRetweet && !raffle.reqString.includes('r')) {
+    console2.log('false: reqRetweet');
+    return false;
+  }
+
+  console2.log('true');
   return true;
 }
 
@@ -255,7 +302,7 @@ function isRaffleEasy(r) {
 }
 
 function isRaffleToLongToShow(r) {
-  return r.endDate + RAFFLE_LIST_MAX_DAYS_OLD * ONE_DAY <= Date.now();
+  return r.endDate + storage.options.RAFFLE_LIST_MAX_DAYS_OLD * ONE_DAY <= Date.now();
 }
 
 function getWinPct(r) {
@@ -292,6 +339,13 @@ async function updateRaffles() {
   }
   statusLogger.mid(``);
 
+  /*
+  await updateMyLuckygoRaffles(authKeyLuckygo);
+  if (pageState) {
+    return;
+  }
+  */
+
   statusLogger.main(`Updating Search Query raffles...`);
   await updateSearchRaffles(authKeyLuckygo);
   statusLogger.sub(`Fetched ${storage.raffles.search?.length || 0} Search Query raffle projects`);
@@ -299,7 +353,7 @@ async function updateRaffles() {
   showRafflesTableForOne(
     'search',
     'Search Query Raffles',
-    `Queries: ${storage.options.RAFFLES_SEARCH_QUERY.join(', ')}`
+    `Queries: ${storage.options.RAFFLE_LIST_SEARCH_QUERY.join(', ')}`
   );
 
   if (pageState.foo2) {
@@ -312,6 +366,7 @@ async function updateRaffles() {
     `Fetched ${storage.raffles.alphabotMine?.length || 0} Alphabot raffle projects (My communities)`
   );
   statusLogger.mid(``);
+
   updateAlphabotSelectedRaffles();
   showRafflesTableForOne('alphabotSelected', 'Selected Alphabot Raffles');
   showRafflesTableForOne('alphabotMine', 'My Alphabot Raffles');
@@ -353,7 +408,7 @@ async function updateRaffles() {
 async function updateSearchRaffles(luckygoAuthKey) {
   console.log('updateSearchRaffles');
 
-  const search = storage.options.RAFFLES_SEARCH_QUERY;
+  const search = storage.options.RAFFLE_LIST_SEARCH_QUERY;
   console.log('search', search);
 
   const queries = noDuplicates(
@@ -380,7 +435,7 @@ async function updateSearchRaffles(luckygoAuthKey) {
 
     const alphabotRaffles = await getAlphabotRaffles(null, {
       statusLogger,
-      max: RAFFLE_LIST_MAX_ITEMS,
+      max: storage.options.RAFFLE_LIST_MAX_ITEMS,
       search: query,
     });
     console.log('alphabotRaffles:', query, alphabotRaffles);
@@ -390,18 +445,20 @@ async function updateSearchRaffles(luckygoAuthKey) {
       ? []
       : await getLuckygoRaffles(luckygoAuthKey, {
           statusLogger,
-          max: RAFFLE_LIST_MAX_ITEMS,
+          max: storage.options.RAFFLE_LIST_MAX_ITEMS,
           key_words: query,
         });
     console.log('luckygoRaffles:', query, luckygoRaffles);
     raffles.push(...luckygoRaffles);
 
-    await sleep(300);
+    await sleep(SLEEP_RAFFLE_LIST_QUERY_FETCH);
   }
 
-  const processedRaffles = processRaffles(raffles);
-  console.log('processedRaffles', processedRaffles);
-  storage.raffles.search = processedRaffles;
+  for (let r of raffles) {
+    await updateLuckygoRaffleMap(r);
+  }
+
+  storage.raffles.search = raffles;
 
   await setStorageData(storage);
 }
@@ -418,18 +475,23 @@ async function updateMyAlphabotRaffles() {
 
 async function updateAlphabotRaffles(key, authKey, options = {}) {
   console.log('updateAlphabotRaffles', key, authKey, options);
-  const r1 = await getAlphabotRaffles(authKey, { statusLogger, max: RAFFLE_LIST_MAX_ITEMS, ...options });
+  const r1 = await getAlphabotRaffles(authKey, {
+    statusLogger,
+    max: storage.options.RAFFLE_LIST_MAX_ITEMS,
+    ...options,
+  });
   console.log('r1', r1);
   const r2 = processRaffles(r1 || []);
   console.log('r2', r2);
-  storage.raffles[key] = r2;
+  //storage.raffles[key] = r2;
+  storage.raffles[key] = r1;
 }
 
 async function updateAlphabotSelectedRaffles() {
   console.log('updateAlphabotSelectedRaffles');
 
   const myTeams = noDuplicates(
-    storage.options.RAFFLES_MY_TEAMS.map((x) => x.split(','))
+    storage.options.RAFFLE_LIST_MY_TEAMS.map((x) => x.split(','))
       .flat()
       .map((x) => x.trim())
       .map((x) => x.toLowerCase())
@@ -437,17 +499,16 @@ async function updateAlphabotSelectedRaffles() {
   console.log('myTeams', myTeams);
 
   const raffles = [];
-  storage.raffles.alphabotMine.forEach((r) => {
-    r.raffles.forEach((raffle) => {
-      console.log('raffle', raffle);
-      const teamName = raffle.teamName?.toLowerCase ? raffle.teamName.toLowerCase() : '';
-      console.log('teamName', teamName);
-      if (myTeams.includes(teamName)) {
-        raffles.push({ ...raffle });
-      }
-    });
+  storage.raffles.alphabotMine.forEach((raffle) => {
+    console.log('raffle', raffle);
+    const teamName = raffle.teamName?.toLowerCase ? raffle.teamName.toLowerCase() : '';
+    console.log('teamName', teamName);
+    if (myTeams.includes(teamName)) {
+      raffles.push({ ...raffle });
+    }
   });
-  storage.raffles.alphabotSelected = processRaffles(raffles);
+  //storage.raffles.alphabotSelected = processRaffles(raffles);
+  storage.raffles.alphabotSelected = raffles;
 }
 
 // LUCKYGO ------------------------------
@@ -466,13 +527,65 @@ async function updateLuckygoRaffles(key, authKey, options = {}) {
     return;
   }
   console.log('updateLuckygoRaffles', key, authKey, options);
-  const r1 = await getLuckygoRaffles(authKey, { statusLogger, max: RAFFLE_LIST_MAX_ITEMS, ...options });
+  const r1 = await getLuckygoRaffles(authKey, {
+    statusLogger,
+    max: storage.options.RAFFLE_LIST_MAX_ITEMS,
+    ...options,
+  });
   console.log('r1', r1);
-  const r2 = processRaffles(r1 || []);
-  console.log('r2', r2);
-  storage.raffles[key] = r2;
+  storage.raffles[key] = r1;
+
+  for (let r of r1) {
+    await updateLuckygoRaffleMap(r);
+  }
+  console.log('storage.raffles.luckygoMap', storage.raffles.luckygoMap);
 
   await setStorageData(storage);
+}
+
+async function updateLuckygoRaffleMap(r) {
+  console.log('updateLuckygoRaffleMap', r);
+
+  if (r.provider !== 'luckygo') {
+    return;
+  }
+
+  if (!storage.options.RAFFLE_LIST_FETCH_LUCKYGO_RAFFLES) {
+    return;
+  }
+
+  if (!storage.raffles.luckygoMap) {
+    storage.raffles.luckygoMap = {};
+  }
+  if (
+    !storage.raffles.luckygoMap[r.collabId] ||
+    !storage.raffles.luckygoMap[r.collabId].collabTwitterHandle
+  ) {
+    const fullRaffle = await getLuckygoRaffle(r.url);
+    console.log('fullRaffle', fullRaffle);
+    if (!fullRaffle) {
+      return;
+    }
+    storage.raffles.luckygoMap[r.collabId] = {
+      modified: Date.now(),
+      collabTwitterHandle: fullRaffle.collabTwitterHandle,
+    };
+    await sleep(SLEEP_RAFFLE_LIST_LUCKYGO_RAFFLE_MAP_FETCH);
+  }
+}
+
+function updateLuckygoTwitterHandles(raffles) {
+  console.log('updateLuckygoTwitterHandles', raffles);
+  raffles.forEach((r) => {
+    if (r.provider !== 'luckygo' || r.collabTwitterHandle) {
+      return;
+    }
+    if (!storage.raffles.luckygoMap[r.collabId]) {
+      return;
+    }
+    r.collabTwitterHandle = storage.raffles.luckygoMap[r.collabId].collabTwitterHandle;
+  });
+  console.log('updateLuckygoTwitterHandles 2', raffles);
 }
 
 // RAFFLES ------------------------------
@@ -480,7 +593,7 @@ async function updateLuckygoRaffles(key, authKey, options = {}) {
 function processRaffles(raffles) {
   const obj = {};
   for (let raffle of raffles) {
-    const id = raffle.collabId || raffle.collabTwitterHandle || raffle.id;
+    const id = raffle.collabTwitterHandle || raffle.collabId || raffle.id;
     let item = obj[id];
     if (!item) {
       obj[id] = createNewRaffle(id, raffle);
@@ -712,11 +825,21 @@ function createRafflesTable(packedRafflesIn, header, subHeader, sectionId, { all
   const div = document.createElement('div');
   // div.id = id;
   div.className = 'provider-raffles';
-  div.innerHTML =
+  const div2 = document.createElement('div');
+  div2.innerHTML =
     `<a name='${sectionId}'></a>` +
     (header ? `<h4 class='sticky'>${header} (${numProjects}/${numRaffles})</h4>` : '') +
     (subHeader ? `<span>${subHeader}</span><br>` : '') +
-    (numRaffles ? table.outerHTML : '<br>No raffles');
+    (numRaffles ? '' : '<br>No raffles');
+  div.appendChild(div2);
+  div.appendChild(table);
+  /*
+    div.innerHTML =
+      `<a name='${sectionId}'></a>` +
+      (header ? `<h4 class='sticky'>${header} (${numProjects}/${numRaffles})</h4>` : '') +
+      (subHeader ? `<span>${subHeader}</span><br>` : '') +
+      (numRaffles ? table.outerHTML : '<br>No raffles');
+      */
   return div;
 }
 
@@ -824,7 +947,7 @@ function createMultiTexts(
   return elem;
 }
 
-function createMultiLinks(links, { target, className } = {}) {
+function createMultiLinks(links, { target, className, addBackgroundLink = true } = {}) {
   const elem = document.createElement('SPAN');
   elem.style.whiteSpace = 'nowrap';
   let isFirst = true;
@@ -841,6 +964,9 @@ function createMultiLinks(links, { target, className } = {}) {
     elem.appendChild(
       createLink(thisUrl, thisText, { target, className: thisClass, fullText: link.fullText })
     );
+    if (addBackgroundLink) {
+      elem.appendChild(createBackgroundLink(thisUrl, '+', { className: thisClass }));
+    }
     isFirst = false;
   }
   return elem;
@@ -861,6 +987,19 @@ function createLink(url, text, { dataset, target, className, fullText } = {}) {
       elem.dataset[x.key] = x.val;
     });
   }
+  return elem;
+}
+
+function createBackgroundLink(url, text, { className } = {}) {
+  const elem = document.createElement('a');
+  elem.addEventListener('click', () => {
+    chrome.runtime.sendMessage({ cmd: 'openTab', url, active: false });
+  });
+  // elem.href = '';
+  //elem.href = `javascript:console.log('foo')`;
+  addClassName(elem, className);
+  addClassName(elem, 'background-link');
+  elem.innerText = text.trim();
   return elem;
 }
 

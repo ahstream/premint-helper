@@ -5,6 +5,8 @@ const console2 = myConsole();
 
 // DATA ----------------------------------------------------------------------------------
 
+const SLEEP_LUCKYGO_LIB_FETCH_RAFFLES = 2000;
+
 const ACCOUNT_URL = 'https://luckygo.io/profile';
 
 const WINS_BASE_URL = 'https://api.luckygo.io/raffle/list/me?type=won&page={PAGE}&size={SIZE}';
@@ -60,6 +62,24 @@ export async function getLuckygoAuth(context) {
   return authKeyTrim;
 }
 
+// RAFFLE -------------------------------------------
+
+export async function getRaffle(url, authKey, options) {
+  console.log('getRaffle', url, authKey, options);
+
+  const headers = authKey ? { Authorization: authKey } : {};
+  const result = await fetchHelper(url, { method: 'GET', headers, ...options }, rateLimitHandler);
+  console.log('result', result);
+
+  if (result.error || !result.data) {
+    return { error: true, result };
+  }
+  const propsData = parsePropsFromSource(result.data);
+  console.log('propsData', propsData);
+
+  return convertRaffle(propsData.props?.pageProps?.raffleDetailsInfo?.raffle);
+}
+
 // RAFFLES ----------------------------------------------------------------------------------
 
 // https://api.luckygo.io/raffle/list?
@@ -92,7 +112,7 @@ async function fetchRaffles(
     my_particial_project_ids = '',
     key_words = '',
     size = 20,
-    interval = 2000,
+    interval,
     max,
     statusLogger,
   } = {}
@@ -152,8 +172,10 @@ async function fetchRaffles(
       return raffles;
     }
 
-    console2.info(`Sleep ${interval} ms before next fetch`);
-    await sleep(interval);
+    const delay = interval || SLEEP_LUCKYGO_LIB_FETCH_RAFFLES;
+
+    console2.info(`Sleep ${delay} ms before next fetch`);
+    await sleep(delay);
   }
 
   return raffles;
@@ -187,7 +209,7 @@ function convertRaffle(obj) {
     collabLogo: obj.project?.logo,
     collabBanner: obj.project?.banner,
     collabTwitterUrl: undefined,
-    collabTwitterHandlel: undefined,
+    collabTwitterHandle: obj.project?.twitter_screen_name,
     collabDiscordUrl: undefined,
 
     teamId: obj.campaign?.id,

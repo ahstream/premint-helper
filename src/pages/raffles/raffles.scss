@@ -181,7 +181,7 @@ a.hx-twitter-link:after {
 .sticky {
   position: -webkit-sticky; /* Safari */
   position: sticky;
-  top: 50px;
+  top: 0px;
   background: white;
   padding: 10px 0;
 }
@@ -201,5 +201,10 @@ a.hx-twitter-link:after {
 }
 
 a.show-provider {
+  cursor: pointer;
+}
+
+a.background-link {
+  margin-left: 3px;
   cursor: pointer;
 }
