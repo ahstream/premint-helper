@@ -52,6 +52,12 @@ table tr td {
 
 body tr:nth-child(even) {
   background-color: rgb(241 239 235);
+  background-color: #f5f7ff;
+}
+
+body tr:nth-child(odd) {
+  background-color: rgb(241 239 235);
+  background-color: #f5f7ff;
 }
 
 span.mint-date,
@@ -194,4 +200,20 @@ thead tr td {
   background-color: black;
   color: white;
   border: 1px solid lightgray;
+}
+
+body tr:nth-child(even) {
+  background-color: rgb(241 239 235);
+  background-color: #f5f7ff;
+  background-color: unset;
+}
+
+body tr:nth-child(odd) {
+  background-color: rgb(241 239 235);
+  background-color: #f5f7ff;
+  background-color: unset;
+}
+
+tr {
+  border: solid 3px #d4cbcbf7;
 }

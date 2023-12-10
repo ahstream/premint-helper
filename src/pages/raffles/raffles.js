@@ -12,6 +12,7 @@ import {
   updateSubStatus,
   resetSubStatus,
   STATUSBAR_DEFAULT_TEXT,
+  normalizeTwitterHandle,
 } from '../../js/premintHelperLib.js';
 
 import {
@@ -568,7 +569,7 @@ async function updateLuckygoRaffleMap(r) {
     }
     storage.raffles.luckygoMap[r.collabId] = {
       modified: Date.now(),
-      collabTwitterHandle: fullRaffle.collabTwitterHandle,
+      collabTwitterHandle: normalizeTwitterHandle(fullRaffle.collabTwitterHandle),
     };
     await sleep(SLEEP_RAFFLE_LIST_LUCKYGO_RAFFLE_MAP_FETCH);
   }
@@ -583,7 +584,9 @@ function updateLuckygoTwitterHandles(raffles) {
     if (!storage.raffles.luckygoMap[r.collabId]) {
       return;
     }
-    r.collabTwitterHandle = storage.raffles.luckygoMap[r.collabId].collabTwitterHandle;
+    r.collabTwitterHandle = normalizeTwitterHandle(
+      storage.raffles.luckygoMap[r.collabId].collabTwitterHandle
+    );
   });
   console.log('updateLuckygoTwitterHandles 2', raffles);
 }

@@ -235,16 +235,19 @@ export function exitActionMain(result, context, options) {
     );
     context.pageState.pause = true;
     context.pageState.done = true;
+    chrome.runtime.sendMessage({ cmd: 'focusMyTab' });
   }
   if (result === 'raffleCaptcha') {
     context.updateStatusbarError('Raffle has captcha! First solve captcha, then click register button.');
     context.pageState.pause = true;
+    chrome.runtime.sendMessage({ cmd: 'focusMyTab' });
   }
   if (result === 'invalidContext') {
     context.updateStatusbarError(
       'Chrome Extension is not recognized by web page. Reload extension and webpage and try again.'
     );
     context.pageState.pause = true;
+    chrome.runtime.sendMessage({ cmd: 'focusMyTab' });
   }
   if (result === 'raffleUnknownError') {
     context.updateStatusbarError('Raffle error');
@@ -271,14 +274,17 @@ export function exitActionMain(result, context, options) {
     context.updateStatusbarOk('You won a raffle for this project from the same team already');
     context.removeQuickRegBtn();
     context.pageState.pause = true;
+    chrome.runtime.sendMessage({ cmd: 'focusMyTab' });
   }
   if (result === 'walletConnectDialog') {
     context.updateStatusbarError('Raffle has wallet connect dialog, need to be done manually');
     context.pageState.pause = true;
+    chrome.runtime.sendMessage({ cmd: 'focusMyTab' });
   }
   if (result === 'doingItTooOften') {
     context.updateStatusbarError('Alphabot says you are doing that too often. Please try again later.');
     context.pageState.pause = true;
+    chrome.runtime.sendMessage({ cmd: 'focusMyTab' });
   }
   if (result === 'registered') {
     context.pageState.done = true;
@@ -290,6 +296,7 @@ export function exitActionMain(result, context, options) {
     closeRaffleWhenFinished(context);
     cleanupRaffleWhenFinished(context);
     closeTasksWhenFinished(context);
+    chrome.runtime.sendMessage({ cmd: 'focusMyTab' });
   }
   if (result === 'notRegisterProperly') {
     context.updateStatusbarError('Raffle does not seem to register properly');
@@ -318,11 +325,13 @@ export function exitActionMain(result, context, options) {
     context.updateStatusbarError('Cannot recognize raffle elements');
     context.removeQuickRegBtn();
     context.pageState.pause = true;
+    chrome.runtime.sendMessage({ cmd: 'focusMyTab' });
   }
   if (result === 'noRaffleRegisterBtn') {
     context.updateStatusbarError('Cannot recognize Register button');
     context.removeQuickRegBtn();
     context.pageState.pause = true;
+    chrome.runtime.sendMessage({ cmd: 'focusMyTab' });
   }
   if (result === 'ignoredRaffle') {
     context.updateStatusbar('Raffle is ignored');
@@ -346,7 +355,7 @@ export function exitActionMain(result, context, options) {
   } else if (context.pageState.haveRoleDiscordLink) {
     // Do nothing! Let Discord page be focused so user can complete role verificattion!
   } else {
-    chrome.runtime.sendMessage({ cmd: 'focusMyTab' });
+    //chrome.runtime.sendMessage({ cmd: 'focusMyTab' });
   }
 }
 

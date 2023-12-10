@@ -209,7 +209,7 @@ function convertRaffle(obj) {
     collabLogo: obj.project?.logo,
     collabBanner: obj.project?.banner,
     collabTwitterUrl: undefined,
-    collabTwitterHandle: obj.project?.twitter_screen_name,
+    collabTwitterHandle: normalizeTwitterHandle(obj.project?.twitter_screen_name),
     collabDiscordUrl: undefined,
 
     teamId: obj.campaign?.id,
