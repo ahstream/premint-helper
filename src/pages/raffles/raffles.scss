@@ -224,7 +224,21 @@ body tr:nth-child(odd) {
 tr {
   border: solid 3px #d4cbcbf7;
 }
-input[type='checkbox'],
-input[type='radio'] {
-  margin-right: 5px;
+
+h4.raffle-list {
+  margin: 26px 0 13px 0;
+}
+
+table.raffle-list {
+  margin: 12px 0 16px 0;
+}
+
+span.filter {
+  margin-right: 10px;
+}
+input.filter {
+  margin-right: 10px;
+}
+label.filter {
+  margin-right: 10px;
 }

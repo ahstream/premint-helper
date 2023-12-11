@@ -121,6 +121,8 @@ async function runPage() {
 
   document.getElementById('hx-update').addEventListener('click', () => updateRaffles());
 
+  creteFiltersHTML();
+
   if (pageState.hashArgs.has('action', 'update')) {
     return updateRaffles();
   }
@@ -199,7 +201,7 @@ function showRafflesTableForOne(key, header, subHeader = '') {
   const packedRaffles = processRaffles(filteredRaffles);
   console.log('packedRaffles', packedRaffles);
 
-  packedRaffles.forEach((i) => {
+  packedRaffles?.forEach((i) => {
     i.endDate = i.raffles.length ? i.raffles[0].endDate : null;
   });
 
@@ -246,7 +248,7 @@ function getFilters() {
   const filters = [];
   filters.push(f.minutes !== null ? `Ends in ${f.minutes} minutes` : '');
   filters.push(f.winPct !== null ? `Win % >= ${f.winPct}` : '');
-  filters.push(f.easy ? `Easy flagged` : '');
+  filters.push(f.easy ? `Easy` : '');
   filters.push(f.reqDiscord ? `No Discord req` : '');
   filters.push(f.reqFollow ? `Follow` : '');
   filters.push(f.reqLike ? `Like` : '');
@@ -299,7 +301,21 @@ function isFiltered(raffle, filters) {
 }
 
 function isRaffleEasy(r) {
-  return r.reqString ? !r.reqString.includes('d') && getWinPct(r) >= 0.01 : false;
+  const f = {
+    minutes: storage.options.RAFFLE_LIST_FILTER_MINUTES_EASY
+      ? Number(storage.options.RAFFLE_LIST_FILTER_MINUTES_EASY)
+      : null,
+    winPct: storage.options.RAFFLE_LIST_FILTER_PCT_EASY
+      ? Number(storage.options.RAFFLE_LIST_FILTER_PCT_EASY)
+      : null,
+    reqDiscord: storage.options.RAFFLE_LIST_FILTER_REQ_DISCORD_EASY,
+    reqFollow: storage.options.RAFFLE_LIST_FILTER_REQ_FOLLOW_EASY,
+    reqLike: storage.options.RAFFLE_LIST_FILTER_REQ_LIKE_EASY,
+    reqRetweet: storage.options.RAFFLE_LIST_FILTER_REQ_RETWEET_EASY,
+    text: '',
+  };
+
+  return isFiltered(r, f);
 }
 
 function isRaffleToLongToShow(r) {
@@ -317,6 +333,92 @@ function getWinPct(r) {
     return 1;
   }
   return r.winnerCount / r.entryCount;
+}
+
+function creteFiltersHTML() {
+  const f = getFilters();
+
+  const div = document.createElement('div');
+  div.appendChild(makeCheckbox('easy', 'Easy', 'todo', f.easy));
+  div.appendChild(makeCheckbox('d', '-D', 'todo', f.reqDiscord));
+  div.appendChild(makeCheckbox('f', 'F', 'todo', f.reqFollow));
+  div.appendChild(makeCheckbox('l', 'L', 'todo', f.reqLike));
+  div.appendChild(makeCheckbox('r', 'R', 'todo', f.reqRetweet));
+  div.appendChild(makeSelect(getTimeLeftOptionsArr(), 'time-left'));
+
+  document.getElementById('filters').replaceChildren(div);
+}
+
+const MINUTES_FOR_ALL_OPTION = 100000;
+
+function getTimeLeftOptionsArr() {
+  const arr = [15, 60, 240, 480, 720, 960, 1440, 2880, 4320, MINUTES_FOR_ALL_OPTION];
+  let selectedVal = null;
+  if (storage.options.RAFFLE_LIST_FILTER_MINUTES) {
+    selectedVal = Number(storage.options.RAFFLE_LIST_FILTER_MINUTES);
+    arr.push(selectedVal);
+  }
+  const toText = (minutes) => {
+    if (minutes < 60) {
+      return `${minutes} ${pluralize(minutes, 'minute', 'minutes')}`;
+    } else if (minutes < 60 * 24) {
+      const hours = Math.floor(minutes / 60);
+      return `${hours} ${pluralize(hours, 'hour', 'hours')}`;
+    } else if (minutes < MINUTES_FOR_ALL_OPTION) {
+      const days = Math.floor(minutes / 1440);
+      return `${days} ${pluralize(days, 'day', 'days')}`;
+    } else {
+      return 'All';
+    }
+  };
+  return noDuplicates(arr)
+    .sort((x, y) => x - y)
+    .map((x) => {
+      return { value: x, text: toText(x), selected: x === selectedVal };
+    });
+}
+
+function makeSelect(options, className) {
+  const base = createElement('select', className);
+  options.forEach((opt) => {
+    const optElem = createElement('option');
+    optElem.value = opt.value;
+    optElem.text = opt.text;
+    optElem.selected = opt.selected;
+    base.appendChild(optElem);
+  });
+  return base;
+
+  /**
+   * 
+          <select name="time-left">
+            <option value="15">15 min</option>
+            <option value="60">60 min</option>
+            <option value="240">4 hours</option>
+            <option value="480">8 hours</option>
+            <option value="720">12 hours</option>
+            <option value="960">16 hours</option>
+            <option value="1440">1 day</option>
+            <option value="2880">2 days</option>
+            <option value="4320" selected>3 days</option>
+            <option value="0">All</option>
+          </select>
+   */
+}
+
+function makeCheckbox(id, labelText, labelTitle, isChecked, className = 'filter') {
+  const section = createElement('span', className);
+  const elem = createElement('input', className);
+  elem.type = 'checkbox';
+  elem.checked = isChecked;
+  const label = createElement('label', className);
+  elem.id = id;
+  label.for = id;
+  label.title = labelTitle;
+  label.innerText = labelText;
+  section.appendChild(elem);
+  section.appendChild(label);
+  return section;
 }
 
 // UPDATE ------------------------------
@@ -500,7 +602,7 @@ async function updateAlphabotSelectedRaffles() {
   console.log('myTeams', myTeams);
 
   const raffles = [];
-  storage.raffles.alphabotMine.forEach((raffle) => {
+  storage.raffles?.alphabotMine?.forEach((raffle) => {
     console.log('raffle', raffle);
     const teamName = raffle.teamName?.toLowerCase ? raffle.teamName.toLowerCase() : '';
     console.log('teamName', teamName);
@@ -577,7 +679,7 @@ async function updateLuckygoRaffleMap(r) {
 
 function updateLuckygoTwitterHandles(raffles) {
   console.log('updateLuckygoTwitterHandles', raffles);
-  raffles.forEach((r) => {
+  raffles?.forEach((r) => {
     if (r.provider !== 'luckygo' || r.collabTwitterHandle) {
       return;
     }
@@ -642,6 +744,7 @@ function createRafflesTable(packedRafflesIn, header, subHeader, sectionId, { all
   }
 
   const table = document.createElement('TABLE');
+  table.classList.add('raffle-list');
 
   table.appendChild(createTableHeadRow());
 
@@ -831,11 +934,13 @@ function createRafflesTable(packedRafflesIn, header, subHeader, sectionId, { all
   const div2 = document.createElement('div');
   div2.innerHTML =
     `<a name='${sectionId}'></a>` +
-    (header ? `<h4 class='sticky'>${header} (${numProjects}/${numRaffles})</h4>` : '') +
-    (subHeader ? `<span>${subHeader}</span><br>` : '') +
-    (numRaffles ? '' : '<br>No raffles');
+    (header ? `<h4 class='raffle-list'>${header} (${numProjects}/${numRaffles})</h4>` : '') +
+    (subHeader ? `<span>${subHeader}</span><br>` : '');
   div.appendChild(div2);
   div.appendChild(table);
+  if (!numRaffles) {
+    div.appendChild(createElem('span', 'No raffles', 'no-raffles'));
+  }
   /*
     div.innerHTML =
       `<a name='${sectionId}'></a>` +
@@ -844,6 +949,17 @@ function createRafflesTable(packedRafflesIn, header, subHeader, sectionId, { all
       (numRaffles ? table.outerHTML : '<br>No raffles');
       */
   return div;
+}
+
+function createElem(tag, text, className) {
+  const elem = document.createElement(tag);
+  if (text) {
+    elem.innerText = text;
+  }
+  if (className) {
+    addClassName(elem, className);
+  }
+  return elem;
 }
 
 function appendRafflesTable(table) {
@@ -1110,4 +1226,10 @@ function showLastUpdatedStatus() {
   } else {
     // updateSubStatus(`Raffles never fetched from raffle providers`);
   }
+}
+
+function createElement(tag, className) {
+  const elem = document.createElement(tag);
+  addClassName(elem, className);
+  return elem;
 }
