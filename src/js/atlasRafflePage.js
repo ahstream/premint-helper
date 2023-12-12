@@ -56,11 +56,11 @@ const config = {
   setPendingReg,
   getTwitterUser,
   getDiscordUser,
-  parseMustLikeLinks,
-  parseMustRetweetLinks,
-  parseMustLikeAndRetweetLinks,
-  parseMustFollowLinks,
-  parseMustJoinLinks,
+  getMustLikeLinks,
+  getMustRetweetLinks,
+  getMustLikeAndRetweetLinks,
+  getMustFollowLinks,
+  getMustJoinLinks,
   getErrors,
   handleSimpleErrors,
   handleComplexErrors,
@@ -255,23 +255,23 @@ async function setPendingReg() {
 
 // PARSE TASK LINKS -------------------------------------
 
-function parseMustLikeLinks() {
+function getMustLikeLinks() {
   return parseTaskLinks(storage.options.ATLAS_MUST_LIKE_SEL);
 }
 
-function parseMustRetweetLinks() {
+function getMustRetweetLinks() {
   return parseTaskLinks(storage.options.ATLAS_MUST_RETWEET_SEL);
 }
 
-function parseMustLikeAndRetweetLinks() {
+function getMustLikeAndRetweetLinks() {
   return parseTaskLinks(storage.options.ATLAS_MUST_LIKE_AND_RETWEET_SEL);
 }
 
-function parseMustFollowLinks() {
+function getMustFollowLinks() {
   return parseTaskLinks(storage.options.ATLAS_MUST_FOLLOW_SEL);
 }
 
-function parseMustJoinLinks(mustHaveRole = false) {
+function getMustJoinLinks(mustHaveRole = false) {
   if (mustHaveRole) {
     return [];
   }
@@ -456,7 +456,7 @@ function getWonWalletsByThisAccount() {
 }
 
 function getRaffleTwitterHandle() {
-  const mustFollowLinks = parseMustFollowLinks();
+  const mustFollowLinks = getMustFollowLinks();
   console2.log('mustFollowLinks', mustFollowLinks);
   if (!mustFollowLinks?.length) {
     return null;

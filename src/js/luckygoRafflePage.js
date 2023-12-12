@@ -61,11 +61,11 @@ const config = {
   setPendingReg,
   getTwitterUser,
   getDiscordUser,
-  parseMustLikeLinks,
-  parseMustRetweetLinks,
-  parseMustLikeAndRetweetLinks,
-  parseMustFollowLinks,
-  parseMustJoinLinks,
+  getMustLikeLinks,
+  getMustRetweetLinks,
+  getMustLikeAndRetweetLinks,
+  getMustFollowLinks,
+  getMustJoinLinks,
   getErrors,
   handleSimpleErrors,
   handleComplexErrors,
@@ -77,7 +77,6 @@ const config = {
   JOIN_BUTTON_TEXT,
   JOIN_BUTTON_TITLE,
   JOIN_BUTTON_IN_PROGRESS_TEXT,
-  getRegisteringButtonSync,
   shouldOpenTwitterTasks,
 };
 
@@ -157,7 +156,7 @@ async function forceRegister(pageState) {
     return null;
   }
 
-  if (!isAllRegBtnsEnabled(pageState)) {
+  if (!isAllRegBtnsEnabled()) {
     console2.log('!isAllRegBtnsEnabled');
     return null;
   }
@@ -209,7 +208,7 @@ function getRegisterButtonSync() {
   )[0];
 }
 
-function getRegisteringButtonSync() {
+function getRegisteringButton() {
   return [...document.querySelectorAll('div')].filter((x) => x.innerText === 'Registering')[0];
 }
 
@@ -311,7 +310,7 @@ async function setPendingReg() {
 
 // PARSE TASK LINKS -------------------------------------
 
-function parseMustLikeLinks() {
+function getMustLikeLinks() {
   return getTwitterLinks(
     [...document.querySelectorAll('div')].filter(
       (x) => x.innerText.startsWith('Like this') && x.innerText.endsWith('s) .')
@@ -319,7 +318,7 @@ function parseMustLikeLinks() {
   );
 }
 
-function parseMustRetweetLinks() {
+function getMustRetweetLinks() {
   return getTwitterLinks(
     [...document.querySelectorAll('div')].filter(
       (x) => x.innerText.startsWith('Retweet this') && x.innerText.endsWith('s) .')
@@ -327,7 +326,7 @@ function parseMustRetweetLinks() {
   );
 }
 
-function parseMustLikeAndRetweetLinks() {
+function getMustLikeAndRetweetLinks() {
   return getTwitterLinks(
     [...document.querySelectorAll('div')].filter(
       (x) => x.innerText.startsWith('Like & Retweet') && x.innerText.endsWith('s) .')
@@ -335,7 +334,7 @@ function parseMustLikeAndRetweetLinks() {
   );
 }
 
-function parseMustFollowLinks() {
+function getMustFollowLinks() {
   return getTwitterLinks(
     [...document.querySelectorAll('div')].filter(
       (x) => x.innerText.startsWith('Follow') && x.innerText.endsWith('on Twitter.')
@@ -368,8 +367,8 @@ function getTwitterLinks(elems) {
   return noDuplicates(allLinks);
 }
 
-function parseMustJoinLinks(mustHaveRole = false) {
-  console2.log('parseMustJoinLinks:', mustHaveRole);
+function getMustJoinLinks(mustHaveRole = false) {
+  console2.log('getMustJoinLinks:', mustHaveRole);
   /*
   let elems;
   if (mustHaveRole) {
@@ -384,7 +383,7 @@ function parseMustJoinLinks(mustHaveRole = false) {
       (e) => e.innerText.toLowerCase().startsWith('join') && e.innerText.toLowerCase().includes('discord')
     );
   }
-  console2.log('parseMustJoinLinks, elems:', elems);
+  console2.log('getMustJoinLinks, elems:', elems);
   */
 
   const matches = [
@@ -487,7 +486,7 @@ async function handleComplexErrors(pageState, context) {
     return true;
   }
   console2.log('Wait for regbtn not registering');
-  while (getRegisteringButtonSync()) {
+  while (getRegisteringButton()) {
     if (hasErrors()) {
       context.exitAction('raffleUnknownError');
       return true;

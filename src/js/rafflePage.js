@@ -173,6 +173,7 @@ function initEventHandlers() {
         exitAction,
         handleDiscordCaptcha,
         registerRaffle,
+        visitTwitterLinks: provider.visitTwitterLinks ? visitTwitterLinks : null,
         options: storage.options,
       });
     }
@@ -272,7 +273,7 @@ async function showRafflePage(runPage) {
     return exitAction('providerDisabled');
   }
 
-  await provider.waitForRafflePageLoaded();
+  await provider.waitForRafflePageLoaded(storage.options);
 
   provider.addPreviouslyWonWallets(pageState);
 
@@ -315,7 +316,7 @@ async function runRafflePage() {
     return exitAction('providerDisabled');
   }
 
-  await provider.waitForRafflePageLoaded();
+  await provider.waitForRafflePageLoaded(storage.options);
 
   if (provider.hasRegistered()) {
     return exitAction('registered');
@@ -332,7 +333,7 @@ async function runRafflePage() {
     return exitAction('ignoredRaffle');
   }
 
-  if (!provider.hasRaffleTrigger2()) {
+  if (!provider.hasRaffleTrigger2(storage.options)) {
     return exitAction('noRaffleTrigger');
   }
 
@@ -360,26 +361,27 @@ async function joinRaffle() {
   }
 
   const reqs = getRequirements();
+  pageState.reqs = reqs;
   console2.info('Task requirements:', reqs);
 
   if (provider.visitTwitterLinks) {
-    await visitTwitterLinks(reqs);
+    // await visitTwitterLinks();
   }
 
   const skipDoneTasks = pageState.action === 'retryJoin' || storage.options.RAFFLE_SKIP_DONE_TASKS;
   const discordLinks = skipDoneTasks
     ? await removeDoneLinks(reqs.discordUserNorm, reqs.discordLinks, pageState)
     : reqs.discordLinks;
-  let twitterLinks = skipDoneTasks
-    ? await removeDoneLinks(reqs.twitterUserNorm, reqs.twitterLinks, pageState)
-    : reqs.twitterLinks;
+  let twitterIntentLinks = skipDoneTasks
+    ? await removeDoneLinks(reqs.twitterUserNorm, reqs.twitterIntentLinks, pageState)
+    : reqs.twitterIntentLinks;
 
   if (provider.shouldOpenTwitterTasks && !provider.shouldOpenTwitterTasks()) {
     console2.log('Should not open twitter tasks, empty link list');
-    twitterLinks = [];
+    twitterIntentLinks = [];
   }
 
-  const reqLinks = [...discordLinks, ...twitterLinks];
+  const reqLinks = [...discordLinks, ...twitterIntentLinks];
   console2.log('reqLinks', reqLinks);
 
   if (reqLinks.length) {
@@ -407,7 +409,7 @@ async function joinRaffle() {
       return exitAction('abort');
     }
     const reqLink = reqLinks[i];
-    const mustJoinWithRole = reqs.mustJoinWithRoleLinks.some((x) => x === reqLink);
+    const mustJoinWithRole = reqs.mustJoinWithRoleLinks.links.some((x) => x === reqLink);
     if (mustJoinWithRole) {
       pageState.haveRoleDiscordLink = true;
       pageState.roleDiscordLinks = pageState.roleDiscordLinks || [];
@@ -453,6 +455,7 @@ async function joinRaffle() {
       await sleep(delayMs, null, 0.2);
     }
   }
+  // await visitTwitterLinks();
 
   await pageState.history.save();
 
@@ -469,23 +472,29 @@ async function joinRaffle() {
   waitForRegistered();
 }
 
-async function visitTwitterLinks(reqs) {
-  console.log('visitTwitterLinks', reqs, reqs.twitterLinksElems);
+async function visitTwitterLinks() {
+  if (pageState.visitedTwitterLinks) {
+    console.log('Already visitedTwitterLinks');
+    return;
+  }
+  pageState.visitedTwitterLinks = true;
+  const reqs = pageState.reqs;
+  console.log('visitTwitterLinks', reqs, reqs.mustFollowLinks.elems);
   const duration = 5000;
-  const interval = 1500;
-  for (let elem of reqs.twitterLinksElems) {
+  const interval = 2000;
+  for (let elem of reqs.mustFollowLinks.elems) {
     console.log('elem', elem);
     const url = elem.href;
     console.log('url', url);
     await addPendingRequest(url, { action: 'visit', url, duration });
     console.info('Click link:', url);
-    //simulateClick(elem);
-    elem.click();
+    clickElement(elem, { real: false, simulate: true });
+    // elem.click();
     // window.open(url, '_blank');
     // chrome.runtime.sendMessage({ cmd: 'openTab', url });
     await sleep(interval);
   }
-  if (reqs.twitterLinksElems?.length) {
+  if (reqs.mustFollowLinks.elems?.length) {
     await sleep(duration - interval);
   }
 }
@@ -511,7 +520,7 @@ async function registerRaffle(focusTab = true, checkIfReady = true) {
     chrome.runtime.sendMessage({ cmd: 'focusMyTab' });
   }
 
-  const regBtn = await provider.getRegisterButton();
+  const regBtn = await provider.getRegisterButton(storage.options);
   if (!regBtn) {
     return exitAction('noRaffleRegisterBtn');
   }
@@ -636,7 +645,7 @@ async function waitAndTryRegisterOneLastTime() {
   const stopTime = millisecondsAhead(waitSecs * 1000);
   while (Date.now() <= stopTime && storage.options.RAFFLE_FORCE_REGISTER) {
     console2.log('try to forceRegister');
-    const regBtn = await provider.forceRegister(pageState);
+    const regBtn = await provider.forceRegister(storage.options, pageState);
     if (regBtn) {
       console2.log('forceRegister ok!');
       return waitForRegisteredMainLoop(regBtn);
@@ -665,7 +674,7 @@ async function waitAndTryRegisterBeforeRetry(retries) {
   while (Date.now() <= stopTime) {
     if (storage.options.RAFFLE_FORCE_REGISTER) {
       console2.log('try to forceRegister');
-      const regBtn = await provider.forceRegister(pageState);
+      const regBtn = await provider.forceRegister(storage.options, pageState);
       if (regBtn) {
         console2.log('forceRegister ok!');
         return waitForRegisteredMainLoop(regBtn);
@@ -700,7 +709,7 @@ async function waitForRegisteredMainLoop(regBtn = null, maxWait = 300 * ONE_MINU
       if (provider.hasDoingItTooOften()) {
         return console2.log('hasDoingItTooOften');
       }
-      if (provider.isAllRegBtnsEnabled(pageState)) {
+      if (provider.isAllRegBtnsEnabled(storage.options)) {
         clickElement(regBtn);
       } else {
         console2.log('Not isAllRegBtnsEnabled');
@@ -811,6 +820,48 @@ function quickRegClickHandler(event) {
 
 function getRequirements() {
   const twitterUser = provider.getTwitterUser();
+  const mustFollowLinks = getMustFollowLinks();
+  const mustLikeLinks = getMustLikeLinks();
+  const mustRetweetLinks = getMustRetweetLinks();
+  const mustLikeAndRetweetLinks = getMustLikeAndRetweetLinks();
+  const twitterElems = isTwitterTasksEnabled()
+    ? [...mustFollowLinks.elems, ...mustLikeLinks.elems, ...mustRetweetLinks.elems]
+    : [];
+  const twitterLinks = isTwitterTasksEnabled()
+    ? noDuplicates(mustFollowLinks.links, mustLikeLinks.links, mustRetweetLinks.links)
+    : [];
+  const twitterIntentLinks = isTwitterTasksEnabled()
+    ? noDuplicates(mustFollowLinks.intentLinks, mustLikeLinks.intentLinks, mustRetweetLinks.intentLinks)
+    : [];
+
+  const discordUser = provider.getDiscordUser();
+  const mustJoinLinks = getMustJoinLinks();
+  const mustJoinWithRoleLinks = getMustJoinWithRoleLinks();
+  const discordLinks = isDiscordTasksEnabled() ? noDuplicates(mustJoinLinks.links) : [];
+
+  const result = {
+    twitterUser,
+    twitterUserNorm: normalizeTwitterHandle(twitterUser),
+    discordUser,
+    discordUserNorm: normalizeDiscordHandle(discordUser),
+    mustFollowLinks,
+    mustLikeLinks,
+    mustRetweetLinks,
+    mustLikeAndRetweetLinks,
+    mustJoinLinks,
+    mustJoinWithRoleLinks,
+    twitterElems,
+    twitterLinks,
+    twitterIntentLinks,
+    discordLinks,
+    links: [...twitterLinks, ...discordLinks],
+  };
+
+  return result;
+}
+
+export function getRequirements2() {
+  const twitterUser = provider.getTwitterUser();
   const discordUser = provider.getDiscordUser();
 
   const mustFollowLinks = getMustFollowLinks();
@@ -847,41 +898,53 @@ function getRequirements() {
 // GET -----------------
 
 function getMustFollowLinks() {
-  return provider.parseMustFollowLinks().map((x) => makeTwitterFollowIntentUrl(x));
+  const data = provider.getMustFollowLinks();
+  return {
+    ...data,
+    intentLinks: data.links.map((x) => makeTwitterFollowIntentUrl(x)),
+  };
 }
 
 function getMustLikeAndRetweetLinks() {
-  return [...new Set([...provider.parseMustRetweetLinks()])];
+  const data = provider.getMustRetweetLinks();
+  return {
+    ...data,
+    intentLinks: [],
+  };
 }
 
 function getMustRetweetLinks() {
-  const links = [
-    ...new Set(
-      [...provider.parseMustRetweetLinks(), ...provider.parseMustLikeAndRetweetLinks()].map((x) =>
-        makeTwitterRetweetIntentUrl(x)
-      )
-    ),
-  ];
-  return links;
+  const data1 = provider.getMustRetweetLinks();
+  const data2 = provider.getMustLikeAndRetweetLinks();
+  const data = {
+    elems: [...data1.elems, ...data2.elems],
+    links: noDuplicates([...data1.links, ...data2.links]),
+  };
+  return {
+    ...data,
+    intentLinks: data.links.map((x) => makeTwitterRetweetIntentUrl(x)),
+  };
 }
 
 function getMustLikeLinks() {
-  const links = [
-    ...new Set(
-      [...provider.parseMustLikeLinks(), ...provider.parseMustLikeAndRetweetLinks()].map((x) =>
-        makeTwitterLikeIntentUrl(x)
-      )
-    ),
-  ];
-  return links;
+  const data1 = provider.getMustLikeLinks();
+  const data2 = provider.getMustLikeAndRetweetLinks();
+  const data = {
+    elems: [...data1.elems, ...data2.elems],
+    links: noDuplicates([...data1.links, ...data2.links]),
+  };
+  return {
+    ...data,
+    intentLinks: data.links.map((x) => makeTwitterLikeIntentUrl(x)),
+  };
 }
 
 function getMustJoinLinks() {
-  return provider.parseMustJoinLinks(false);
+  return provider.getMustJoinLinks(false);
 }
 
 function getMustJoinWithRoleLinks() {
-  return provider.parseMustJoinLinks(true);
+  return provider.getMustJoinLinks(true);
 }
 
 // STATUSBAR FUNCS ----------------------------------------------------------------------------------
@@ -986,7 +1049,7 @@ async function handleRaffleCaptcha() {
   const stopTime = millisecondsAhead(60 * 1000);
   while (Date.now() <= stopTime) {
     console2.log('try to handleRaffleCaptcha with forceRegister');
-    if (await provider.forceRegister()) {
+    if (await provider.forceRegister(storage.options, pageState)) {
       console2.log('forceRegister ok!');
       return waitForRegisteredMainLoop();
     } else {

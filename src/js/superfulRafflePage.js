@@ -3,21 +3,25 @@ console.info('superfulPage.js begin', window?.location?.href);
 import '../styles/superfulPage.css';
 
 import {
-  getRaffleTwitterHandle,
-  getRaffleDiscordHandle,
+  getTwitterHandle,
+  getDiscordHandle,
   getSelectedWallet,
-  getErrors,
-  hasErrors,
+  getWonWalletsByThisAccount,
   getMustJoinLinks,
   getMustFollowLinks,
   getMustLikeAndRetweetLinks,
   getMustLikeLinks,
   getMustRetweetLinks,
-  hasJoinedRaffle,
-  getJoinButton,
-  getJoiningButton,
+  hasRegistered,
+  getRegisterButton,
+  getRegisterButtonSync,
+  getErrors,
+  isAllRegBtnsEnabled,
   hasRaffleTrigger,
   hasRaffleTrigger2,
+  waitForRafflePageLoaded,
+  // CUSTOM
+  getJoinButton,
 } from './superfulLib.js';
 
 import {
@@ -29,69 +33,82 @@ import {
 
 import { initRafflePage } from './rafflePage.js';
 
+import { createObserver as createRaffleObserver, getPreviousWalletsWon } from './observerGeneric.js';
+import { createObserver as createTwitterObserver } from './twitterObserver.js';
+
 import {
   sleep,
   myConsole,
   //normalizePendingLink,
-  millisecondsAhead,
+  //millisecondsAhead,
 } from 'hx-lib';
-
-import { createObserver as createRaffleObserver, getPreviousWalletsWon } from './observerGeneric.js';
-import { createObserver as createTwitterObserver } from './twitterObserver.js';
 
 const console2 = myConsole();
 
 // DATA ----------------------------------------------------------------------------
 
-const SLEEP_BEFORE_NEXT_FORCE_REGISTER = 10000;
-
+// eslint-disable-next-line no-unused-vars
 let storage = null;
 
 const config = {
   name: 'SUPERFUL',
-  enableForceRegister: true,
-  visitTwitterLinks: true,
+
+  // SETTINGS
   storageKeys: ['runtime', 'options'],
   SLEEP_BETWEEN_WAIT_FOR_REGISTERED: 10000,
-  setStorage,
-  createObserver,
-  createObserver2,
+  SLEEP_BEFORE_NEXT_FORCE_REGISTER: 10000,
+
+  // ENABLERS
+  enableForceRegister: true,
+  visitTwitterLinks: true,
+
+  // STATIC COMMON API
+  createObserver: async (config) => createRaffleObserver(config),
+  createObserver2: async (config) => createTwitterObserver(config),
+  setStorage: (newStorage) => (storage = newStorage),
+  getWonWalletsByAllAccounts: () => getPreviousWalletsWon(getTwitterHandle()),
+
+  // STATIC PROVIDER API
   waitForRafflePageLoaded,
-  register,
-  forceRegister,
+  getTwitterUser: getTwitterHandle,
+  getDiscordUser: getDiscordHandle,
+  getMustJoinLinks,
+  getMustFollowLinks,
+  getMustLikeLinks,
+  getMustRetweetLinks,
+  getMustLikeAndRetweetLinks,
+  getSelectedWallet,
+  getWonWalletsByThisAccount,
   getRegisterButton,
+  getRegisterButtonSync,
+  getErrors,
+  hasRegistered,
+  hasRaffleTrigger,
+  hasRaffleTrigger2,
   isAllRegBtnsEnabled,
-  addQuickRegButton,
-  hasRegistered: hasJoinedRaffle,
+  JOIN_BUTTON_TEXT,
+  JOIN_BUTTON_TITLE,
+  JOIN_BUTTON_IN_PROGRESS_TEXT,
+
+  // SEMI CUSTOM API
+
+  shouldOpenTwitterTasks: () => true,
   hasCaptcha: () => false,
   hasWalletConnectDialog: () => false,
   hasAlreadyWon: () => false,
   hasDoingItTooOften: () => false,
-  hasRaffleTrigger,
-  hasRaffleTrigger2,
   isIgnored: () => false,
   isPendingReg: () => false,
   setPendingReg: () => false,
-  getTwitterUser: getRaffleTwitterHandle,
-  getDiscordUser: getRaffleDiscordHandle,
-  parseMustLikeLinks: getMustLikeLinks,
-  parseMustRetweetLinks: getMustRetweetLinks,
-  parseMustLikeAndRetweetLinks: getMustLikeAndRetweetLinks,
-  parseMustFollowLinks: getMustFollowLinks,
-  parseMustJoinLinks: getMustJoinLinks,
-  getErrors,
+  loadRafflePageWithCustomContent: () => false,
+
+  // CUSTOM API
+  register,
+  forceRegister,
+  addQuickRegButton,
+  addPreviouslyWonWallets,
   handleSimpleErrors,
   handleComplexErrors,
-  loadRafflePageWithCustomContent: () => false,
-  addPreviouslyWonWallets,
-  getWonWalletsByThisAccount,
-  getWonWalletsByAllAccounts,
-  getSelectedWallet,
-  JOIN_BUTTON_TEXT,
-  JOIN_BUTTON_TITLE,
-  JOIN_BUTTON_IN_PROGRESS_TEXT,
-  getRegisteringButtonSync,
-  shouldOpenTwitterTasks: () => true,
 };
 
 // STARTUP ----------------------------------------------------------------------------
@@ -102,54 +119,13 @@ async function runNow() {
   initRafflePage(config);
 }
 
-// STORAGE ----------------------------------------------------------------------------
-
-function setStorage(newStorage) {
-  storage = newStorage;
-}
-
-// OBSERVER ----------------------------------------------
-
-async function createObserver(config) {
-  return await createRaffleObserver(config);
-}
-
-async function createObserver2(config) {
-  return await createTwitterObserver(config);
-}
-
-// WAIT FOR LOADED ----------------------------------------------
-
-async function waitForRafflePageLoaded() {
-  console2.info('Wait for raffle page to load');
-
-  const stopTime = millisecondsAhead(storage.options.SUPERFUL_WAIT_FOR_RAFFLE_PAGE_LOADED);
-  while (Date.now() <= stopTime) {
-    if (hasJoinedRaffle()) {
-      return true;
-    }
-    const du = getRaffleDiscordHandle();
-    const tu = getRaffleTwitterHandle();
-    console2.log('du, tu:', du, tu);
-    if (du || tu) {
-      console2.info('Raffle page has loaded!');
-      await sleep(1000);
-      return true;
-    }
-    await sleep(1000);
-  }
-
-  console2.warn('Raffle page has NOT loaded!');
-  return false;
-}
-
-// REGISTER
+// CUSTOM API
 
 async function register(regBtn) {
   clickElement(regBtn, { real: true, simulate: true });
 }
 
-async function forceRegister(pageState) {
+async function forceRegister(options, pageState) {
   const regBtn = getRegisterButtonSync();
   console2.log('forceRegister; regBtn:', regBtn);
 
@@ -165,7 +141,7 @@ async function forceRegister(pageState) {
     return null;
   }
 
-  if (!isAllRegBtnsEnabled(pageState)) {
+  if (!isAllRegBtnsEnabled()) {
     console2.log('!isAllRegBtnsEnabled');
     return null;
   }
@@ -173,39 +149,10 @@ async function forceRegister(pageState) {
   clickElement(regBtn, { real: true, simulate: true });
   console2.log('pageState', pageState);
   if (pageState.isRegistering) {
-    await sleep(SLEEP_BEFORE_NEXT_FORCE_REGISTER);
+    await sleep(config.SLEEP_BEFORE_NEXT_FORCE_REGISTER);
   }
   // pageState.isRegistering = true;
   return regBtn;
-}
-
-async function getRegisterButton(maxWait = 1000, interval = 10) {
-  const stopTime = millisecondsAhead(maxWait);
-  while (Date.now() <= stopTime) {
-    const btn = getJoinButton();
-    if (btn) {
-      console2.log('getRegisterButton:', btn);
-      return btn;
-    }
-    await sleep(interval);
-  }
-}
-
-function getRegisterButtonSync() {
-  return getJoinButton();
-}
-
-function getRegisteringButtonSync() {
-  return getJoiningButton();
-}
-
-function isAllRegBtnsEnabled() {
-  const regBtn = getRegisterButtonSync();
-  // console2.log('regBtn', regBtn);
-  if (regBtn?.disabled) {
-    return false;
-  }
-  return !!regBtn;
 }
 
 async function addQuickRegButton(clickHandler) {
@@ -229,20 +176,10 @@ async function addQuickRegButton(clickHandler) {
   regBtnContainer.before(btn);
 }
 
-// WON WALLETS
-
-function getWonWalletsByThisAccount() {
-  return [];
-}
-
-function getWonWalletsByAllAccounts() {
-  return getPreviousWalletsWon(getRaffleTwitterHandle());
-}
-
 function addPreviouslyWonWallets(pageState) {
   console2.log('addPreviouslyWonWallets', pageState);
 
-  const twitterHandle = getRaffleTwitterHandle();
+  const twitterHandle = getTwitterHandle();
   if (!twitterHandle) {
     return;
   }
@@ -263,18 +200,14 @@ function addPreviouslyWonWallets(pageState) {
   container.before(section);
 }
 
-// ERROR HANDLING
-
 async function handleSimpleErrors() {
-  if (hasErrors()) {
-    return false;
-  }
+  return false;
 }
 
 async function handleComplexErrors() {
   return false;
 }
 
-// CUSTOM CONTENT ----------------------------------------------------------------------------------
+// SEMI CUSTOM API
 
-// RAFFLE GETTERS
+// nothing here

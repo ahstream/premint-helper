@@ -179,6 +179,7 @@ async function runMainLoop() {
 
   if (request?.action === 'visit') {
     await visitPage(request);
+    return;
   }
 
   if (storage.options.TWITTER_AUTO_UPDATE_FOLLOWERS) {

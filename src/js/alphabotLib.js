@@ -1,8 +1,22 @@
-import { sleep, fetchHelper, rateLimitHandler, extractTwitterHandle, myConsole } from 'hx-lib';
+import {
+  sleep,
+  fetchHelper,
+  rateLimitHandler,
+  extractTwitterHandle,
+  myConsole,
+  noDuplicates,
+  millisecondsAhead,
+  isTwitterURL,
+  waitForTextContains,
+  waitForSelector,
+  getTextContains,
+  ONE_SECOND,
+} from 'hx-lib';
 
-import { normalizeTwitterHandle } from './premintHelperLib.js';
+import { normalizeTwitterHandle, normalizeDiscordHandle } from './premintHelperLib.js';
 
 const console2 = myConsole();
+console2.log();
 
 // DATA ----------------------------------------------------------------------------------
 
@@ -593,4 +607,312 @@ function convertWins(wins, account) {
       collabName,
     };
   });
+}
+
+// RAFFLE API: WAITERS ---------------------------------------------
+
+export async function waitForRafflePageLoaded(options, maxWait = null) {
+  console2.info('Wait for raffle page to load');
+
+  const toWait = typeof maxWait === 'number' ? maxWait : options.ALPHABOT_WAIT_FOR_RAFFLE_PAGE_LOADED;
+
+  const stopTime = millisecondsAhead(toWait);
+  while (Date.now() <= stopTime) {
+    if (document.querySelector('[data-action="view-project-register"]')) {
+      console2.info('Raffle page has loaded!');
+      return true;
+    }
+    if (document.querySelector('[data-action="view-project-cancel-registration"]')) {
+      console2.info('Raffle page has loaded!');
+      return true;
+    }
+    await sleep(1000);
+  }
+
+  console2.warn('Raffle page has NOT loaded!');
+  return false;
+}
+
+// RAFFLE API: RAFFLE GETTERS ---------------------------------------------
+
+export function getTwitterHandle({ normalize = true } = {}) {
+  try {
+    const elems = [...document.querySelectorAll('div.MuiSelect-select[role="button"]')].filter((e) =>
+      e.innerText.startsWith('@')
+    );
+    const h = elems?.length === 1 ? elems[0].innerText : '';
+    return !normalize ? h : normalizeTwitterHandle(h.replace('@', ''));
+  } catch (e) {
+    return '';
+  }
+}
+
+export function getDiscordHandle({ normalize = true } = {}) {
+  try {
+    const elems = [...document.querySelectorAll('div.MuiBox-root')].filter((e) =>
+      e.innerText.toLowerCase().startsWith('discord:')
+    );
+    if (!elems || !elems.length) {
+      return '';
+    }
+    const h = elems[0].querySelector('div[role="button"]')?.innerText || '';
+    return !normalize ? h : normalizeDiscordHandle(h);
+  } catch (e) {
+    return '';
+  }
+}
+
+export function getMustJoinLinks(mustHaveRole = false) {
+  try {
+    let baseElems;
+    if (mustHaveRole) {
+      baseElems = [...document.querySelectorAll('p.MuiTypography-root')].filter(
+        (e) =>
+          e.innerText.toLowerCase().includes('join') &&
+          e.innerText.toLowerCase().includes('discord') &&
+          e.innerText.toLowerCase().includes('have role')
+      );
+    } else {
+      baseElems = [...document.querySelectorAll('p.MuiTypography-root')].filter(
+        (e) => e.innerText.toLowerCase().includes('join') && e.innerText.toLowerCase().includes('discord')
+      );
+    }
+    const elems = baseElems
+      .map((e) => e.getElementsByTagName('a'))
+      .map((e) => Array.from(e))
+      .flat();
+    const links = noDuplicates(elems.map((x) => x.href));
+
+    return { elems, links };
+  } catch (e) {
+    return { elems: [], links: [] };
+  }
+}
+
+export function getMustFollowLinks() {
+  try {
+    const elems = [...document.querySelectorAll('a')].filter(
+      (elem) => isTwitterURL(elem.href) && elem.href.toLowerCase().includes('intent/user?')
+    );
+    const links = noDuplicates(elems.map((x) => x.href));
+    return { elems, links };
+  } catch (e) {
+    return { elems: [], links: [] };
+  }
+}
+
+export function getMustLikeLinks() {
+  try {
+    const elems = parseTwitterLinks('like\n');
+    const links = noDuplicates(elems.map((x) => x.href));
+    return { elems, links };
+  } catch (e) {
+    return { elems: [], links: [] };
+  }
+}
+
+export function getMustRetweetLinks() {
+  try {
+    const elems = parseTwitterLinks('retweet\n');
+    const links = noDuplicates(elems.map((x) => x.href));
+    return { elems, links };
+  } catch (e) {
+    return { elems: [], links: [] };
+  }
+}
+
+export function getMustLikeAndRetweetLinks() {
+  try {
+    const elems = parseTwitterLinks('like & retweet\n');
+    const links = noDuplicates(elems.map((x) => x.href));
+    return { elems, links };
+  } catch (e) {
+    return { elems: [], links: [] };
+  }
+}
+
+export function getSelectedWallet() {
+  try {
+    const elems = [...document.querySelectorAll('div.MuiAlert-message')].filter((x) =>
+      x.innerText.toLowerCase().includes(' mint wallet:\n')
+    );
+    if (!elems?.length) {
+      return null;
+    }
+    const elem = elems[0].querySelector('div[role="button"]');
+    if (!elem) {
+      return null;
+    }
+
+    const shortWallet = elem?.innerText || '';
+    const longWallet = elem.nextSibling?.value || '';
+    const tokens = shortWallet.split('...');
+    const shortPrefix = tokens.length >= 2 ? tokens[0] : '';
+    const shortSuffix = tokens.length >= 2 ? tokens[1] : '';
+
+    return { shortWallet, longWallet, shortPrefix, shortSuffix };
+  } catch (e) {
+    console2.error(e);
+    return null;
+  }
+}
+
+export function getWonWalletsByThisAccount() {
+  try {
+    const elems = [
+      ...[...document.querySelectorAll('div.MuiBox-root')].filter(
+        (x) => x.innerText.toLowerCase() === 'you won'
+      ),
+    ];
+    if (!elems?.length) {
+      return [];
+    }
+    return [...elems[0].nextElementSibling.querySelectorAll('p')]
+      .filter((x) => x.innerText.includes('...'))
+      .map((x) => x.innerText);
+  } catch (e) {
+    console2.error(e);
+    return [];
+  }
+}
+
+// todo add options
+export async function getRegisterButton(options, maxWait = 1000, interval = 10) {
+  const regPlus1Btn = await waitForTextContains(
+    options.ALPHABOT_REG_PLUS_1_BTN_SEL,
+    'button',
+    maxWait,
+    interval
+  );
+  if (regPlus1Btn) {
+    return regPlus1Btn;
+  }
+  return await waitForSelector(options.ALPHABOT_REG_BTN_SEL, 60 * ONE_SECOND, 100);
+}
+
+// todo add options
+export function getRegisterButtonSync(options, mustHaveAllBtns = false) {
+  console2.log('getRegisterButtonSync; mustHaveAllBtns:', mustHaveAllBtns);
+  const regPlus1Btn = getTextContains(options.ALPHABOT_REG_PLUS_1_BTN_SEL, 'button');
+  if (regPlus1Btn) {
+    if (mustHaveAllBtns) {
+      return document.querySelector(options.ALPHABOT_REG_BTN_SEL) ? regPlus1Btn : null;
+    }
+    return regPlus1Btn;
+  }
+  return document.querySelector(options.ALPHABOT_REG_BTN_SEL);
+}
+
+export function getErrors() {
+  const elems = [...document.querySelectorAll('.MuiAlert-standardError')].map((x) =>
+    x.innerText.toLowerCase()
+  );
+  return {
+    texts: elems,
+    twitter: elems.some((x) => x.includes('follow') || x.includes('like') || x.includes('retweet')),
+    discord: elems.some((x) => x.includes('join')),
+    discordRoled: elems.some((x) => x.includes('join') && x.includes('have role')),
+  };
+}
+
+export function getTeamName() {
+  // /from\\n\\n([a-z0-9 ]*)\\n\\non/i
+  const elem = document.querySelector(
+    '.MuiChip-root.MuiChip-filled.MuiChip-sizeSmall.MuiChip-colorSecondary.MuiChip-filledSecondary'
+  );
+  return elem?.innerText || '';
+}
+
+// RAFFLE API: HAS CHECKERS ---------------------------------------------
+
+export function hasRegistered() {
+  const elems = [...document.querySelectorAll('h5')].filter(
+    (e) =>
+      e.innerText === 'Registered successfully' || e.innerText === 'Your wallet was submitted successfully'
+  );
+  const result = elems.length > 0;
+  return result;
+}
+
+export async function hasRaffleTrigger() {
+  const elem = await waitForTextContains('mint wallet', '.MuiAlert-message', 10 * ONE_SECOND, 50);
+  console2.log('hasRaffleTrigger:', elem);
+  return !!elem;
+}
+
+export async function hasRaffleTrigger2(options) {
+  const elem = await waitForSelector(options.ALPHABOT_REG_BTN_SEL, 60 * ONE_SECOND, 100);
+  console2.log('hasRaffleTrigger2:', elem);
+  return !!elem;
+}
+
+// RAFFLE API: IS CHECKERS ---------------------------------------------
+
+export function isAllRegBtnsEnabled(options) {
+  const regBtn = document.querySelector(options.ALPHABOT_REG_BTN_SEL);
+  const regPlus1Btn = getTextContains(options.ALPHABOT_REG_PLUS_1_BTN_SEL, 'button');
+  console2.log('regBtn', regBtn);
+  console2.log('regPlus1Btn', regPlus1Btn);
+  if (regBtn?.disabled) {
+    return false;
+  }
+  if (regPlus1Btn?.disabled) {
+    return false;
+  }
+  if (regBtn || regPlus1Btn) {
+    return true;
+  }
+  return false;
+}
+
+// API HELPERS
+
+export function getJoinButton() {
+  try {
+    return [...[...document.querySelectorAll('button.px-8')].filter((x) => (x.innerText = 'Join'))].filter(
+      (x) => x.nextSibling?.innerText === 'Join'
+    )[0];
+  } catch (e) {
+    return null;
+  }
+}
+
+export function getJoiningButton() {
+  try {
+    return [
+      ...[...document.querySelectorAll('button.px-8')].filter((x) => (x.innerText = 'Joining...')),
+    ].filter((x) => x.nextSibling?.innerText === 'Join')[0];
+  } catch (e) {
+    return null;
+  }
+}
+
+export function getRegisteringButton() {
+  return getJoiningButton();
+}
+
+export function hasErrors() {
+  return false;
+  /*
+  return (
+    [...document.querySelectorAll('path')].filter(
+      (x) =>
+        x.getAttribute('d') ===
+        'M19 6.41L17.59 5 12 10.59 6.41 5 5 6.41 10.59 12 5 17.59 6.41 19 12 13.41 17.59 19 19 17.59 13.41 12z'
+    ).length > 0
+  );
+  */
+}
+
+// MISC HELPERS
+
+function parseTwitterLinks(prefix) {
+  const elems = [
+    ...[...document.querySelectorAll('div.MuiPaper-root')].filter((e) =>
+      e.innerText.toLowerCase().startsWith(prefix)
+    ),
+  ];
+  const val = elems.length < 1 ? [] : Array.from(elems[0].getElementsByTagName('a'));
+  console2.log('parseTwitterLinks:', prefix, val);
+  return val;
 }

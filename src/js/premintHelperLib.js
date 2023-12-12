@@ -433,8 +433,10 @@ function handleRetries(context, retries, retrySecs) {
 }
 
 export async function removeDoneLinks(handle, links, pageState) {
+  console.log('removeDoneLinks', handle, links, pageState);
   const validLinks = [];
   for (const link of links) {
+    console.log('link', link);
     if (await pageState.history.has(handle, link)) {
       continue;
     }
@@ -543,6 +545,11 @@ export async function finishTask(request, sender, context) {
       chrome.runtime.sendMessage({ cmd: 'closeTabs', tabIds: tabsToClose });
     }
 
+    console.log('context');
+    if (context.visitTwitterLinks) {
+      context.visitTwitterLinks();
+    }
+
     const focusTabWhenRegister = context.pageState.haveRoleDiscordLink ? false : true;
     return context.registerRaffle(focusTabWhenRegister, false);
   }
@@ -582,18 +589,22 @@ export async function finishTask(request, sender, context) {
 export function clickElement(elem, { real, simulate } = {}) {
   let clicked = false;
 
-  if (typeof real === 'boolean' && real && elem?.click) {
-    elem.click();
-    clicked = true;
+  if (typeof real === 'boolean') {
+    if (real && elem?.click) {
+      elem.click();
+      clicked = true;
+    }
   } else if (GLOBAL_REAL_CLICK_ELEMENT && elem?.click) {
     elem.click();
     clicked = true;
   }
 
-  if (typeof simulate === 'boolean' && simulate && elem) {
-    simulateClick(elem);
-    clicked = true;
-  } else if (GLOBAL_SIMULATE_CLICK_ELEMENT && elem) {
+  if (typeof simulate === 'boolean') {
+    if (simulate && elem?.click) {
+      elem.click();
+      clicked = true;
+    }
+  } else if (GLOBAL_SIMULATE_CLICK_ELEMENT && elem?.click) {
     simulateClick(elem);
     clicked = true;
   }

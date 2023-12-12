@@ -57,11 +57,11 @@ const config = {
   getTwitterUser,
   getDiscordUser,
   getRaffleTwitterHandle,
-  parseMustLikeLinks,
-  parseMustRetweetLinks,
-  parseMustLikeAndRetweetLinks,
-  parseMustFollowLinks,
-  parseMustJoinLinks,
+  getMustLikeLinks,
+  getMustRetweetLinks,
+  getMustLikeAndRetweetLinks,
+  getMustFollowLinks,
+  getMustJoinLinks,
   getErrors,
   handleSimpleErrors,
   handleComplexErrors,
@@ -260,19 +260,19 @@ function getRaffleTwitterHandle() {
 
 // PARSE TASK LINKS -------------------------------------
 
-function parseMustLikeLinks() {
+function getMustLikeLinks() {
   return parseTwitterLinks(storage.options.PREMINT_MUST_LIKE_SEL);
 }
 
-function parseMustRetweetLinks() {
+function getMustRetweetLinks() {
   return parseTwitterLinks(storage.options.PREMINT_MUST_RETWEET_SEL);
 }
 
-function parseMustLikeAndRetweetLinks() {
+function getMustLikeAndRetweetLinks() {
   return parseTwitterLinks(storage.options.PREMINT_MUST_LIKE_AND_RETWEET_SEL);
 }
 
-function parseMustFollowLinks() {
+function getMustFollowLinks() {
   return parseTwitterLinks(storage.options.PREMINT_MUST_FOLLOW_SEL);
 }
 
@@ -299,7 +299,7 @@ function parseTwitterLinks(prefix) {
   }
 }
 
-function parseMustJoinLinks(mustHaveRole = false) {
+function getMustJoinLinks(mustHaveRole = false) {
   /*
   return [...document.querySelectorAll('p.MuiTypography-root')]
     .filter((e) => e.innerText.toLowerCase().includes('join') && e.innerText.toLowerCase().includes('discord'))
@@ -308,7 +308,7 @@ function parseMustJoinLinks(mustHaveRole = false) {
     .flat()
     .map((e) => e.href);
     */
-  console2.log('parseMustJoinLinks');
+  console2.log('getMustJoinLinks');
   const selectors = mustHaveRole
     ? storage.options.PREMINT_JOIN_DISCORD_WITH_ROLE_SEL
     : storage.options.PREMINT_JOIN_DISCORD_SEL;
