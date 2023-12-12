@@ -531,52 +531,6 @@ export async function createObserver({
     }
   }
 
-  /*
-  function createPreviousWonSection(twitterHandle, showAll = false) {
-    console2.log('createPreviousWonSection', twitterHandle, showAll);
-    const walletsWon = getPreviousWalletsWon(twitterHandle);
-    if (!walletsWon.length) {
-      return null;
-    }
-
-    const hidden = ''; // todo pageState.permissions?.enabled ? '' : '[ PREMIUM FEATURE HIDDEN ]';
-    console2.trace('hidden', hidden);
-
-    const wallets = sortWallets(walletsWon, storage.options);
-    const wallet = wallets[0];
-    const walletAliasFirst = walletToAlias(wallet, storage.options);
-
-    console2.trace('walletAliasFirst', walletAliasFirst);
-    const walletAliasTextFirst = walletAliasFirst ? ` &nbsp;(${walletAliasFirst})` : '';
-    let html = hidden || `${trimWallet(wallet)}${walletAliasTextFirst}`;
-    if (wallets.length > 1) {
-      html = `<span class='times-won'>[x${wallets.length}]</span> ` + html;
-      if (showAll) {
-        wallets.shift();
-        for (const addr of wallets) {
-          const walletAlias = walletToAlias(addr, storage.options);
-          const walletAliasText = walletAlias ? ` (${walletAlias})` : '';
-          const mintAddrText = hidden || `${trimWallet(addr)}${walletAliasText}`;
-          html = html + `<br>${mintAddrText}`;
-        }
-      }
-    }
-    const div = document.createElement('div');
-    div.classList.add('hx-already-won');
-    div.innerHTML = html;
-    const text = wallets
-      .map((x) => {
-        const walletAlias = walletToAlias(x, storage.options);
-        const walletAliasText = walletAlias ? ` (${walletAlias})` : '';
-        return `${trimWallet(x)}${walletAliasText}`;
-      })
-      .join('\n');
-    div.title = `Wallets with previous wins:\n\n` + (hidden || text);
-
-    return div;
-  }
-  */
-
   function createPreviousWonSection(twitterHandle, showAll = false) {
     console2.log('createPreviousWonSection', twitterHandle, showAll);
     const walletsWon = getPreviousWalletsWon(twitterHandle);
@@ -765,41 +719,6 @@ export function getPreviousWalletsWon(twitterHandle) {
   console2.log('wallets:', wallets);
   if (wallets.length) {
     console2.info(`Previous won wallet for ${twitterHandle}:`, wallets);
-  }
-
-  return wallets;
-}
-
-// todo remove func
-export function getPreviousWalletsWon3(twitterHandle) {
-  console2.trace('getPreviousWalletsWon2:', twitterHandle);
-  if (!twitterHandle || typeof twitterHandle !== 'string') {
-    console2.trace('return []');
-    return [];
-  }
-
-  const handleLow = twitterHandle.toLowerCase();
-  console2.log('handleLow:', handleLow);
-
-  let wallets = [];
-
-  console2.log('storage.allProjectWins2:', storage.allProjectWins2);
-  for (let prop in storage.allProjectWins2) {
-    const item = storage.allProjectWins2[prop];
-    console2.log('item:', item);
-    console2.log('item.twitterHandle:', item.twitterHandle);
-    if (item.twitterHandle === handleLow) {
-      console2.log('add item');
-      wallets.push(item.wallet);
-    }
-  }
-
-  console2.log('wallets:', wallets);
-  wallets = noDuplicates(wallets);
-  console2.log('wallets:', wallets);
-
-  if (wallets.length) {
-    console2.info(`Previous 2 won wallet for ${twitterHandle}:`, wallets);
   }
 
   return wallets;

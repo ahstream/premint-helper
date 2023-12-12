@@ -127,8 +127,6 @@ async function runPage() {
     return updateRaffles();
   }
 
-  // storage.raffles.luckygoMap = {}; // todo
-
   showPage();
 }
 
@@ -339,11 +337,11 @@ function creteFiltersHTML() {
   const f = getFilters();
 
   const div = document.createElement('div');
-  div.appendChild(makeCheckbox('easy', 'Easy', 'todo', f.easy));
-  div.appendChild(makeCheckbox('d', '-D', 'todo', f.reqDiscord));
-  div.appendChild(makeCheckbox('f', 'F', 'todo', f.reqFollow));
-  div.appendChild(makeCheckbox('l', 'L', 'todo', f.reqLike));
-  div.appendChild(makeCheckbox('r', 'R', 'todo', f.reqRetweet));
+  div.appendChild(makeCheckbox('easy', 'Easy', 'lorem', f.easy));
+  div.appendChild(makeCheckbox('d', '-D', 'lorem', f.reqDiscord));
+  div.appendChild(makeCheckbox('f', 'F', 'lorem', f.reqFollow));
+  div.appendChild(makeCheckbox('l', 'L', 'lorem', f.reqLike));
+  div.appendChild(makeCheckbox('r', 'R', 'lorem', f.reqRetweet));
   div.appendChild(makeSelect(getTimeLeftOptionsArr(), 'time-left'));
 
   document.getElementById('filters').replaceChildren(div);

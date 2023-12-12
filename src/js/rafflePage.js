@@ -910,7 +910,7 @@ export function getRequirements2() {
 // GET -----------------
 
 function getMustFollowLinks() {
-  const data = provider.getMustFollowLinks();
+  const data = provider.getMustFollowLinks(storage.options);
   return {
     ...data,
     intentLinks: data.links.map((x) => makeTwitterFollowIntentUrl(x)),
@@ -918,7 +918,7 @@ function getMustFollowLinks() {
 }
 
 function getMustLikeAndRetweetLinks() {
-  const data = provider.getMustRetweetLinks();
+  const data = provider.getMustRetweetLinks(storage.options);
   return {
     ...data,
     intentLinks: [],
@@ -926,8 +926,8 @@ function getMustLikeAndRetweetLinks() {
 }
 
 function getMustRetweetLinks() {
-  const data1 = provider.getMustRetweetLinks();
-  const data2 = provider.getMustLikeAndRetweetLinks();
+  const data1 = provider.getMustRetweetLinks(storage.options);
+  const data2 = provider.getMustLikeAndRetweetLinks(storage.options);
   const data = {
     elems: [...data1.elems, ...data2.elems],
     links: noDuplicates([...data1.links, ...data2.links]),
@@ -939,8 +939,8 @@ function getMustRetweetLinks() {
 }
 
 function getMustLikeLinks() {
-  const data1 = provider.getMustLikeLinks();
-  const data2 = provider.getMustLikeAndRetweetLinks();
+  const data1 = provider.getMustLikeLinks(storage.options);
+  const data2 = provider.getMustLikeAndRetweetLinks(storage.options);
   const data = {
     elems: [...data1.elems, ...data2.elems],
     links: noDuplicates([...data1.links, ...data2.links]),
@@ -952,11 +952,11 @@ function getMustLikeLinks() {
 }
 
 function getMustJoinLinks() {
-  return provider.getMustJoinLinks(false);
+  return provider.getMustJoinLinks(storage.options, false);
 }
 
 function getMustJoinWithRoleLinks() {
-  return provider.getMustJoinLinks(true);
+  return provider.getMustJoinLinks(storage.options, true);
 }
 
 // STATUSBAR FUNCS ----------------------------------------------------------------------------------

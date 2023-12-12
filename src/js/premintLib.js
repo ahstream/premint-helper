@@ -1,8 +1,18 @@
-import { sleep, fetchHelper, rateLimitHandler, noDuplicates, convertTextToMonthNum, myConsole } from 'hx-lib';
+import {
+  sleep,
+  fetchHelper,
+  rateLimitHandler,
+  noDuplicates,
+  convertTextToMonthNum,
+  myConsole,
+  waitForSelector,
+  ONE_SECOND,
+} from 'hx-lib';
 
-import { normalizeTwitterHandle } from './premintHelperLib.js';
+import { normalizeTwitterHandle, normalizeDiscordHandle } from './premintHelperLib.js';
 
 const console2 = myConsole();
+console2.log();
 
 // DATA ----------------------------------------------------------------------------------
 
@@ -278,8 +288,6 @@ function getDiscordUrls(html) {
   return trimmedData.length ? trimmedData : [];
 }
 
-//
-
 function getWallets(html) {
   const m1 = [
     ...html.matchAll(
@@ -407,4 +415,197 @@ function convertWins(wins, account, lastSortKey) {
       comment,
     };
   });
+}
+
+// RAFFLE API: WAITERS ---------------------------------------------
+
+export async function waitForRafflePageLoaded() {
+  console2.info('Wait for raffle page to load');
+  // skip waiting for dom elements for now, perhaps need to in future?!
+  return true;
+}
+
+// RAFFLE API: RAFFLE GETTERS ---------------------------------------------
+
+export function getTwitterHandle({ normalize = true } = {}) {
+  try {
+    const h = document.querySelector('#step-twitter').querySelector('span').innerText?.trim() || '';
+    return !normalize ? h : normalizeTwitterHandle(h.replace('@', ''));
+  } catch (e) {
+    console2.error('Failed getting Twitter user! Error:', e);
+    return '';
+  }
+}
+
+export function getDiscordHandle({ normalize = true } = {}) {
+  try {
+    const h = document.querySelector('#step-discord').querySelector('span').innerText?.trim() || '';
+    return !normalize ? h : normalizeDiscordHandle(h);
+  } catch (e) {
+    return '';
+  }
+}
+
+export function getMustJoinLinks(options, mustHaveRole = false) {
+  try {
+    const selectors = mustHaveRole
+      ? options.PREMINT_JOIN_DISCORD_WITH_ROLE_SEL
+      : options.PREMINT_JOIN_DISCORD_SEL;
+
+    const allElems = [...document.querySelectorAll(selectors[0])].filter(
+      (el) =>
+        el.textContent.trim().toLowerCase().startsWith(selectors[1]) &&
+        el.textContent.trim().toLowerCase().includes(selectors[2])
+    );
+    const validElems = allElems.length ? [allElems[0].querySelector(selectors[3])] : [];
+    console2.log('validElems', validElems);
+    const elems = validElems;
+
+    const links = validElems.filter((e) => !!e).map((x) => x.href);
+    console2.log('links', links);
+
+    return { elems, links };
+  } catch (e) {
+    return { elems: [], links: [] };
+  }
+}
+
+export function getMustFollowLinks(options) {
+  try {
+    const elems = [];
+    const links = parseTwitterLinks(options.PREMINT_MUST_FOLLOW_SEL);
+    return { elems, links };
+  } catch (e) {
+    return { elems: [], links: [] };
+  }
+}
+
+export function getMustLikeLinks(options) {
+  try {
+    const elems = [];
+    const links = parseTwitterLinks(options.PREMINT_MUST_LIKE_SEL);
+    return { elems, links };
+  } catch (e) {
+    return { elems: [], links: [] };
+  }
+}
+
+export function getMustRetweetLinks(options) {
+  try {
+    const elems = [];
+    const links = parseTwitterLinks(options.PREMINT_MUST_RETWEET_SEL);
+    return { elems, links };
+  } catch (e) {
+    return { elems: [], links: [] };
+  }
+}
+
+export function getMustLikeAndRetweetLinks(options) {
+  try {
+    const elems = [];
+    const links = parseTwitterLinks(options.PREMINT_MUST_LIKE_AND_RETWEET_SEL);
+    return { elems, links };
+  } catch (e) {
+    return { elems: [], links: [] };
+  }
+}
+
+export function getSelectedWallet() {
+  return null;
+}
+
+export function getWonWalletsByThisAccount() {
+  return [];
+}
+
+export async function getRegisterButton(options, maxWait = 1000, interval = 10) {
+  return await waitForSelector(options.PREMINT_REG_BTN_SEL, maxWait, interval);
+}
+
+export function getRegisterButtonSync(options) {
+  return document.querySelector(options.PREMINT_REG_BTN_SEL);
+}
+
+export function getErrors() {
+  const elems = [...document.querySelectorAll('.alert-danger')];
+  if (elems?.length) {
+    return ['unspecifiedRaffleError'];
+  }
+  return [];
+}
+
+export function getTeamName() {
+  return '';
+}
+
+// RAFFLE API: HAS CHECKERS ---------------------------------------------
+
+export function hasRegistered() {
+  try {
+    return !!document.body.innerHTML.match(
+      /<i class="fas fa-check-circle text-success mr-2"><\/i>Registered/i
+    );
+  } catch (e) {
+    return false;
+  }
+}
+
+export async function hasRaffleTrigger(options) {
+  const elem = await waitForSelector(options.PREMINT_MAIN_REGION_SEL, 10 * ONE_SECOND, 50);
+  console2.log('hasRaffleTrigger:', elem);
+  return !!elem;
+}
+
+export async function hasRaffleTrigger2(options) {
+  return hasRaffleTrigger(options);
+}
+
+// RAFFLE API: IS CHECKERS ---------------------------------------------
+
+export function isAllRegBtnsEnabled(options) {
+  const regBtn = getRegisterButtonSync(options);
+  console2.log('regBtn', regBtn);
+  if (regBtn?.disabled) {
+    return false;
+  }
+  return !!regBtn;
+}
+
+// API HELPERS
+
+export function getJoinButton() {
+  try {
+    return [...[...document.querySelectorAll('button.px-8')].filter((x) => (x.innerText = 'Join'))].filter(
+      (x) => x.nextSibling?.innerText === 'Join'
+    )[0];
+  } catch (e) {
+    return null;
+  }
+}
+
+export function hasErrors() {
+  return false;
+}
+
+function parseTwitterLinks(prefix) {
+  try {
+    console2.log('parseTwitterLinks; prefix', prefix);
+    const baseElem = document.querySelector('#step-twitter');
+    if (!baseElem) {
+      return [];
+    }
+    const baseElems = baseElem.querySelectorAll('div[class*="text-md"]');
+    console2.log('baseElems', baseElems);
+    if (!baseElems?.length) {
+      return [];
+    }
+    const elems = [...baseElems].filter((e) => e.innerText.toLowerCase().trim().startsWith(prefix));
+    console2.log('elems', elems);
+    const arr = elems.length < 1 ? [] : Array.from(elems[0].getElementsByTagName('a')).map((a) => a.href);
+    console2.log('arr', arr);
+    return noDuplicates(arr);
+  } catch (e) {
+    console2.error('Failed parsing twitter links. Error:', e);
+    return [];
+  }
 }
