@@ -23,6 +23,7 @@ module.exports = {
     atlasRafflePage: './src/js/atlasRafflePage.js',
     luckygoRafflePage: './src/js/luckygoRafflePage.js',
     luckygoPage: './src/js/luckygoPage.js',
+    superfulRafflePage: './src/js/superfulRafflePage.js',
     discordPage: './src/js/discordPage.js',
     twitterPage: './src/js/twitterPage.js',
     twitterIntentPage: './src/js/twitterIntentPage.js',

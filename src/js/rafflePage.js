@@ -362,6 +362,10 @@ async function joinRaffle() {
   const reqs = getRequirements();
   console2.info('Task requirements:', reqs);
 
+  if (provider.visitTwitterLinks) {
+    await visitTwitterLinks(reqs);
+  }
+
   const skipDoneTasks = pageState.action === 'retryJoin' || storage.options.RAFFLE_SKIP_DONE_TASKS;
   const discordLinks = skipDoneTasks
     ? await removeDoneLinks(reqs.discordUserNorm, reqs.discordLinks, pageState)
@@ -463,6 +467,27 @@ async function joinRaffle() {
   }
 
   waitForRegistered();
+}
+
+async function visitTwitterLinks(reqs) {
+  console.log('visitTwitterLinks', reqs, reqs.twitterLinksElems);
+  const duration = 5000;
+  const interval = 1500;
+  for (let elem of reqs.twitterLinksElems) {
+    console.log('elem', elem);
+    const url = elem.href;
+    console.log('url', url);
+    await addPendingRequest(url, { action: 'visit', url, duration });
+    console.info('Click link:', url);
+    //simulateClick(elem);
+    elem.click();
+    // window.open(url, '_blank');
+    // chrome.runtime.sendMessage({ cmd: 'openTab', url });
+    await sleep(interval);
+  }
+  if (reqs.twitterLinksElems?.length) {
+    await sleep(duration - interval);
+  }
 }
 
 // REGISTER ----------------------------------------------------------------------------------
@@ -606,6 +631,7 @@ async function waitAndTryRegisterOneLastTime() {
   const waitSecs = 600;
 
   updateStatusbarRunning(`Raffle error? Wait for register button ${waitSecs} secs and try again...`);
+  chrome.runtime.sendMessage({ cmd: 'focusTab', id: pageState.discordCaptchaTabId });
 
   const stopTime = millisecondsAhead(waitSecs * 1000);
   while (Date.now() <= stopTime && storage.options.RAFFLE_FORCE_REGISTER) {

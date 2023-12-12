@@ -95,6 +95,13 @@
       "css": [],
       "js": ["luckygoPage.js"],
       "run_at": "document_start"
+    },
+    {
+      "matches": ["https://www.superful.xyz/*"],
+      "exclude_matches": [],
+      "css": ["styles/superfulRafflePage.css"],
+      "js": ["superfulRafflePage.js"],
+      "run_at": "document_start"
     }
   ]
 }

@@ -4,6 +4,7 @@ import { switchToUser, isEmptyPage, handleLockedTwitterAccount } from './twitter
 
 import {
   getStorageItems,
+  getStorageData,
   dispatch,
   sleep,
   createHashArgs,
@@ -171,6 +172,15 @@ async function runGetProfile() {
 async function runMainLoop() {
   console2.info('runMainLoop');
 
+  console.log(await getStorageData());
+
+  const request = await dispatch(window.location.href, 60, true);
+  console.log('request', request);
+
+  if (request?.action === 'visit') {
+    await visitPage(request);
+  }
+
   if (storage.options.TWITTER_AUTO_UPDATE_FOLLOWERS) {
     const profile = await getUserProfile(ONE_MINUTE, 250);
     console2.log('profile', profile);
@@ -178,6 +188,11 @@ async function runMainLoop() {
       await chrome.runtime.sendMessage({ cmd: 'profileResultMainLoop', profile });
     }
   }
+}
+
+async function visitPage(request) {
+  await sleep(request.duration);
+  window.close();
 }
 
 async function getUserProfile(maxWait = 10 * 1000, interval = 10) {

@@ -579,13 +579,37 @@ export async function finishTask(request, sender, context) {
   }
 }
 
-export function clickElement(elem) {
+export function clickElement(elem, { real, simulate } = {}) {
   let clicked = false;
-  if (GLOBAL_REAL_CLICK_ELEMENT && elem?.click) {
+
+  if (typeof real === 'boolean' && real && elem?.click) {
+    elem.click();
+    clicked = true;
+  } else if (GLOBAL_REAL_CLICK_ELEMENT && elem?.click) {
     elem.click();
     clicked = true;
   }
-  if (GLOBAL_SIMULATE_CLICK_ELEMENT && elem) {
+
+  if (typeof simulate === 'boolean' && simulate && elem) {
+    simulateClick(elem);
+    clicked = true;
+  } else if (GLOBAL_SIMULATE_CLICK_ELEMENT && elem) {
+    simulateClick(elem);
+    clicked = true;
+  }
+
+  if (!clicked) {
+    throw new Error('Not configured to click element!');
+  }
+}
+
+export function clickElement2(elem, { real = false, simulate = false } = {}) {
+  let clicked = false;
+  if ((real || GLOBAL_REAL_CLICK_ELEMENT) && elem?.click) {
+    elem.click();
+    clicked = true;
+  }
+  if ((simulate || GLOBAL_SIMULATE_CLICK_ELEMENT) && elem) {
     simulateClick(elem);
     clicked = true;
   }
