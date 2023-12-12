@@ -56,9 +56,13 @@ let pageState = {
   observer: null,
 };
 
+const VISIT_TWITTER_LINK_DURATION = 4000;
+const VISIT_TWITTER_LINK_INTERVAL = 2000;
+
 // INIT ----------------------------------------------------------------------------
 
 export async function initRafflePage(raffleProvider) {
+  pageState.href = window.location.href;
   console2.info('Init raffle page, provider:', raffleProvider?.name);
   provider = raffleProvider;
 
@@ -220,7 +224,8 @@ function getStatusbarBtnOptions() {
 // PAGE FUNCS ----------------------------------------------------------------------------------
 
 async function showPage() {
-  console2.log('showPage; pageState:', pageState);
+  const href = window.location.href;
+  console2.log('showPage; pageState, href:', pageState, href);
 
   pageState.statusbar.buttons(createStatusbarButtons(getStatusbarBtnOptions()));
 
@@ -230,7 +235,7 @@ async function showPage() {
 
   if (!pageState.action) {
     await sleep(100);
-    const request = await dispatch(window.location.href, 5 * 60);
+    const request = await dispatch(pageState.href, 5 * 60);
     console2.log('Dispatched request:', request);
     pageState.request = request;
     pageState.action = request?.action;
@@ -466,6 +471,9 @@ async function joinRaffle() {
   }
 
   if (!reqLinks.length) {
+    if (provider.visitTwitterLinks) {
+      await visitTwitterLinks();
+    }
     registerRaffle();
   }
 
@@ -480,14 +488,15 @@ async function visitTwitterLinks() {
   pageState.visitedTwitterLinks = true;
   const reqs = pageState.reqs;
   console.log('visitTwitterLinks', reqs, reqs.mustFollowLinks.elems);
-  const duration = 5000;
-  const interval = 2000;
+  const duration = VISIT_TWITTER_LINK_DURATION;
+  const interval = VISIT_TWITTER_LINK_INTERVAL;
   for (let elem of reqs.mustFollowLinks.elems) {
     console.log('elem', elem);
     const url = elem.href;
     console.log('url', url);
     await addPendingRequest(url, { action: 'visit', url, duration });
-    console.info('Click link:', url);
+    await sleep(300);
+    console.info('Click twitter link:', url, elem);
     clickElement(elem, { real: false, simulate: true });
     // elem.click();
     // window.open(url, '_blank');
@@ -650,6 +659,9 @@ async function waitAndTryRegisterOneLastTime() {
       console2.log('forceRegister ok!');
       return waitForRegisteredMainLoop(regBtn);
     }
+    if (provider.hasRegistered()) {
+      return exitAction('registered');
+    }
     if (provider.SLEEP_BETWEEN_WAIT_FOR_REGISTERED) {
       await sleep(provider.SLEEP_BETWEEN_WAIT_FOR_REGISTERED);
     } else {
@@ -770,7 +782,7 @@ async function addQuickRegButton() {
   }
 
   console2.info('Add Premint Helper QuickReg button');
-  provider.addQuickRegButton(quickRegClickHandler);
+  provider.addQuickRegButton(storage.options, quickRegClickHandler);
 }
 
 function getQuickRegBtn() {

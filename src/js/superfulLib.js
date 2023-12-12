@@ -205,7 +205,7 @@ export function getTeamName() {
 export function hasRegistered() {
   try {
     const elems = [...document.querySelectorAll('p.font-bold.text-sm.text-center')].filter(
-      (x) => x.innerText === 'Deregister yourself'
+      (x) => x.innerText.toLowerCase() === 'deregister yourself'
     );
     //console.log('hasJoinedRaffle elems', elems);
     if (elems.length > 0) {

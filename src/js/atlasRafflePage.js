@@ -171,7 +171,7 @@ function isAllRegBtnsEnabled() {
   return !!regBtn;
 }
 
-async function addQuickRegButton(clickHandler) {
+async function addQuickRegButton(options, clickHandler) {
   const regBtnContainer = await getRegisterButton();
   console2.log('regBtn', regBtnContainer);
   if (!regBtnContainer) {

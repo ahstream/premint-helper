@@ -1,7 +1,23 @@
-import { sleep, fetchHelper, rateLimitHandler, myConsole } from 'hx-lib';
-import { normalizeTwitterHandle, getMyTabIdFromExtension, getFromWebPage } from './premintHelperLib.js';
+import {
+  sleep,
+  fetchHelper,
+  rateLimitHandler,
+  myConsole,
+  noDuplicates,
+  millisecondsAhead,
+  waitForTextEquals,
+  getTextEquals,
+} from 'hx-lib';
+
+import {
+  normalizeTwitterHandle,
+  normalizeDiscordHandle,
+  getMyTabIdFromExtension,
+  getFromWebPage,
+} from './premintHelperLib.js';
 
 const console2 = myConsole();
+console2.log();
 
 // DATA ----------------------------------------------------------------------------------
 
@@ -544,44 +560,10 @@ function convertWin(html, account) {
   };
 }
 
-// HTML DOM
-
-/*
-// this already implemented in atlasRAfflePage, which one is best?
-export function isAllTasksCompleted() {
-  const elems = [...document.querySelectorAll('p')].filter((x) => x.innerText.endsWith('TASKS COMPLETED'));
-  console2.log('elems', elems);
-  if (!elems?.length) {
-    return false;
-  }
-  const s = elems[0].innerText.replace('TASKS COMPLETED', '').trim();
-  console2.log('s', s);
-
-  const tokens = s.split(s, 'OF').map((x) => x.trim());
-  console2.log('tokens', tokens);
-
-  if (tokens.length === 2 && tokens[0] === tokens[1]) {
-    return true;
-  }
-
-  return false;
-}
-*/
-
 // MISC
 
 export function getRaffleTwitterHandle() {
   return matchAny(document.body.innerHTML, /"twitter_screen_name":"([^"]*)/i, null);
-}
-
-export function getSelectedWallet() {
-  try {
-    const elem = document.getElementById('headlessui-listbox-button-:r0:');
-    return elem?.innerText || '';
-  } catch (e) {
-    console2.error(e);
-    return null;
-  }
 }
 
 export function isAutomateTwitterTasksSelected() {
@@ -608,4 +590,279 @@ function makeDate(val, nullVal) {
 function matchAny(html, regexp, nullVal) {
   const m = html.match(regexp);
   return m?.length === 2 ? m[1] : nullVal;
+}
+
+// RAFFLE API: WAITERS ---------------------------------------------
+
+export async function waitForRafflePageLoaded(options, maxWait = null) {
+  console2.info('Wait for raffle page to load');
+
+  const toWait = typeof maxWait === 'number' ? maxWait : options.LUCKYGO_WAIT_FOR_RAFFLE_PAGE_LOADED;
+
+  const stopTime = millisecondsAhead(toWait);
+  while (Date.now() <= stopTime) {
+    if (hasRegistered()) {
+      return true;
+    }
+    const du = getDiscordHandle();
+    const tu = getTwitterHandle();
+    console2.log('du, tu:', du, tu);
+    if (du || tu) {
+      console2.info('Raffle page has loaded!');
+      await sleep(1000);
+      return true;
+    }
+    await sleep(1000);
+  }
+
+  console2.warn('Raffle page has NOT loaded!');
+  return false;
+}
+
+// RAFFLE API: RAFFLE GETTERS ---------------------------------------------
+
+export function getTwitterHandle({ normalize = true } = {}) {
+  try {
+    const elems = [...document.querySelectorAll('div')].filter((x) => x.innerText === 'Twitter');
+    if (!elems?.length) {
+      return null;
+    }
+    const h = elems[0].nextElementSibling?.innerText || '';
+    return !normalize ? h : normalizeTwitterHandle(h.replace('@', ''));
+  } catch (e) {
+    return '';
+  }
+}
+
+export function getTwitterHandle2({ normalize = true } = {}) {
+  try {
+    const h = matchAny(document.body.innerHTML, /"twitter_screen_name":"([^"]*)/i, null) || '';
+    return !normalize ? h : normalizeTwitterHandle(h.replace('@', ''));
+  } catch (e) {
+    return '';
+  }
+}
+
+export function getDiscordHandle({ normalize = true } = {}) {
+  try {
+    const elems = [...document.querySelectorAll('div')].filter((x) => x.innerText === 'Discord');
+    if (!elems?.length) {
+      return '';
+    }
+    const h = elems[0].nextElementSibling?.innerText?.trim() || '';
+    return !normalize ? h : normalizeDiscordHandle(h);
+  } catch (e) {
+    return '';
+  }
+}
+
+export function getDiscordHandle2({ normalize = true } = {}) {
+  try {
+    const elems = [...document.querySelectorAll('div')].filter((x) => x.innerText === 'Discord');
+    if (!elems?.length) {
+      return '';
+    }
+    const h = elems[0].nextElementSibling?.innerText.trim() || '';
+    return !normalize ? h : normalizeDiscordHandle(h);
+  } catch (e) {
+    return '';
+  }
+}
+
+export function getMustJoinLinks() {
+  try {
+    const matches = [
+      ...document.body.innerHTML.matchAll(/"invite_link":"(https:\/\/discord.gg\/[a-z0-9_-]+)"/gim),
+      ...document.body.innerHTML.matchAll(/"invite_link":"(https:\/\/discord.com\/invite\/[a-z0-9_-]+)"/gim),
+    ];
+    console2.log('matches:', matches);
+    const elems = [];
+    const links = noDuplicates(matches.map((x) => x[1]));
+    console.log('getMustJoinLinks', elems, links);
+    return { elems, links };
+  } catch (e) {
+    return { elems: [], links: [] };
+  }
+}
+
+export function getMustFollowLinks() {
+  try {
+    const elems = [];
+    const links = getTwitterLinks(
+      [...document.querySelectorAll('div')].filter(
+        (x) => x.innerText.startsWith('Follow') && x.innerText.endsWith('on Twitter.')
+      )
+    );
+    console.log('getMustFollowLinks', elems, links);
+    return { elems, links };
+  } catch (e) {
+    return { elems: [], links: [] };
+  }
+}
+
+export function getMustLikeLinks() {
+  try {
+    const elems = [];
+    const links = getTwitterLinks(
+      [...document.querySelectorAll('div')].filter(
+        (x) => x.innerText.startsWith('Like this') && x.innerText.endsWith('s) .')
+      )
+    );
+    console.log('getMustLikeLinks', elems, links);
+    return { elems, links };
+  } catch (e) {
+    return { elems: [], links: [] };
+  }
+}
+
+export function getMustRetweetLinks() {
+  try {
+    const elems = [];
+    const links = getTwitterLinks(
+      [...document.querySelectorAll('div')].filter(
+        (x) => x.innerText.startsWith('Retweet this') && x.innerText.endsWith('s) .')
+      )
+    );
+    console.log('getMustRetweetLinks', elems, links);
+    return { elems, links };
+  } catch (e) {
+    return { elems: [], links: [] };
+  }
+}
+
+export function getMustLikeAndRetweetLinks() {
+  try {
+    const elems = [];
+    const links = getTwitterLinks(
+      [...document.querySelectorAll('div')].filter(
+        (x) => x.innerText.startsWith('Like & Retweet') && x.innerText.endsWith('s) .')
+      )
+    );
+    console.log('getMustLikeAndRetweetLinks', elems, links);
+    return { elems, links };
+  } catch (e) {
+    return { elems: [], links: [] };
+  }
+}
+
+export function getSelectedWallet() {
+  try {
+    const elems = [...document.querySelectorAll('img')].filter((x) => x.src.includes('Ethereum-fill-brand'));
+    if (!elems?.length) {
+      return null;
+    }
+    const elem = elems[0].nextElementSibling;
+
+    const shortWallet = elem?.innerText || '';
+    const longWallet = '';
+    const tokens = shortWallet.split('...');
+    const shortPrefix = tokens.length >= 2 ? tokens[0] : '';
+    const shortSuffix = tokens.length >= 2 ? tokens[1] : '';
+
+    return { shortWallet, longWallet, shortPrefix, shortSuffix };
+  } catch (e) {
+    console2.error(e);
+    return null;
+  }
+}
+
+export function getSelectedWallet2() {
+  try {
+    const elem = document.getElementById('headlessui-listbox-button-:r0:');
+    return elem?.innerText || '';
+  } catch (e) {
+    console2.error(e);
+    return '';
+  }
+}
+
+export function getWonWalletsByThisAccount() {
+  return [];
+}
+
+export async function getRegisterButton(options, maxWait = 1000, interval = 10) {
+  console2.log('getRegisterButton');
+  return await waitForTextEquals(options.LUCKYGO_REG_BTN_SEL, 'div', maxWait, interval);
+}
+
+export function getRegisterButtonSync(options) {
+  return [...document.querySelectorAll('div')].filter((x) => x.innerText === options.LUCKYGO_REG_BTN_SEL)[0];
+}
+
+export function getErrors() {
+  if (
+    [...document.querySelectorAll('p')].filter((x) => x.innerText.includes('Please add mint wallet first'))
+      ?.length
+  ) {
+    return ['unspecifiedRaffleError'];
+  }
+  return [];
+}
+
+export function getTeamName() {
+  return '';
+}
+
+// RAFFLE API: HAS CHECKERS ---------------------------------------------
+
+export function hasRegistered() {
+  try {
+    return !!getTextEquals('Registered successfully.', 'div');
+  } catch (e) {
+    return false;
+  }
+}
+
+export async function hasRaffleTrigger(options) {
+  return !!getRegisterButtonSync(options);
+}
+
+export async function hasRaffleTrigger2() {
+  return hasRaffleTrigger();
+}
+
+// RAFFLE API: IS CHECKERS ---------------------------------------------
+
+export function isAllRegBtnsEnabled(options) {
+  const regBtn = getRegisterButtonSync(options);
+  // console2.log('regBtn', regBtn);
+  if (regBtn?.disabled) {
+    return false;
+  }
+  return !!regBtn;
+}
+
+// API HELPERS
+
+function getTwitterLinks(elems) {
+  console2.log('getTwitterLinks, elems', elems);
+  if (!elems.length) {
+    return [];
+  }
+  const allLinks = [];
+  for (let elem of elems) {
+    console2.log('elem', elem);
+    const links = [...elem.querySelectorAll('a')]
+      .filter(
+        (x) =>
+          x.href.toLowerCase().startsWith('https://twitter.com/') ||
+          x.href.toLowerCase().startsWith('https://x.com/')
+      )
+      .map((x) => x.href);
+    if (links.length) {
+      allLinks.push(...links);
+    }
+  }
+
+  console2.log('getTwitterLinks', allLinks);
+
+  return noDuplicates(allLinks);
+}
+
+export function getRegisteringButton() {
+  return [...document.querySelectorAll('div')].filter((x) => x.innerText === 'Registering')[0];
+}
+
+export function hasErrors() {
+  return false;
 }

@@ -3,6 +3,7 @@ console.info('superfulPage.js begin', window?.location?.href);
 import '../styles/superfulPage.css';
 
 import {
+  // RAFFLE API
   getTwitterHandle,
   getDiscordHandle,
   getSelectedWallet,
@@ -55,8 +56,8 @@ const config = {
 
   // SETTINGS
   storageKeys: ['runtime', 'options'],
-  SLEEP_BETWEEN_WAIT_FOR_REGISTERED: 10000,
-  SLEEP_BEFORE_NEXT_FORCE_REGISTER: 10000,
+  SLEEP_BETWEEN_WAIT_FOR_REGISTERED: 5000,
+  SLEEP_BEFORE_NEXT_FORCE_REGISTER: 5000,
 
   // ENABLERS
   enableForceRegister: true,
@@ -91,7 +92,6 @@ const config = {
   JOIN_BUTTON_IN_PROGRESS_TEXT,
 
   // SEMI CUSTOM API
-
   shouldOpenTwitterTasks: () => true,
   hasCaptcha: () => false,
   hasWalletConnectDialog: () => false,
@@ -155,8 +155,8 @@ async function forceRegister(options, pageState) {
   return regBtn;
 }
 
-async function addQuickRegButton(clickHandler) {
-  const regBtnContainer = await getRegisterButton();
+async function addQuickRegButton(options, clickHandler) {
+  const regBtnContainer = await getRegisterButton(options);
   console2.log('regBtnContainer', regBtnContainer);
   if (!regBtnContainer) {
     return;

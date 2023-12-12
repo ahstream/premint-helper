@@ -160,7 +160,7 @@ async function forceRegister(options) {
   return regBtn;
 }
 
-async function addQuickRegButton(clickHandler) {
+async function addQuickRegButton(options, clickHandler) {
   const regBtnContainer = await waitForSelector(
     '[data-action="view-project-register"]',
     60 * ONE_SECOND,

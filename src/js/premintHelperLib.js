@@ -600,11 +600,11 @@ export function clickElement(elem, { real, simulate } = {}) {
   }
 
   if (typeof simulate === 'boolean') {
-    if (simulate && elem?.click) {
-      elem.click();
+    if (simulate && elem) {
+      simulateClick(elem);
       clicked = true;
     }
-  } else if (GLOBAL_SIMULATE_CLICK_ELEMENT && elem?.click) {
+  } else if (GLOBAL_SIMULATE_CLICK_ELEMENT && elem) {
     simulateClick(elem);
     clicked = true;
   }
