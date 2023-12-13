@@ -271,7 +271,7 @@ function getMustFollowLinks() {
   return parseTaskLinks(storage.options.ATLAS_MUST_FOLLOW_SEL);
 }
 
-function getMustJoinLinks(mustHaveRole = false) {
+function getMustJoinLinks(options, mustHaveRole = false) {
   if (mustHaveRole) {
     return [];
   }

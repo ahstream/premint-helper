@@ -1,26 +1,184 @@
-import { myConsole, noDuplicates, sleep, millisecondsAhead } from 'hx-lib';
+import { sleep, fetchHelper, rateLimitHandler, myConsole, noDuplicates, millisecondsAhead } from 'hx-lib';
 
-import { normalizeTwitterHandle, normalizeDiscordHandle } from './premintHelperLib.js';
+import {
+  normalizeTwitterHandle,
+  normalizeDiscordHandle,
+  getMyTabIdFromExtension,
+  getFromWebPage,
+} from './premintHelperLib.js';
 
 const console2 = myConsole();
 console2.log();
 
 // DATA ----------------------------------------------------------------------------------
 
+const SLEEP_SUPERFUL_LIB_FETCH_RAFFLES = 2000;
+
 //const ACCOUNT_URL = 'https://luckygo.io/profile';
 
 //const WINS_BASE_URL = 'https://api.luckygo.io/raffle/list/me?type=won&page={PAGE}&size={SIZE}';
 
-//const RAFFLES_BASE_URL =
-//  'https://api.luckygo.io/raffle/list?community_type={COMMUNITY_TYPE}&project_type={PROJECT_TYPE}&sort_type={SORT_TYPE}&free_mint={FREE_MINT}&my_partial_guild_ids={MY_PARTIAL_GUILD_IDS}&my_particial_project_ids={MY_PARTIAL_PROJECT_IDS}&key_words={KEY_WORDS}&page={PAGE}&size={SIZE}';
+const RAFFLES_BASE_URL = 'https://www.superful.xyz/superful-api/v1/project/events';
 
 // ACCOUNT -----------------------
 
 // AUTH -------------------------------------------
 
+export async function getAuth(context) {
+  if (!context.myTabId) {
+    await getMyTabIdFromExtension(context, 5000);
+  }
+  if (!context.myTabId) {
+    console2.error('Invalid myTabId');
+    return null;
+  }
+  const authKey = await getFromWebPage(
+    `https://www.superful.xyz/settings`,
+    'getAuth',
+    context.myTabId,
+    context
+  );
+  console2.log('authKey', authKey);
+  console2.log('context', context);
+
+  if (typeof authKey !== 'string') {
+    return null;
+  }
+
+  const authKeyTrim = authKey.replace('%20', ' ');
+
+  return authKeyTrim;
+}
+
 // RAFFLE -------------------------------------------
 
 // RAFFLES ----------------------------------------------------------------------------------
+
+export async function getRaffles(authKey, options) {
+  const raffles = await fetchRaffles(authKey, options);
+  console.log('raffles', raffles);
+  return raffles.map((x) => convertRaffle(x));
+}
+
+async function fetchRaffles(authKey, { search_text = '', page_size = 12, interval, max, statusLogger } = {}) {
+  console2.log('fetchRaffles');
+
+  if (statusLogger) {
+    statusLogger.mid(`Get Superful raffles...`);
+  }
+
+  const raffles = [];
+  let page = 0;
+
+  while (page >= 0) {
+    page++;
+
+    const url = RAFFLES_BASE_URL;
+
+    if (statusLogger) {
+      statusLogger.mid(`Get Superful raffles page ${page}`);
+    }
+
+    console2.log(`fetchRaffles page: ${page}, ${url}`);
+    const headers = authKey ? { Authorization: authKey } : {};
+    const result = await fetchHelper(
+      url,
+      {
+        method: 'POST',
+        headers: {
+          ...headers,
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          page,
+          page_size,
+          search_text,
+        }),
+        credentials: 'include',
+      },
+      rateLimitHandler
+    );
+    console2.log('result', result);
+
+    if (result.error) {
+      if (statusLogger) {
+        statusLogger.sub('Failed getting Superful raffles. Error:' + result.error.toString());
+      }
+      return { error: true, result, raffles };
+    }
+
+    raffles.push(...result.data.results);
+
+    if (result?.data?.pagination?.page_count <= page) {
+      return raffles;
+    }
+
+    if (max && raffles.length > max) {
+      console2.log('Max fetched:', raffles.length, '>=', max);
+      return raffles;
+    }
+
+    const delay = interval || SLEEP_SUPERFUL_LIB_FETCH_RAFFLES;
+
+    console2.info(`Sleep ${delay} ms before next fetch`);
+    await sleep(delay);
+  }
+
+  return raffles;
+}
+
+function makeDate(endDate, endTime) {
+  try {
+    return new Date(endDate + ' ' + endTime).getTime();
+  } catch (e) {
+    console.error(e);
+    return null;
+  }
+}
+
+function convertRaffle(obj) {
+  console.log('obj', obj);
+  return {
+    provider: 'superful',
+    id: obj.id,
+    name: obj.name,
+    slug: obj.slug,
+    url: `https://www.superful.xyz/${obj.slug}`,
+    myEntry: undefined,
+    hasEntered: !!obj.joined,
+    winRate: obj.win_rate,
+    winnerCount: obj.spots,
+    entryCount: Math.floor(obj.spots / (1 / obj.win_rate)),
+    startDate: undefined,
+    endDate: makeDate(obj.end_date, obj.end_time),
+    mintDate: obj.collab?.mint_date,
+    mintTime: obj.collab?.mint_time,
+    mintPrice: obj.collab?.mint_price,
+    supply: obj.collab?.total_supply,
+
+    blockchain: obj.project?.blockchain,
+    chain: obj.project?.blockchain,
+    remainingSeconds: undefined,
+    status: undefined,
+    active: undefined,
+    whitelistMethod: obj.allowlist_method,
+    dtc: obj.allowlist_method?.toLowerCase() === 'dtc',
+
+    collabId: obj.collab?.project_name,
+    collabLogo: obj.collab?.logo_url,
+    collabBanner: obj.collab?.banner_url,
+    collabTwitterUrl: undefined,
+    collabTwitterHandle: normalizeTwitterHandle(obj.collab?.twitter_handler),
+    collabDiscordUrl: undefined,
+    collabName: obj.collab?.project_name,
+
+    teamId: obj.project?.name,
+    teamName: obj.project?.name,
+    teamLogo: obj.project?.logo_url,
+    teamBanner: obj.project?.banner_url,
+    teamTwitterUrl: undefined,
+  };
+}
 
 // WINS ----------------------------------------------------------------------------------
 

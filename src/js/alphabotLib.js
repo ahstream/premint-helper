@@ -36,7 +36,7 @@ const RAFFLES_BASE_URL =
 export const winnersSortedByNewestURL = `https://www.alphabot.app/api/projects?sort=newest&scope=all&sortDir=-1&showHidden=true&pageSize=16&filter=winners`;
 export const winnersSortedByMintingURL = `https://www.alphabot.app/api/projects?sort=minting&scope=all&sortDir=-1&showHidden=true&pageSize=16&filter=winners`;
 
-// FUNCTIONS ----------------------------------------------------------------------------------
+// MISC HELPERS  ----------------------------------------------------------------------------------
 
 export function makeRaffleURL(slug) {
   return `https://www.alphabot.app/${slug}`;
@@ -662,7 +662,7 @@ export function getDiscordHandle({ normalize = true } = {}) {
   }
 }
 
-export function getMustJoinLinks(mustHaveRole = false) {
+export function getMustJoinLinks(options, mustHaveRole = false) {
   try {
     let baseElems;
     if (mustHaveRole) {
