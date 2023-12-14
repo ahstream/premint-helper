@@ -15,11 +15,10 @@ export async function getAccount() {
   const result = await fetchHelper(ACCOUNT_URL, {});
   console2.log('getAccount:', result);
   const id = result?.data?.user?.id;
+  const _id = id.toString ? id.toString().toLowerCase() : null;
   return {
-    id,
-    address: null,
-    userId: id,
-    userName: result?.data?.user?.name,
+    id: _id,
+    userName: result?.data?.user?.name || undefined,
   };
 }
 

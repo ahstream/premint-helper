@@ -46,18 +46,17 @@ export async function getAccount() {
   }
 
   const address = m?.length === 1 ? m[0][1] : null;
+  const _id = address.toString ? address.toString().toLowerCase() : null;
 
   return {
-    id: address,
+    id: _id,
     address,
-    userId: null,
-    userName: null,
   };
 }
 
 // AUTH -------------------------------------------
 
-export async function getLuckygoAuth(context) {
+export async function getAuth(context) {
   if (!context.myTabId) {
     await getMyTabIdFromExtension(context, 5000);
   }
@@ -459,7 +458,7 @@ function convertWin(html, account) {
   const isWin = raffle.my_entry?.is_win || false;
 
   const raffleId = raffle.id;
-  const userId = user.address || raffle.my_entry?.user_id || account.userId;
+  const userId = user.address || raffle.my_entry?.user_id || account.id;
   const userName = user.twitter_username || user.discord_username || null;
 
   const startDate = makeDate(raffle.start_time, null);

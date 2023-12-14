@@ -50,15 +50,15 @@ async function runPage() {
 
   // console.log(await getRaffles());
 
-  if (window.location.href.includes('/settings')) {
-    return runSettings();
+  if (window.location.href.includes('/about')) {
+    return runAuthGetter();
   }
 
   console2.log('Exit runPage!');
 }
 
-async function runSettings() {
-  console2.log('runSettings');
+async function runAuthGetter() {
+  console2.log('runAuthGetter');
 
   if (!pageState.action) {
     const request = await dispatch(window.location.href, 300);

@@ -14,13 +14,30 @@ console2.log();
 
 const SLEEP_SUPERFUL_LIB_FETCH_RAFFLES = 2000;
 
-//const ACCOUNT_URL = 'https://luckygo.io/profile';
+const ACCOUNT_URL = 'https://www.superful.xyz/superful-api/v1/account/settings';
 
-//const WINS_BASE_URL = 'https://api.luckygo.io/raffle/list/me?type=won&page={PAGE}&size={SIZE}';
+// https://www.superful.xyz/superful-api/v1/project/event/submissions?page=1&page_size=10&status=accepted
+const WINS_BASE_URL =
+  'https://www.superful.xyz/superful-api/v1/project/event/submissions?page={PAGE}&page_size={PAGE_SIZE}&status={STATUS}';
 
 const RAFFLES_BASE_URL = 'https://www.superful.xyz/superful-api/v1/project/events';
 
 // ACCOUNT -----------------------
+
+export async function getAccount(authKey, options = {}) {
+  console2.log('url:', ACCOUNT_URL);
+  const headers = authKey ? { Authorization: authKey } : {};
+  const result = await fetchHelper(ACCOUNT_URL, { method: 'GET', headers, ...options }, rateLimitHandler);
+  console2.log('getAccount:', result);
+
+  const address = result?.data?.address;
+  const _id = address.toString ? address.toString().toLowerCase() : null;
+
+  return {
+    id: _id,
+    address,
+  };
+}
 
 // AUTH -------------------------------------------
 
@@ -32,12 +49,7 @@ export async function getAuth(context) {
     console2.error('Invalid myTabId');
     return null;
   }
-  const authKey = await getFromWebPage(
-    `https://www.superful.xyz/settings`,
-    'getAuth',
-    context.myTabId,
-    context
-  );
+  const authKey = await getFromWebPage(`https://www.superful.xyz/about`, 'getAuth', context.myTabId, context);
   console2.log('authKey', authKey);
   console2.log('context', context);
 
@@ -127,11 +139,14 @@ async function fetchRaffles(authKey, { search_text = '', page_size = 12, interva
   return raffles;
 }
 
-function makeDate(endDate, endTime) {
+function makeDate(endDateStr, endTimeStr) {
   try {
-    return new Date(endDate + ' ' + endTime).getTime();
+    if (typeof endDateStr !== 'string' || typeof endTimeStr !== 'string') {
+      return null;
+    }
+    const d = new Date(endDateStr + ' ' + endTimeStr).getTime();
+    return d;
   } catch (e) {
-    console.error(e);
     return null;
   }
 }
@@ -182,8 +197,199 @@ function convertRaffle(obj) {
 
 // WINS ----------------------------------------------------------------------------------
 
-// RAFFLE API: WAITERS ---------------------------------------------
+export async function getWins(account, authKey, { interval, max, sortBy, checkIfContinueFn, statusLogger }) {
+  const result = await fetchWins(authKey, { interval, max, sortBy, checkIfContinueFn, statusLogger });
+  if (result.error) {
+    if (statusLogger) {
+      statusLogger.sub(`Error when getting Superful results!`);
+    }
+    return [];
+  }
+  return convertWins(result, account);
+}
 
+async function fetchWins(
+  authKey,
+  { interval, max, pageLength = 10, checkIfContinueFn = null, statusLogger }
+) {
+  console2.info('Fetch wins; pageLength:', pageLength);
+
+  const wins = [];
+  let pageNum = 0;
+  let count = 0;
+
+  while (pageNum >= 0) {
+    if (statusLogger) {
+      statusLogger.mid(`Get Superful results page ${count + 1}`);
+    }
+    const url = WINS_BASE_URL.replace('{PAGE}', pageNum)
+      .replace('{PAGE_SIZE}', pageLength)
+      .replace('{STATUS}', 'accepted');
+    console2.info(`fetchWins page: ${pageNum}, ${url}`);
+    const headers = authKey ? { Authorization: authKey } : {};
+    const result = await fetchHelper(url, { method: 'GET', headers }, rateLimitHandler);
+    console2.log('result', result);
+
+    if (result.error) {
+      return { error: true, result, wins };
+    }
+
+    if (result?.ok && !result.data?.results?.length) {
+      return wins;
+    }
+
+    wins.push(...result.data.results);
+
+    if (result?.data.pagination?.page_count && result?.data.pagination?.page_count === pageNum) {
+      return wins;
+    }
+
+    count += result.data.results.length;
+    if (max && count > max) {
+      console2.info('Max wins fetched:', count, '>=', max);
+      return wins;
+    }
+
+    if (checkIfContinueFn && !checkIfContinueFn(result)) {
+      console2.log('checkIfContinueFn() says to stop');
+      return wins;
+    }
+
+    console2.info(`Sleep ${interval} ms before next fetch`);
+    await sleep(interval);
+
+    pageNum++;
+  }
+
+  return wins;
+}
+
+function convertWins(wins, account) {
+  console2.trace('wins', wins);
+  return wins.map((x) => {
+    console2.trace('x', x);
+    const provider = 'superful';
+
+    const raffleId = x.id;
+    const userId = account.id;
+    const userName = account?.userName;
+
+    const startDate = undefined;
+    const endDate = makeDate(x.event_end_date, x.event_end_time);
+    const pickedDate = undefined;
+    const modifyDate = undefined;
+    const joinDate = x.joined_at;
+
+    const mintDate = makeDate(
+      firstDefined(x.mint_date, x.collab_info?.mint_date),
+      firstDefined(x.mint_time, x.collab_info?.mint_time)
+    );
+    const mintTime = undefined;
+
+    const twitterHandle = normalizeTwitterHandle(x.collab_info?.twitter_handler);
+    const twitterHandleGuess = twitterHandle;
+    const twitterBannerImage = undefined;
+    const discordUrl = x.collab_info?.discord_invite_code;
+    const websiteUrl = undefined;
+
+    const wallets = x.mint_address ? [x.mint_address] : [];
+
+    const hxId = `${provider}-${userId}-${raffleId}`;
+    const hxSortKey = mintDate || endDate || joinDate;
+    //const hxUpdated = null;
+
+    const id = raffleId;
+    const name = x.event_name;
+    const slug = x.event_slug;
+    const url = 'https://www.superful.xyz/' + x.event_slug;
+
+    const teamName = x.project_name;
+    const teamId = x.project_name;
+    const blockchain = x.collab_info?.blockchain;
+    const dtc = x.event_allowlist_method?.toLowerCase() === 'dtc';
+    const wlMethod = x.event_allowlist_method;
+    const entryCount = undefined;
+    const winnerCount = undefined;
+    const maxWinners = null;
+
+    const supply = firstDefined(x.total_supply, x.collab_info?.total_supply);
+    const mintPrice = firstDefined(x.mint_price, x.collab_info?.mint_price);
+    const pubPrice = undefined;
+    const wlPrice = mintPrice;
+
+    const dataId = undefined;
+    const type = x.event_type;
+
+    const status = x.status;
+    const collabId = undefined;
+    const collabName = x.collab_info?.project_name;
+
+    return {
+      obj: x,
+
+      hxId,
+      hxSortKey,
+      //hxUpdated,
+
+      provider,
+      userId,
+      userName,
+
+      id,
+      name,
+      slug,
+      url,
+
+      startDate,
+      endDate,
+      pickedDate,
+      modifyDate,
+      mintDate,
+      mintTime,
+      joinDate,
+
+      twitterHandle,
+      twitterHandleGuess,
+      twitterBannerImage,
+      discordUrl,
+      websiteUrl,
+
+      wallets,
+
+      teamName,
+      teamId,
+      blockchain,
+      dtc,
+      entryCount,
+      winnerCount,
+      maxWinners,
+
+      supply,
+      pubPrice,
+      wlPrice,
+      mintPrice,
+
+      dataId,
+      type,
+
+      status,
+      collabId,
+      collabName,
+      wlMethod,
+    };
+  });
+}
+
+function firstDefined(val1, val2) {
+  let r = val2;
+  if (typeof val1 !== 'undefined' && val1 !== null) {
+    r = val1;
+  }
+  console.log('firstDefined', val1, val2, r);
+  return r;
+}
+
+// RAFFLE API: WAITERS ---------------------------------------------
 export async function waitForRafflePageLoaded(options, maxWait = null) {
   console2.info('Wait for raffle page to load');
 

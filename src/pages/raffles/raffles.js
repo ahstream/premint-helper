@@ -43,7 +43,7 @@ import { getPermissions } from '../../js/permissions.js';
 
 import {
   getRaffles as getLuckygoRaffles,
-  getLuckygoAuth,
+  getAuth as getLuckygoAuth,
   getRaffle as getLuckygoRaffle,
 } from '../../js/luckygoLib.js';
 
@@ -67,7 +67,7 @@ let pageState = {};
 
 const SHORTENED_TEXT_SUFFIX = '...';
 const MAX_LEN_RAFFLE_NAME = 44;
-const MAX_LEN_TEAM_NAME = 24;
+const MAX_LEN_TEAM_NAME = 14;
 const MAX_LEN_TWITTER_HANDLE = 16;
 
 const DEFAULT_LOCALE = 'SV-se'; // undefined; // 'SV-se'; // string() | undefined
@@ -538,9 +538,18 @@ function processRaffles(raffles) {
       obj[id] = createNewRaffle(id, raffle);
       item = obj[id];
     }
+    const dupItem = item.raffles.find((x) => x.id === raffle.id);
+    if (dupItem) {
+      console.log('Skip duplicate raffle; item, dupItem:', raffle, dupItem);
+      continue;
+    }
     item.raffles.push(raffle);
   }
-  return toObjArray(obj).sort(dynamicSort('endDate'));
+
+  const packedItems = toObjArray(obj).sort(dynamicSort('endDate'));
+  packedItems.forEach((item) => (item.raffles = item.raffles.sort(dynamicSort('endDate'))));
+
+  return packedItems;
 }
 
 function createNewRaffle(id, raffle) {
@@ -560,6 +569,35 @@ function createNewRaffle(id, raffle) {
 }
 
 // TABLE -----------------------------------------------------
+
+function createTableHeadRow() {
+  const head = document.createElement('THEAD');
+  const row = document.createElement('TR');
+
+  //row.appendChild(createCell('#M', 'Remaining minutes'));
+  //row.appendChild(createCell('#R', 'Number of raffles'));
+  row.appendChild(createCell('', 'tooltip'));
+  row.appendChild(createCell('Twitter', ''));
+  //row.appendChild(createCell('Req', 'Requirements'));
+  row.appendChild(createCell('', 'Is raffle considered easy to fulfill?'));
+  row.appendChild(createCell('', 'Num wallets already won for this project'));
+  row.appendChild(createCell('', 'Have I entered this raffle?'));
+  row.appendChild(createCell('W', 'Num winners'));
+  row.appendChild(createCell('%', 'Win odds'));
+  row.appendChild(createCell('E', 'Remaining time'));
+  row.appendChild(createCell('Team', ''));
+  row.appendChild(createCell('Name', ''));
+  row.appendChild(createCell('Provider', ''));
+  row.appendChild(createCell('Mint Date', ''));
+  row.appendChild(createCell('Method', ''));
+  row.appendChild(createCell('Chain', ''));
+  row.appendChild(createCell('W', 'Number of winners'));
+  row.appendChild(createCell('E', 'Number of entrants now'));
+  // row.appendChild(createCell('P', 'Require premium subscription?'));
+
+  head.appendChild(row);
+  return head;
+}
 
 function createRafflesTable(packedRafflesIn, header, subHeader, sectionId, { allColumns = false } = {}) {
   console2.log('createRafflesTable', packedRafflesIn, header, subHeader, allColumns);
@@ -604,23 +642,68 @@ function createRafflesTable(packedRafflesIn, header, subHeader, sectionId, { all
     );
 
     // CELL: reqStrings
+    /*
     const reqStrings = parent.raffles.map((x) => x.reqString || '');
     row.appendChild(createCell(createMultiTexts(reqStrings, { className: 'req-string', hideDups: false })));
+    */
 
     // CELL: easy
     const easys = parent.raffles.map((x) =>
-      x.reqString && !x.reqString.toLowerCase().includes('d') ? 'Yes' : ''
+      x.reqString && !x.reqString.toLowerCase().includes('d') ? 'E' : ''
     );
-    row.appendChild(createCell(createMultiTexts(easys, { className: 'easy', hideDups: false })));
+    const easyTitles = parent.raffles.map((x) =>
+      x.reqString && !x.reqString.toLowerCase().includes('d') ? 'Easy raffle' : ''
+    );
+    row.appendChild(
+      createCell(
+        createMultiTexts(easys, {
+          className: 'easy',
+          useTextAsClass: true,
+          hideDups: false,
+          titles: easyTitles,
+        })
+      )
+    );
 
     // CELL: wins
-    const elem = document.createElement('SPAN');
-    elem.classList.toggle('wins-id', true);
-    elem.classList.toggle('win', false);
-    elem.innerText = '';
-    elem.dataset.twitterHandle = twitterHandle;
-    elem.dataset.wins = '';
-    row.appendChild(createCell(elem));
+    const numWinsElem = document.createElement('SPAN');
+    numWinsElem.classList.toggle('wins-id', true);
+    numWinsElem.classList.toggle('win', false);
+    numWinsElem.innerText = '';
+    numWinsElem.dataset.twitterHandle = twitterHandle;
+    numWinsElem.dataset.wins = '';
+    row.appendChild(createCell(numWinsElem));
+
+    // CELL: entered
+    const hasEntereds = parent.raffles.map((x) => (x.hasEntered ? 'X' : ''));
+    const hasEnteredTitles = parent.raffles.map((x) => (x.hasEntered ? 'Has entered' : ''));
+    row.appendChild(
+      createCell(
+        createMultiTexts(hasEntereds, {
+          className: 'has-entered',
+          useTextAsClass: true,
+          hideDups: false,
+          titles: hasEnteredTitles,
+        })
+      )
+    );
+
+    /*
+    // ATTRIBUTES
+    row.appendChild(
+      createCell(
+        createAttributeTexts([
+          { list: [easys, easyTitles, 'easy']},
+          {elem: numWinsElem},
+          {[hasEntereds, hasEnteredTitles, 'has-entered'],
+        ])
+      )
+    );
+    */
+
+    // CELL: entry-info
+    const entryInfos = parent.raffles.map((x) => `${x.winnerCount}`);
+    row.appendChild(createCell(createMultiTexts(entryInfos, { className: 'entry-infos', hideDups: false })));
 
     // CELL: odds
     const winnerOdds = parent.raffles.map((x) => {
@@ -632,13 +715,21 @@ function createRafflesTable(packedRafflesIn, header, subHeader, sectionId, { all
       createCell(createMultiTexts(winnerOdds, { className: 'odds', useTextAsDataset: true, hideDups: false }))
     );
 
-    // CELL: entered
-    const hasEntereds = parent.raffles.map((x) => (x.hasEntered ? 'x' : ''));
-    row.appendChild(
-      createCell(
-        createMultiTexts(hasEntereds, { className: 'has-entered', useTextAsClass: true, hideDups: false })
-      )
-    );
+    // CELL: timeLeft
+    const now = Date.now();
+    const timeLeft = parent.raffles.map((x) => {
+      const m = minutesBetween(x.endDate, now);
+      const h = hoursBetween(x.endDate, now);
+      const d = daysBetween(x.endDate, now);
+      if (m <= 60) {
+        return `${m} m`;
+      } else if (h <= 47) {
+        return `${h} h`;
+      } else {
+        return `${d} d`;
+      }
+    });
+    row.appendChild(createCell(createMultiTexts(timeLeft, { className: 'time-left', hideDups: false })));
 
     // CELL: teamName
     /*
@@ -662,22 +753,6 @@ function createRafflesTable(packedRafflesIn, header, subHeader, sectionId, { all
     });
     row.appendChild(createCell(createMultiLinks(teamNames, { className: 'raffle-link', target: '_blank' })));
 
-    // CELL: timeLeft
-    const now = Date.now();
-    const timeLeft = parent.raffles.map((x) => {
-      const m = minutesBetween(x.endDate, now);
-      const h = hoursBetween(x.endDate, now);
-      const d = daysBetween(x.endDate, now);
-      if (m <= 60) {
-        return `${m} min`;
-      } else if (h <= 24) {
-        return `${h} h`;
-      } else {
-        return `${d} d`;
-      }
-    });
-    row.appendChild(createCell(createMultiTexts(timeLeft, { className: 'time-left', hideDups: false })));
-
     // CELL: raffle links
     const raffleLinks = parent.raffles.map((x) => {
       return {
@@ -689,24 +764,6 @@ function createRafflesTable(packedRafflesIn, header, subHeader, sectionId, { all
     row.appendChild(
       createCell(createMultiLinks(raffleLinks, { className: 'raffle-link', target: '_blank' }))
     );
-
-    // CELL: winner-count
-    const winnerCounts = parent.raffles.map((x) => trimTextNum(x.winnerCount, 6));
-    row.appendChild(
-      createCell(createMultiTexts(winnerCounts, { className: 'winner-count', hideDups: false }))
-    );
-
-    // CELL: entry-count
-    const entryCounts = parent.raffles.map((x) => trimTextNum(x.entryCount, 6));
-    row.appendChild(createCell(createMultiTexts(entryCounts, { className: 'entry-count', hideDups: false })));
-
-    // CELL: requirePremium
-    /*
-    const requirePremiums = parent.raffles.map((x) => (x.requirePremium ? 'Yes' : ''));
-    row.appendChild(
-      createCell(createMultiTexts(requirePremiums, { className: 'require-premium', hideDups: false }))
-    );
-    */
 
     // CELL: provider
     row.appendChild(
@@ -751,6 +808,24 @@ function createRafflesTable(packedRafflesIn, header, subHeader, sectionId, { all
         )
       )
     );
+
+    // CELL: winner-count
+    const winnerCounts = parent.raffles.map((x) => trimTextNum(x.winnerCount, 6));
+    row.appendChild(
+      createCell(createMultiTexts(winnerCounts, { className: 'winner-count', hideDups: false }))
+    );
+
+    // CELL: entry-count
+    const entryCounts = parent.raffles.map((x) => trimTextNum(x.entryCount, 6));
+    row.appendChild(createCell(createMultiTexts(entryCounts, { className: 'entry-count', hideDups: false })));
+
+    // CELL: requirePremium
+    /*
+    const requirePremiums = parent.raffles.map((x) => (x.requirePremium ? 'Yes' : ''));
+    row.appendChild(
+      createCell(createMultiTexts(requirePremiums, { className: 'require-premium', hideDups: false }))
+    );
+    */
 
     table.appendChild(row);
   }
@@ -800,34 +875,6 @@ function appendRafflesTable(table) {
   document.getElementById('main-table').appendChild(table);
 }
 
-function createTableHeadRow() {
-  const head = document.createElement('THEAD');
-  const row = document.createElement('TR');
-
-  //row.appendChild(createCell('#M', 'Remaining minutes'));
-  //row.appendChild(createCell('#R', 'Number of raffles'));
-  row.appendChild(createCell('', 'tooltip'));
-  row.appendChild(createCell('Twitter', ''));
-  row.appendChild(createCell('Req', 'Requirements'));
-  row.appendChild(createCell('Easy', 'Is raffle considered easy to fulfill?'));
-  row.appendChild(createCell('W', 'Num wallets already won for this project'));
-  row.appendChild(createCell('%', 'Win odds'));
-  row.appendChild(createCell('E', 'Have i entered this raffle?'));
-  row.appendChild(createCell('Team', ''));
-  row.appendChild(createCell('Ends', 'Remaining time'));
-  row.appendChild(createCell('Name', ''));
-  row.appendChild(createCell('#W', 'Number of winners'));
-  row.appendChild(createCell('#E', 'Number of entrants now'));
-  // row.appendChild(createCell('P', 'Require premium subscription?'));
-  row.appendChild(createCell('Provider', ''));
-  row.appendChild(createCell('Mint Date', ''));
-  row.appendChild(createCell('Method', ''));
-  row.appendChild(createCell('Chain', ''));
-
-  head.appendChild(row);
-  return head;
-}
-
 // TABLE HELPERS
 
 function createCell(content, title = '') {
@@ -853,9 +900,11 @@ function createProjectImage(raffle, className = '') {
   // const url = raffle.collabBanner || MISSING_BANNER_URL;
   const url = raffle.collabBanner || raffle.collabLogo || MISSING_BANNER_URL;
   img.src = url;
+  /*
   img.addEventListener('error', () => {
     img.src = raffle.collabLogo || MISSING_BANNER_URL;
   });
+  */
   addClassName(img, className);
   elem.appendChild(img);
   return elem;
@@ -863,7 +912,7 @@ function createProjectImage(raffle, className = '') {
 
 function createMultiTexts(
   texts,
-  { className, useTextAsClass, useTextAsDataset, hideDups = true, fullTexts } = {}
+  { className, useTextAsClass, useTextAsDataset, hideDups = true, fullTexts, titles } = {}
 ) {
   // console.log('texts', texts);
 
@@ -886,6 +935,8 @@ function createMultiTexts(
       lastText = text;
       if (text.includes(SHORTENED_TEXT_SUFFIX) && fullTexts?.length) {
         newElem.title = fullTexts[index];
+      } else if (titles?.length) {
+        newElem.title = titles[index];
       }
     }
     addClassName(newElem, className);
@@ -1034,7 +1085,7 @@ function getFilters() {
   };
   const filters = [];
   filters.push(f.minutes !== null ? `Ends in ${f.minutes} minutes` : '');
-  filters.push(f.winPct !== null ? `Win % >= ${f.winPct}` : '');
+  filters.push(f.winPct !== null ? `Win >= ${f.winPct}%` : '');
   filters.push(f.easy ? `Easy` : '');
   filters.push(f.reqDiscord ? `No Discord req` : '');
   filters.push(f.reqFollow ? `Follow` : '');

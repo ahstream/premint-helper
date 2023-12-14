@@ -13,6 +13,9 @@ export function trimTeamName(valToTrim, maxLen = 30, errVal = '') {
 }
 
 export function trimPrice(valToTrim, maxLen = 9, errVal = '') {
+  if (valToTrim?.toString) {
+    valToTrim = valToTrim.toString();
+  }
   if (typeof valToTrim !== 'string') {
     return errVal;
   }

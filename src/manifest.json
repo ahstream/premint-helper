@@ -98,13 +98,13 @@
     },
     {
       "matches": ["https://www.superful.xyz/*"],
-      "exclude_matches": ["https://www.superful.xyz/settings"],
+      "exclude_matches": ["https://www.superful.xyz/about"],
       "css": ["styles/superfulRafflePage.css"],
       "js": ["superfulRafflePage.js"],
       "run_at": "document_start"
     },
     {
-      "matches": ["https://www.superful.xyz/settings"],
+      "matches": ["https://www.superful.xyz/about"],
       "exclude_matches": [],
       "css": [],
       "js": ["superfulPage.js"],

@@ -2,14 +2,6 @@ console.info('raffleResults.js begin', window?.location?.href);
 
 import './raffleResults.scss';
 
-import { getAccount as getAtlasAccount, getWins as getAtlasWins } from '../../js/atlasLib';
-
-import {
-  getAccount as getLuckygoAccount,
-  getWins as getLuckygoWins,
-  getLuckygoAuth,
-} from '../../js/luckygoLib.js';
-
 import {
   getAccount as getAlphabotAccount,
   getWinsByNewest as getAlphabotWinsByNewest,
@@ -18,6 +10,20 @@ import {
 } from '../../js/alphabotLib';
 
 import { getAccount as getPremintAccount, getWins as getPremintWins } from '../../js/premintLib';
+
+import { getAccount as getAtlasAccount, getWins as getAtlasWins } from '../../js/atlasLib';
+
+import {
+  getAccount as getLuckygoAccount,
+  getWins as getLuckygoWins,
+  getAuth as getLuckygoAuth,
+} from '../../js/luckygoLib.js';
+
+import {
+  getAuth as getSuperfulAuth,
+  getAccount as getSuperfulAccount,
+  getWins as getSuperfulWins,
+} from '../../js/superfulLib.js';
 
 import {
   readWins,
@@ -103,6 +109,7 @@ const ALPHABOT_INTERVAL = 1500;
 const ATLAS_INTERVAL = 1500;
 const PREMINT_INTERVAL = 520;
 const LUCKYGO_INTERVAL = 1500;
+const SUPERFUL_INTERVAL = 1500;
 
 const SHORTENED_TEXT_SUFFIX = '...';
 
@@ -157,10 +164,13 @@ async function runPage() {
       'premint',
       'atlas',
       'luckygo',
+      'superful',
     ],
     []
   );
   console.log('storage', storage);
+
+  // storage.superful = {}; // todo
 
   initEventHandlers(pageState);
 
@@ -198,6 +208,10 @@ async function runPage() {
   document
     .getElementById('show-luckygo')
     .addEventListener('click', () => showProviderClickHandler('luckygo'));
+  document
+    .getElementById('show-superful')
+    .addEventListener('click', () => showProviderClickHandler('superful'));
+
   document.getElementById('show-hidden').addEventListener('click', showCheckboxedClickHandler);
   document.getElementById('show-extended').addEventListener('click', showCheckboxedClickHandler);
 
@@ -264,13 +278,19 @@ function initStorage() {
   storage.luckygo.cloudWins = storage.luckygo.cloudWins || [];
   storage.luckygo.wins = storage.luckygo.wins || [];
 
+  storage.superful = storage.superful || {};
+  storage.superful.myWins = storage.superful.myWins || [];
+  storage.superful.cloudWins = storage.superful.cloudWins || [];
+  storage.superful.wins = storage.superful.wins || [];
+
   storage.wins = storage.wins || [];
   storage.allProjectWins = storage.allProjectWins || {};
   storage.allProjectWins2 = storage.allProjectWins2 || {};
   storage.allProjectWinsMap = storage.allProjectWinsMap || {};
 }
 
-// XXX ----------------------
+// UPDATE WINS ----------------------
+
 async function updateWins() {
   updateMainStatus('Updating results');
   resetSubStatus();
@@ -307,12 +327,13 @@ async function updateWins() {
     }
   }
 
+  const superful = await updateSuperfulWins(checkTime, cloudWins);
   const alphabot = await updateAlphabotWins(checkTime, cloudWins);
   const premint = await updatePremintWins(checkTime, cloudWins);
   const atlas = await updateAtlasWins(checkTime, cloudWins);
   const luckygo = await updateLuckygoWins(checkTime, cloudWins);
 
-  const mergedWins = mergeAllWins({ atlas, alphabot, premint, luckygo });
+  const mergedWins = mergeAllWins({ atlas, alphabot, premint, luckygo, superful });
   storage.wins = mergedWins;
   console2.log('mergedWins:', mergedWins);
 
@@ -330,18 +351,6 @@ async function updateWins() {
 
   const hasChanged = hasProjectWinsChanged(prevProjectWins, newProjectWins);
   console2.info('Has won wallets changed:', hasChanged);
-
-  /*
-  if (hasChanged && storage.options.CLOUD_MODE === 'load') {
-    const writeResult = await writeProjectWins(storage.allProjectWins, storage.options);
-    if (writeResult.error) {
-      statusLogger.sub(`Failed uploading won wallets to Cloud. Network problems?`);
-    } else {
-      storage.results.lastCloudUploadProjectWins = Date.now();
-      statusLogger.sub(`Uploaded ${countProjectWinsWallets()} won wallets to Cloud`);
-    }
-  }
-  */
 
   // test code: storage.allProjectWins2 = {};
 
@@ -438,16 +447,6 @@ async function updateProjectWins2() {
   }
 }
 
-/*
-function countProjectWinsWallets() {
-  let ct = 0;
-  for (const wallets in storage.allProjectWins) {
-    ct = ct + wallets?.length;
-  }
-  return ct;
-}
-*/
-
 function hasProjectWinsChanged(oldWins, newWins) {
   console.log(
     'Object.entries(projectWins1).length',
@@ -487,9 +486,11 @@ async function resetWins() {
   }
 
   storage.results = {};
-  storage.atlas = {};
   storage.alphabot = {};
   storage.premint = {};
+  storage.atlas = {};
+  storage.luckygo = {};
+  storage.superful = {};
   storage.wins = [];
   storage.allProjectWins = {};
   storage.allProjectWins2 = {};
@@ -542,6 +543,9 @@ async function showPage({
     createWinsTable(storage.luckygo?.wins, 'LuckyGo raffles', 'luckygo', { allRaffles, extended })
   );
   appendWinsTable(
+    createWinsTable(storage.superful?.wins, 'Superful raffles', 'superful', { allRaffles, extended })
+  );
+  appendWinsTable(
     createWinsTable(storage.wins, 'Debug', 'debug', { allColumns: true, allRaffles, extended })
   );
 
@@ -556,23 +560,24 @@ async function showPage({
   console2.log('Done showing results page!');
 }
 
-/*
-async function showAllPage() {
-  console2.log('showAllPage');
-}
-*/
-
 function appendWinsTable(table) {
   document.getElementById('main-table').appendChild(table);
   updateShownProvider();
 }
 
-function mergeAllWins({ atlas = null, alphabot = null, premint = null, luckygo = null } = {}) {
+function mergeAllWins({
+  atlas = null,
+  alphabot = null,
+  premint = null,
+  luckygo = null,
+  superful = null,
+} = {}) {
   const r = [
     ...(alphabot?.length ? alphabot : []),
     ...(premint?.length ? premint : []),
     ...(atlas?.length ? atlas : []),
     ...(luckygo?.length ? luckygo : []),
+    ...(superful?.length ? superful : []),
   ];
   return r;
 }
@@ -952,25 +957,87 @@ async function updateLuckygoWins(checkTime, allCloudWins) {
   return raffleStorage.wins;
 }
 
-/*
-async function getLuckygoAuth() {
-  await getMyTabIdFromExtension(pageState, 5000);
-  if (!pageState.myTabId) {
-    console2.error('Invalid myTabId');
-    return null;
+// SUPERFUL ------------------------------
+
+async function updateSuperfulWins(checkTime, allCloudWins) {
+  console2.log('updateSuperfulWins', checkTime);
+
+  const providerName = 'Superful';
+  const providerKey = providerName.toLowerCase();
+  const raffleStorage = storage.superful;
+  console.log('raffleStorage', raffleStorage);
+
+  await reloadOptions(storage); // options may have changed, reload them!
+
+  if (!storage.options.SUPERFUL_ENABLE_RESULTS) {
+    statusLogger.sub(`Skip fetching new ${providerName} results (disabled in Options)`);
+    return [];
   }
-  const authKey = await getFromWebPage(`https://luckygo.io/myraffles`, 'getAuth', pageState.myTabId);
+
+  updateMainStatus(`Get ${providerName} authentication key`);
+  const authKey = await getSuperfulAuth(pageState);
+  if (!authKey) {
+    statusLogger.sub(`Failed getting ${providerName} authentication key. Check if logged in to website.`);
+    return [];
+  }
   console2.log('authKey', authKey);
+  console.log('authKey', authKey);
 
-  if (typeof authKey !== 'string') {
-    return null;
+  updateMainStatus(`Get ${providerName} account info`);
+  const account = await getSuperfulAccount(authKey);
+  console2.log('account', account);
+  console.log('account', account);
+  if (!account?.id) {
+    statusLogger.sub(`Failed getting ${providerName} account. Check if logged in to website.`);
+    return [];
   }
 
-  const authKeyTrim = authKey.replace('%20', ' ');
+  const skip = [...raffleStorage.myWins.map((x) => x.id)];
+  console.log('skip', skip);
+  const wins = await getSuperfulWins(account, authKey, {
+    interval: SUPERFUL_INTERVAL,
+    max: storage.options.SUPERFUL_RESULTS_MAX_FETCH_WINS,
+    skip,
+    statusLogger,
+  });
+  const myWins = wins;
+  console2.log('myWins', myWins);
+  console.log('myWins', myWins);
 
-  return authKeyTrim;
+  const myWinsNew = filterNewWins(myWins, raffleStorage.myWins, checkTime);
+  statusLogger.sub(`Fetched <b>${myWinsNew.length}</b> new or updated winners from ${providerName}`);
+
+  let cloudWins = [];
+  if (storage.options.SUPERFUL_ENABLE_CLOUD && storage.options.CLOUD_MODE === 'load') {
+    cloudWins = allCloudWins.filter((x) => x.provider === providerKey);
+    console2.log('cloudWins', cloudWins);
+    raffleStorage.cloudWins = mergeWins(cloudWins, raffleStorage.cloudWins, 'hxId', checkTime);
+  }
+
+  raffleStorage.myWins = mergeWins(myWinsNew, raffleStorage.myWins, 'id', checkTime);
+
+  // check if updated only on myWins and cloudWins, not on aggregated wins!
+  raffleStorage.wins = mergeWins([...myWinsNew, ...cloudWins], raffleStorage.wins, 'hxId', null);
+
+  await setStorageData(storage);
+
+  if (storage.options.SUPERFUL_ENABLE_CLOUD && storage.options.CLOUD_MODE === 'save') {
+    const ct = await countWins(providerKey, account.id, storage.options);
+    console2.log('Count wins:', ct);
+    // if no wins in cloud, upload everything we got!
+    const winsToUpload = ct > 0 ? myWinsNew : raffleStorage.myWins;
+    console2.log('winsToUpload', winsToUpload);
+    const writeResult = await writeWins(winsToUpload, storage.options);
+    if (writeResult.error) {
+      statusLogger.sub(`Failed uploading ${providerName} results to Cloud. Network problems?`);
+    } else {
+      storage.results.lastCloudUpload = Date.now();
+      statusLogger.sub(`Uploaded ${winsToUpload.length} ${providerName} winners to Cloud`);
+    }
+  }
+
+  return raffleStorage.wins;
 }
-*/
 
 // WINS ------------------------------
 
@@ -1176,7 +1243,7 @@ function createWinsTableHeadRow(extended = false) {
   row.appendChild(createCell('Twitter'));
   row.appendChild(createCell('Mint Date'));
   row.appendChild(createCell('Time'));
-  row.appendChild(createCell('Raffle Date'));
+  row.appendChild(createCell('End Date'));
   row.appendChild(createCell('Start Date'));
   if (extended) {
     row.appendChild(createCell('Sort Key 1'));
@@ -1321,7 +1388,7 @@ function createWinsTable(
 
     // CELL: raffle-date
     const raffleDates = wins.map((x) => {
-      return { date: x.pickedDate, hasTime: false };
+      return { date: x.pickedDate || x.endDate, hasTime: false };
     });
     // console2.log('raffleDates', raffleDates);
     row.appendChild(createCell(createMultiDates(raffleDates, '', { className: 'raffle-date' })));
@@ -1619,6 +1686,7 @@ function updateShownProvider() {
   update('premint');
   update('atlas');
   update('luckygo');
+  update('superful');
   update('debug');
 }
 

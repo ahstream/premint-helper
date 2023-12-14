@@ -39,6 +39,20 @@ const options = [
     ],
   },
 
+  // Superful.xyz Raffles
+  {
+    header: 'Superful.xyz Raffles',
+    hiddenKey: '',
+    options: [
+      ['property', 'SUPERFUL_ENABLE', 'Enable raffle automation on superful.xyz.io website'],
+      ['property', 'SUPERFUL_ENABLE_TWITTER_TASKS', 'Enable Twitter tasks'],
+      ['property', 'SUPERFUL_ENABLE_DISCORD_TASKS', 'Enable Discord tasks'],
+      ['property', 'SUPERFUL_ENABLE_RESULTS', 'Enable fetch of results'],
+      ['property', 'SUPERFUL_RESULTS_MAX_FETCH_WINS', 'Max new results to fetch'],
+      ['property', 'SUPERFUL_ENABLE_RAFFLE_LIST', 'SUPERFUL_ENABLE_RAFFLE_LIST'],
+    ],
+  },
+
   // LuckyGo.io Raffles
   {
     header: 'LuckyGo.io Raffles',

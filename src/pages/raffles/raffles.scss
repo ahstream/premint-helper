@@ -20,9 +20,8 @@ img.collab-banner {
   background-size: cover;
   background-repeat: no-repeat;
   background-position: center center;
-  height: 100px;
-  max-height: 155px;
-  max-width: 310px;
+  height: 75px;
+  max-width: 225px;
 }
 
 td {
@@ -72,15 +71,33 @@ span.provider:not(.first),
 span.raffle-date:not(.first) {
   color: #cfcbcb;
 }
+
 span.team-name:not(.first) {
   color: #b2b0b0;
 }
 
+span.entry-infos {
+  color: #cfcbcb;
+}
+
 span.has-entered.x {
   color: white;
+  background-color: #0d47a1;
+  display: inline-block;
+  font-size: 14px;
+  padding: 0 4px;
   font-weight: normal;
-  background-color: green;
-  padding: 0 8px;
+  border: solid 1px #0d47a1;
+}
+
+span.easy.e {
+  color: white;
+  background-color: #2da709;
+  display: inline-block;
+  font-size: 14px;
+  padding: 0 4px;
+  font-weight: normal;
+  border: solid 1px #2da709;
 }
 
 span.team-name,
@@ -118,6 +135,10 @@ a.raffle-link,
 a.twitter-link {
   color: black;
   text-decoration: none;
+}
+
+a.twitter-link {
+  //font-size: smaller;
 }
 
 a.discord-link {
@@ -176,6 +197,9 @@ a.hx-twitter-link:after {
   display: block;
   margin: 10px 0;
   width: 40px;
+  text-decoration: none;
+  font-size: 14px;
+  padding: 4px;
 }
 
 .sticky {
@@ -239,6 +263,7 @@ span.filter {
 input.filter {
   margin-right: 10px;
 }
+
 label.filter {
   margin-right: 10px;
 }

@@ -110,7 +110,7 @@ a.hx-twitter-link:after {
   background-color: var(--raffle-followers-background-color) !important;
   content: attr(data-hx-followers);
   display: inline-block;
-  font-size: 1rem !important;
+  font-size: 1rem;
   padding: 0 6px;
   margin: 0 10px 0 6px;
 }

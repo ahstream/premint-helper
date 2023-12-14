@@ -317,15 +317,14 @@ export async function getAccount() {
   const result = await fetchHelper(ACCOUNT_URL, {});
   console2.log('getAccount:', result);
   const id = result?.data?._id;
+  const _id = id.toString ? id.toString().toLowerCase() : null;
   return {
-    id,
-    address: null,
-    userId: id,
+    id: _id,
     userName:
       result?.data?.user?.name ||
       result?.data?.connections?.find((x) => x.provider === 'discord')?.name ||
       result?.data?.ensName ||
-      '',
+      undefined,
   };
 }
 
@@ -509,7 +508,7 @@ function convertWins(wins, account) {
     const provider = 'alphabot';
 
     const raffleId = x._id;
-    const userId = account?.userId;
+    const userId = account?.id;
     const userName = account?.userName;
 
     const startDate = x.startDate;
