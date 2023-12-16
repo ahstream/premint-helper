@@ -50,7 +50,7 @@
         "https://discord.com/channels/*"
       ],
       "exclude_matches": [],
-      "css": [],
+      "css": ["styles/discordPage.css"],
       "js": ["discordPage.js"],
       "run_at": "document_start"
     },

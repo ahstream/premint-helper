@@ -1,5 +1,7 @@
 console.info('discordPage.js begin', window?.location?.href);
 
+import '../styles/discordPage.css';
+
 import {
   sleep,
   createHashArgs,
@@ -15,12 +17,18 @@ import {
   myConsole,
 } from 'hx-lib';
 
+//import { createStatusbar } from 'hx-statusbar';
+
+// import { STATUSBAR_DEFAULT_TEXT } from './premintHelperLib';
+
 const console2 = myConsole();
 
 // DATA ----------------------------------------------------------------------------------
 
 let storage = null;
 let parentTabId = null;
+
+//let pageState = {};
 
 // STARTUP ----------------------------------------------------------------------------
 
@@ -44,6 +52,7 @@ async function runNow() {
   parentTabId = hashArgs.getOne('id');
   console2.log('parentTabId', parentTabId);
 
+  // pageState.statusBar = createStatusbar('');
   window.addEventListener('load', onLoad);
 }
 
