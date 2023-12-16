@@ -338,7 +338,7 @@ async function updateRaffles() {
 async function updateSearchRaffles(authKeyLuckygo, authKeySuperful) {
   statusLogger.main(`Updating Search Query raffles...`);
 
-  updateSearchRafflesOne(
+  await updateSearchRafflesOne(
     'searchTop',
     'Search: Top Projects',
     storage.options.RAFFLE_LIST_SEARCH_TOP,
@@ -346,7 +346,7 @@ async function updateSearchRaffles(authKeyLuckygo, authKeySuperful) {
     authKeySuperful
   );
 
-  updateSearchRafflesOne(
+  await updateSearchRafflesOne(
     'searchGreat',
     'Search: Great Projects',
     storage.options.RAFFLE_LIST_SEARCH_GREAT,
@@ -354,7 +354,7 @@ async function updateSearchRaffles(authKeyLuckygo, authKeySuperful) {
     authKeySuperful
   );
 
-  updateSearchRafflesOne(
+  await updateSearchRafflesOne(
     'searchGood',
     'Search: Good Projects',
     storage.options.RAFFLE_LIST_SEARCH_GOOD,
@@ -362,7 +362,7 @@ async function updateSearchRaffles(authKeyLuckygo, authKeySuperful) {
     authKeySuperful
   );
 
-  updateSearchRafflesOne(
+  await updateSearchRafflesOne(
     'searchEarly',
     'Search: Early Projects',
     storage.options.RAFFLE_LIST_SEARCH_EARLY,
