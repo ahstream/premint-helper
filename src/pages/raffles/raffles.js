@@ -208,20 +208,38 @@ async function showPage() {
   showRafflesTableForOne('luckygoMine', 'My LuckyGo Raffles', '', skipDups);
   showRafflesTableForOne('luckygoAll', 'All LuckyGo Raffles', '', skipDups);
   showRafflesTableForOne('superfulAll', 'All Superful Raffles', '', skipDups);
+  showRafflesTableForOne('ignored', 'Ignored Raffles', '', skipDups, false);
 
   console2.log('Done showing raffles page!');
   statusLogger.main('');
 }
 
-function showRafflesTableForOne(key, header, subHeader, skipDups = false) {
+function showRafflesTableForOne(key, header, subHeader, skipDups = false, useIgnored = true) {
   console.log('showRafflesTableForOne', key, header, subHeader);
 
   const now = Date.now();
 
-  const raffles = (storage.raffles[key] ? storage.raffles[key] : [])
+  const baseRaffles = (storage.raffles[key] ? storage.raffles[key] : [])
     .filter((x) => x.endDate > now && !isRaffleToLongToShow(x))
     .filter((x) => (skipDups ? !pageState.shownRaffles[x.id] : true));
-  console.log('itemsBase', raffles);
+  console.log('baseRaffles', baseRaffles);
+
+  if (!storage.raffles.ignored) {
+    storage.raffles.ignored = [];
+  }
+
+  const ignoredRaffles = baseRaffles.filter(
+    (x) => useIgnored && storage.raffles.ignoredMap && storage.raffles.ignoredMap[x.id]
+  );
+  ignoredRaffles.forEach((x) => {
+    if (!storage.raffles.ignored.find((y) => x.id === y.id)) {
+      storage.raffles.ignored.push(x);
+    }
+  });
+
+  const raffles = baseRaffles.filter(
+    (x) => !useIgnored || !storage.raffles.ignoredMap || !storage.raffles.ignoredMap[x.id]
+  );
 
   if (skipDups) {
     raffles.forEach((x) => (pageState.shownRaffles[x.id] = true));
@@ -324,6 +342,8 @@ async function updateRaffles() {
   statusLogger.sub(`Fetched ${storage.raffles.superfulAll?.length || 0} Superful projects`);
   statusLogger.mid(``);
   showRafflesTableForOne('superfulAll', 'All Superful Raffles', '', skipDups);
+
+  showRafflesTableForOne('ignored', 'Ignored Raffles', '', skipDups);
 
   storage.raffles.lastUpdate = Date.now();
 
@@ -827,7 +847,14 @@ function createRafflesTable(packedRafflesIn, header, subHeader, sectionId, { all
       };
     });
     row.appendChild(
-      createCell(createMultiLinks(raffleLinks, { className: 'raffle-link', target: '_blank' }))
+      createCell(
+        createMultiLinks(raffleLinks, {
+          className: 'raffle-link',
+          target: '_blank',
+          addIgnoreLink: true,
+          raffles: parent.raffles,
+        })
+      )
     );
 
     // CELL: provider
@@ -1018,11 +1045,15 @@ function createMultiTexts(
   return elem;
 }
 
-function createMultiLinks(links, { target, className, addBackgroundLink = true } = {}) {
+function createMultiLinks(
+  links,
+  { target, className, addBackgroundLink = true, addIgnoreLink, raffles } = {}
+) {
   const elem = document.createElement('SPAN');
   elem.style.whiteSpace = 'nowrap';
   let isFirst = true;
 
+  let idx = 0;
   for (const link of links) {
     if (!isFirst) {
       elem.appendChild(document.createElement('BR'));
@@ -1032,6 +1063,9 @@ function createMultiLinks(links, { target, className, addBackgroundLink = true }
     }`.trim();
     const thisUrl = pageState.permissions?.enabled ? link.url : 'http://example.org/hidden-premium-feature';
     const thisText = pageState.permissions?.enabled ? link.text : 'Hidden Raffle Name';
+    if (addIgnoreLink) {
+      elem.appendChild(createIgnoreLink(raffles[idx], { className: thisClass }));
+    }
     elem.appendChild(
       createLink(thisUrl, thisText, { target, className: thisClass, fullText: link.fullText })
     );
@@ -1039,6 +1073,7 @@ function createMultiLinks(links, { target, className, addBackgroundLink = true }
       elem.appendChild(createBackgroundLink(thisUrl, '+', { className: thisClass }));
     }
     isFirst = false;
+    idx++;
   }
   return elem;
 }
@@ -1071,6 +1106,28 @@ function createBackgroundLink(url, text, { className } = {}) {
   addClassName(elem, className);
   addClassName(elem, 'background-link');
   elem.innerText = text.trim();
+  return elem;
+}
+
+function createIgnoreLink(raffle, { className } = {}) {
+  console.log('createIgnoreLink', raffle);
+  const elem = document.createElement('a');
+  elem.addEventListener('click', () => {
+    if (!storage.raffles.ignoredMap) {
+      storage.raffles.ignoredMap = {};
+    }
+    storage.raffles.ignoredMap[raffle.id] = raffle.endDate;
+    elem.innerText = '';
+    elem.nextElementSibling.style = 'text-decoration: line-through;';
+    setStorageData(storage);
+    console.log(storage);
+  });
+  // elem.href = '';
+  //elem.href = `javascript:console.log('foo')`;
+  elem.title = 'Ignore raffle';
+  addClassName(elem, className);
+  addClassName(elem, 'ignore-link');
+  elem.innerText = '-';
   return elem;
 }
 

@@ -226,11 +226,29 @@ a.hx-twitter-link:after {
 
 a.show-provider {
   cursor: pointer;
+  text-decoration: none;
+}
+
+a:hover.show-provider,
+a:hover.show-provider,
+a:hover.show-provider {
+  text-decoration: underline;
 }
 
 a.background-link {
   margin-left: 3px;
   cursor: pointer;
+}
+
+a.ignore-link {
+  margin-right: 5px;
+  cursor: pointer;
+}
+
+a:hover.ignore-link {
+  color: white;
+  background-color: black;
+  width: 12px;
 }
 
 body tr:nth-child(even) {
@@ -271,6 +289,11 @@ label.filter {
 .sub-header {
   display: block;
   max-width: 900px;
+}
+
+.section-links {
+  display: block;
+  max-width: 900px !important;
 }
 
 .filter-label {
