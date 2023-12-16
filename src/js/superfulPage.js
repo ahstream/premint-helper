@@ -89,5 +89,5 @@ async function getAuth() {
     request: { cmd: 'getAuth', val: token },
   });
   await sleep(1);
-  //window.close();
+  window.close();
 }

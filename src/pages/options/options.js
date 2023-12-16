@@ -352,6 +352,9 @@ const options = [
     options: [
       ['property', 'RAFFLE_LIST_MAX_DAYS_OLD', 'RAFFLE_LIST_MAX_DAYS_OLD', '', ''],
       ['property', 'RAFFLE_LIST_MAX_ITEMS', 'RAFFLE_LIST_MAX_ITEMS', '', ''],
+      ['property', 'RAFFLE_LIST_SKIP_DUPS', 'RAFFLE_LIST_SKIP_DUPS', '', ''],
+      ['property', 'RAFFLE_LIST_SKIP_SEARCH_DUPS', 'RAFFLE_LIST_SKIP_SEARCH_DUPS', '', ''],
+
       ['space', 10],
       ['property', 'RAFFLE_LIST_FETCH_LUCKYGO_RAFFLES', 'RAFFLE_LIST_FETCH_LUCKYGO_RAFFLES', '', ''],
 
@@ -378,7 +381,15 @@ const options = [
       ['property', 'RAFFLE_LIST_SEARCH_QUERY', 'RAFFLE_LIST_SEARCH_QUERY', '', 'RAFFLE_LIST_SEARCH_QUERY'],
 
       ['space', 10],
+      ['description', 'RAFFLE_LIST_MY_TEAMS config'],
       ['property', 'RAFFLE_LIST_MY_TEAMS', 'RAFFLE_LIST_MY_TEAMS', '', 'RAFFLE_LIST_MY_TEAMS'],
+
+      ['space', 10],
+      ['description', 'Search terms'],
+      ['property', 'RAFFLE_LIST_SEARCH_TOP', 'RAFFLE_LIST_SEARCH_TOP', '', 'RAFFLE_LIST_SEARCH_TOP'],
+      ['property', 'RAFFLE_LIST_SEARCH_GREAT', 'RAFFLE_LIST_SEARCH_GREAT', '', 'RAFFLE_LIST_SEARCH_GREAT'],
+      ['property', 'RAFFLE_LIST_SEARCH_GOOD', 'RAFFLE_LIST_SEARCH_GOOD', '', 'RAFFLE_LIST_SEARCH_GOOD'],
+      ['property', 'RAFFLE_LIST_SEARCH_EARLY', 'RAFFLE_LIST_SEARCH_EARLY', '', 'RAFFLE_LIST_SEARCH_EARLY'],
     ],
   },
 

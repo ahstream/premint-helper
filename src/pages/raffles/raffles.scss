@@ -166,7 +166,7 @@ thead {
 }
 
 thead tr td {
-  background-color: black;
+  background-color: #3b3838;
   color: white;
   border: 1px solid lightgray;
 }
@@ -258,12 +258,28 @@ table.raffle-list {
 }
 
 span.filter {
-  margin-right: 10px;
+  margin-right: 3px;
 }
 input.filter {
-  margin-right: 10px;
+  margin-right: 3px;
 }
 
 label.filter {
   margin-right: 10px;
+}
+
+.sub-header {
+  display: block;
+  max-width: 900px;
+}
+
+.filter-label {
+  display: inline;
+  margin: 0 10px;
+}
+
+.filter-header {
+  display: inline;
+  margin: 0 10px 0 0;
+  font-weight: bold;
 }
