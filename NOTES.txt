@@ -1,0 +1,4 @@
+document.querySelector('div[data-testid="like"]')
+
+Array.from(document.querySelector('main').getElementsByTagName('a')).map(x => x.href)
+

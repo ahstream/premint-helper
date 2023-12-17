@@ -238,17 +238,18 @@ a:hover.show-provider {
 a.background-link {
   margin-left: 3px;
   cursor: pointer;
+  //padding: 0 0 0 3px;
 }
 
 a.ignore-link {
   margin-right: 5px;
   cursor: pointer;
+  //padding: 0 3px 0 0;
 }
 
 a:hover.ignore-link {
   color: white;
   background-color: black;
-  width: 12px;
 }
 
 body tr:nth-child(even) {

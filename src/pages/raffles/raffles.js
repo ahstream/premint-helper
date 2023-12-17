@@ -391,6 +391,10 @@ async function updateSearchRaffles(authKeyLuckygo, authKeySuperful) {
   );
 }
 
+function addSearchQuery(query, raffles) {
+  raffles.forEach((r) => (r.query = query));
+}
+
 async function updateSearchRafflesOne(key, header, query, authKeyLuckygo, authKeySuperful) {
   console.log('updateSearchRaffles:', key, header, query);
 
@@ -414,13 +418,14 @@ async function updateSearchRafflesOne(key, header, query, authKeyLuckygo, authKe
       statusLogger.sub(`Invalid search query (need to be >= 2 characters):`, query);
       continue;
     }
-    statusLogger.main(`Fetching raffles for search query ${i + 1} of ${queries.length}: ${query}`);
+    statusLogger.main(`Fetching raffles for ${key} search query ${i + 1} of ${queries.length}: ${query}`);
 
     const alphabotRaffles = await getAlphabotRaffles(null, {
       statusLogger,
       max: storage.options.RAFFLE_LIST_MAX_ITEMS,
       search: query,
     });
+    addSearchQuery(query, alphabotRaffles);
     console.log('alphabotRaffles:', query, alphabotRaffles);
     raffles.push(...alphabotRaffles);
 
@@ -431,6 +436,7 @@ async function updateSearchRafflesOne(key, header, query, authKeyLuckygo, authKe
           max: storage.options.RAFFLE_LIST_MAX_ITEMS,
           key_words: query,
         });
+    addSearchQuery(query, luckygoRaffles);
     console.log('luckygoRaffles:', query, luckygoRaffles);
     raffles.push(...luckygoRaffles);
 
@@ -441,6 +447,7 @@ async function updateSearchRafflesOne(key, header, query, authKeyLuckygo, authKe
           max: storage.options.RAFFLE_LIST_MAX_ITEMS,
           search_text: query,
         });
+    addSearchQuery(query, superfulRaffles);
     console.log('superfulRaffles:', query, superfulRaffles);
     raffles.push(...superfulRaffles);
 
@@ -498,13 +505,13 @@ async function updateAlphabotSelectedRaffles() {
       .map((x) => x.trim())
       .map((x) => x.toLowerCase())
   );
-  console.log('myTeams', myTeams);
+  //console.log('myTeams', myTeams);
 
   const raffles = [];
   storage.raffles?.alphabotMine?.forEach((raffle) => {
-    console.log('raffle', raffle);
+    //console.log('raffle', raffle);
     const teamName = raffle.teamName?.toLowerCase ? raffle.teamName.toLowerCase() : '';
-    console.log('teamName', teamName);
+    //console.log('teamName', teamName);
     if (myTeams.includes(teamName)) {
       raffles.push({ ...raffle });
     }
@@ -838,12 +845,13 @@ function createRafflesTable(packedRafflesIn, header, subHeader, sectionId, { all
     });
     row.appendChild(createCell(createMultiLinks(teamNames, { className: 'raffle-link', target: '_blank' })));
 
-    // CELL: raffle links
+    // CELL: raffle links + query
     const raffleLinks = parent.raffles.map((x) => {
       return {
         url: x.url,
         text: trimText(x.name, MAX_LEN_RAFFLE_NAME),
-        fullText: x.name,
+        // fullText: x.name,
+        fullText: x.name + (x.query ? `\n\nSEARCH QUERY: ${x.query}` : ''),
       };
     });
     row.appendChild(

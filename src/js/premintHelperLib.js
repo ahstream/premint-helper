@@ -146,15 +146,20 @@ export async function addRevealAlphabotRafflesRequest() {
 export function createStatusbarButtons({
   options = true,
   help = false,
-  results = false,
-  reveal = false,
+  results = true,
+  raffles = true,
+  reveal = true,
   followers = false,
+  followers2 = true,
+  followers3 = true,
+  followers4 = true,
 } = {}) {
   console2.log(
     'createStatusbarButtons; options, help, results, reveal, followers:',
     options,
     help,
     results,
+    raffles,
     reveal,
     followers
   );
@@ -192,6 +197,7 @@ export function createStatusbarButtons({
     add('Help', 'Open Premint Helper Help page', callback);
   }
 
+  results = true;
   if (results) {
     const callback =
       results === 'disabled'
@@ -202,15 +208,45 @@ export function createStatusbarButtons({
               active: true,
               url: chrome.runtime.getURL('raffleResults.html'),
             });
-    add('Results', 'Open Premint Helper Alphabot Results page', callback);
+    add('Wins', 'Open Premint Helper Raffle Wins page', callback);
   }
 
-  if (followers) {
-    add('Followers', 'Lookup followers for all Twitter links on page', followers);
+  raffles = true;
+  if (raffles) {
+    const callback =
+      raffles === 'disabled'
+        ? ''
+        : () =>
+            chrome.runtime.sendMessage({
+              cmd: 'openTab',
+              active: true,
+              url: chrome.runtime.getURL('raffles.html'),
+            });
+    add('Live Raffles', 'Open Live Raffles page', callback);
   }
 
   if (reveal) {
-    add('Reveal', 'Reveal odds and previously won wallets for all Alphabot raffles on page', reveal);
+    add('Reveal', 'Reveal odds and previously won wallets for all supported raffles on page', reveal);
+  }
+
+  followers4 = true;
+  if (followers4) {
+    add('T3', 'Re-lookup follower counts for non-expired Twitter links on page', followers);
+  }
+
+  followers3 = true;
+  if (followers3) {
+    add('T2', 'Re-lookup follower counts for expired Twitter links on page', followers);
+  }
+
+  followers2 = true;
+  if (followers2) {
+    add('T1', 'Lookup follower counts for new Twitter links on page', followers);
+  }
+
+  followers = true;
+  if (followers) {
+    add('Twitter', 'Lookup follower counts for Twitter links on page...', followers);
   }
 
   console2.trace('createStatusbarButtons:', buttons);
