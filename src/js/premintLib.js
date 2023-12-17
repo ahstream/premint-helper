@@ -425,6 +425,10 @@ export async function waitForRafflePageLoaded() {
 
 // RAFFLE API: RAFFLE GETTERS ---------------------------------------------
 
+export function getRaffleTwitterHandle() {
+  return '';
+}
+
 export function getTwitterHandle({ normalize = true } = {}) {
   try {
     const h = document.querySelector('#step-twitter').querySelector('span').innerText?.trim() || '';

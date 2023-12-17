@@ -3,6 +3,7 @@ console.info('alphabotRafflePage.js begin', window?.location?.href);
 import '../styles/alphabotPage.css';
 
 import {
+  getRaffleTwitterHandle,
   getTwitterHandle,
   getDiscordHandle,
   getSelectedWallet,
@@ -67,7 +68,7 @@ const config = {
   createObserver: async (config) => createRaffleObserver(config),
   createObserver2: async (config) => createTwitterObserver(config),
   setStorage: (newStorage) => (storage = newStorage),
-  getWonWalletsByAllAccounts: () => getPreviousWalletsWon(getTwitterHandle()),
+  getWonWalletsByAllAccounts: () => getPreviousWalletsWon(getRaffleTwitterHandle()),
 
   // STATIC PROVIDER API
   waitForRafflePageLoaded,

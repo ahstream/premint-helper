@@ -4,9 +4,9 @@ import '../styles/luckygoPage.css';
 
 import {
   // OTHER API
-  getRaffleTwitterHandle,
   isAutomateTwitterTasksSelected,
   // RAFFLE API
+  getRaffleTwitterHandle,
   getTwitterHandle,
   getDiscordHandle,
   getSelectedWallet,
@@ -66,7 +66,7 @@ const config = {
   createObserver: async (config) => createRaffleObserver(config),
   createObserver2: async (config) => createTwitterObserver(config),
   setStorage: (newStorage) => (storage = newStorage),
-  getWonWalletsByAllAccounts: () => getPreviousWalletsWon(getTwitterHandle()),
+  getWonWalletsByAllAccounts: () => getPreviousWalletsWon(getRaffleTwitterHandle()),
 
   // STATIC PROVIDER API
   waitForRafflePageLoaded,
