@@ -1,6 +1,14 @@
 console.info('twitterPage.js begin', window?.location?.href);
 
-import { switchToUser, isEmptyPage, handleLockedTwitterAccount } from './twitterLib.js';
+import {
+  switchToUser,
+  isEmptyPage,
+  handleLockedTwitterAccount,
+  retweet,
+  like,
+  comment,
+  raid,
+} from './twitterLib.js';
 
 import {
   getStorageItems,
@@ -69,6 +77,22 @@ async function runPage() {
     return await handleLockedTwitterAccount({ pageState });
   }
 
+  if (pageState.hashArgs.getOne('retweet')) {
+    return runRetweet();
+  }
+
+  if (pageState.hashArgs.getOne('like')) {
+    return runLike();
+  }
+
+  if (pageState.hashArgs.getOne('comment')) {
+    return runComment(pageState.hashArgs.getOne('comment'));
+  }
+
+  if (pageState.hashArgs.getOne('raid')) {
+    return runRaid(pageState.hashArgs.getOne('raid'));
+  }
+
   if (pageState.hashArgs.getOne('switchToUser')) {
     return runSwitchToUser();
   }
@@ -88,6 +112,34 @@ async function runPage() {
   await runMainLoop();
 
   console2.info('Exit runPage!');
+}
+
+async function runRetweet() {
+  console2.log('runRetweet');
+  const result = await retweet();
+  console2.log('result', result);
+  return result;
+}
+
+async function runLike() {
+  console2.log('runLike');
+  const result = await like();
+  console2.log('result', result);
+  return result;
+}
+
+async function runComment(text) {
+  console2.log('runComment', text);
+  const result = await comment(text);
+  console2.log('result', result);
+  return result;
+}
+
+async function runRaid(text) {
+  console2.log('runRaid', text);
+  const result = await raid(text);
+  console2.log('result', result);
+  return result;
 }
 
 async function runSwitchToUser() {

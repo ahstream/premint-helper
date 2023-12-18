@@ -9,6 +9,8 @@ import {
   myConsole,
 } from 'hx-lib';
 
+import { clickElement } from './premintHelperLib';
+
 const console2 = myConsole();
 
 // FUNCS ----------------------------------------------------------------------------------
@@ -114,4 +116,252 @@ export async function handleLockedTwitterAccount() {
     btn.click();
     return;
   }
+}
+
+async function getBaseForStatusPage(maxWait, interval) {
+  return await waitForSelector('div[role="progressbar"]', maxWait, interval);
+}
+
+export async function getLikeOrUnlikeButton(maxWait = 20000, interval = 10) {
+  console2.log('getLikeOrUnlikeButton:', maxWait, interval);
+
+  const base = await getBaseForStatusPage(maxWait, interval);
+  if (!base) {
+    return {};
+  }
+
+  const parent = base.parentNode?.parentNode?.parentNode;
+
+  const stopTime = millisecondsAhead(maxWait);
+  while (Date.now() <= stopTime) {
+    const likeBtn = parent.querySelector('div[data-testid="like"]');
+    if (likeBtn) {
+      return { likeBtn };
+    }
+    const unlikeBtn = parent.querySelector('div[data-testid="unlike"]');
+    if (unlikeBtn) {
+      return { unlikeBtn };
+    }
+    await sleep(interval);
+  }
+  return {};
+}
+
+export async function getUnlikeButton(maxWait = 20000, interval = 10) {
+  console2.log('getUnlikeButton:', maxWait, interval);
+
+  const base = await getBaseForStatusPage(maxWait, interval);
+  if (!base) {
+    return null;
+  }
+
+  const parent = base.parentNode?.parentNode?.parentNode;
+
+  const stopTime = millisecondsAhead(maxWait);
+  while (Date.now() <= stopTime) {
+    const unlikeBtn = parent.querySelector('div[data-testid="unlike"]');
+    if (unlikeBtn) {
+      return unlikeBtn;
+    }
+    await sleep(interval);
+  }
+  return null;
+}
+
+export async function getRetweetOrUnretweetButton(maxWait = 20000, interval = 10) {
+  console2.log('getRetweetOrUnretweetButton:', maxWait, interval);
+
+  const base = await getBaseForStatusPage(maxWait, interval);
+  if (!base) {
+    return {};
+  }
+
+  const parent = base.parentNode?.parentNode?.parentNode;
+
+  const stopTime = millisecondsAhead(maxWait);
+  while (Date.now() <= stopTime) {
+    const retweetBtn = parent.querySelector('div[data-testid="retweet"]');
+    if (retweetBtn) {
+      return { retweetBtn };
+    }
+    const unretweetBtn = parent.querySelector('div[data-testid="unretweet"]');
+    if (unretweetBtn) {
+      return { unretweetBtn };
+    }
+    await sleep(interval);
+  }
+  return {};
+}
+
+export async function getUnretweetButton(maxWait = 20000, interval = 10) {
+  console2.log('getUnretweetButton:', maxWait, interval);
+
+  const base = await getBaseForStatusPage(maxWait, interval);
+  if (!base) {
+    return null;
+  }
+
+  const parent = base.parentNode?.parentNode?.parentNode;
+
+  const stopTime = millisecondsAhead(maxWait);
+  while (Date.now() <= stopTime) {
+    const unretweetBtn = parent.querySelector('div[data-testid="unretweet"]');
+    if (unretweetBtn) {
+      return unretweetBtn;
+    }
+    await sleep(interval);
+  }
+  return null;
+}
+
+export async function getRetweetOrUnretweetConfirmButton(maxWait = 20000, interval = 10) {
+  console2.log('getRetweetOrUnretweetConfirmButton:', maxWait, interval);
+
+  const stopTime = millisecondsAhead(maxWait);
+  while (Date.now() <= stopTime) {
+    const retweetConfirmBtn = document.querySelector('div[data-testid="retweetConfirm"]');
+    if (retweetConfirmBtn) {
+      return { retweetConfirmBtn };
+    }
+    const unretweetConfirmBtn = document.querySelector('div[data-testid="unretweetConfirm"]');
+    if (unretweetConfirmBtn) {
+      return { unretweetConfirmBtn };
+    }
+    await sleep(interval);
+  }
+  return {};
+}
+
+export async function retweet(maxWait = 20000, interval = 10, { real = false, simulate = true } = {}) {
+  const btn = await getRetweetOrUnretweetButton(maxWait, interval);
+  if (btn.unretweetBtn) {
+    return true;
+  }
+  if (!btn.retweetBtn) {
+    return false;
+  }
+  clickElement(btn.retweetBtn, { real, simulate });
+  await sleep(500);
+
+  const confirmBtn = await getRetweetOrUnretweetConfirmButton(maxWait, interval);
+  if (confirmBtn.unretweetConfirmBtn) {
+    return true;
+  }
+  if (!confirmBtn.retweetConfirmBtn) {
+    return false;
+  }
+  clickElement(confirmBtn.retweetConfirmBtn, { real, simulate });
+  await sleep(500);
+
+  const unretweetBtn = await getUnretweetButton(5000, 10);
+  if (!unretweetBtn) {
+    return false;
+  }
+
+  return true;
+}
+
+export async function like(maxWait = 20000, interval = 10, { real = false, simulate = true } = {}) {
+  const btn = await getLikeOrUnlikeButton(maxWait, interval);
+  if (btn.unlikeBtn) {
+    return true;
+  }
+  if (!btn.likeBtn) {
+    return false;
+  }
+  clickElement(btn.likeBtn, { real, simulate });
+  await sleep(500);
+
+  const unlikeBtn = await getUnlikeButton(5000, 10);
+  if (!unlikeBtn) {
+    return false;
+  }
+
+  return true;
+}
+
+export async function waitForPost(text, maxWait = 20000, interval = 10) {
+  console2.log('waitForPost:', text, maxWait, interval);
+
+  const stopTime = millisecondsAhead(maxWait);
+  while (Date.now() <= stopTime) {
+    const elems = [...document.querySelectorAll('div[data-testid="tweetText"]')].filter(
+      (x) => x.textContent === text
+    );
+    if (elems?.length) {
+      return elems[0];
+    }
+    await sleep(interval);
+  }
+  return null;
+}
+
+export async function comment(text, maxWait = 20000, interval = 10, { real = false, simulate = true } = {}) {
+  const base = await waitForSelector(
+    '.public-DraftStyleDefault-block.public-DraftStyleDefault-ltr',
+    maxWait,
+    interval
+  );
+  console.log('base', base);
+  if (!base) {
+    return '';
+  }
+
+  const elems = base.getElementsByTagName('span');
+  console.log('elems', elems);
+  if (!elems || !elems.length) {
+    return '';
+  }
+
+  const elem = elems[0];
+  console.log('elem', elem);
+
+  base.focus();
+
+  elem.textContent = text;
+  elem.click();
+  elem.dispatchEvent(new Event('input', { bubbles: true }));
+  await sleep(1500, 3000);
+
+  const replyBtn = await waitForSelector('div[data-testid="tweetButtonInline"]', maxWait, interval);
+  console.log('replyBtn', replyBtn);
+  if (!replyBtn) {
+    return '';
+  }
+  clickElement(replyBtn, { real, simulate });
+  await sleep(1000, 1500);
+
+  const post = await waitForPost(text, maxWait, interval);
+  console.log('post', post);
+  if (!post) {
+    return '';
+  }
+
+  try {
+    const url = [
+      ...[...document.querySelectorAll('div[data-testid="tweetText"]')]
+        .filter((x) => x.textContent === text)[0]
+        .parentNode.parentNode.querySelectorAll('a'),
+    ].filter((x) => x.getElementsByTagName('time').length)[0].href;
+    return url;
+  } catch (e) {
+    console.log('error:', e);
+    return '';
+  }
+}
+
+export async function raid(text, maxWait = 20000, interval = 10, { real = false, simulate = true } = {}) {
+  if (!(await like(maxWait, interval, { real, simulate }))) {
+    console.log('failed raid like');
+    return false;
+  }
+  if (!(await retweet(maxWait, interval, { real, simulate }))) {
+    console.log('failed raid retweet');
+    return false;
+  }
+  const url = await comment(text, maxWait, interval, { real, simulate });
+  if (!url) {
+    console.log('failed raid comment');
+  }
+  return url;
 }
