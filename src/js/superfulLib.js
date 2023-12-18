@@ -417,6 +417,10 @@ export async function waitForRafflePageLoaded(options, maxWait = null) {
 
 // RAFFLE API: RAFFLE GETTERS ---------------------------------------------
 
+export function getRaffleTwitterHandle() {
+  return '';
+}
+
 export function getTwitterHandle({ normalize = true } = {}) {
   try {
     const h = [...[...document.querySelectorAll('div')].filter((x) => x.innerText === 'Twitter')][0]

@@ -634,6 +634,22 @@ export async function waitForRafflePageLoaded(options, maxWait = null) {
 
 // RAFFLE API: RAFFLE GETTERS ---------------------------------------------
 
+export function getRaffleTwitterHandle({ normalize = true } = {}) {
+  const twitterLink = document.querySelector('a[data-action="option-twitter"]');
+  if (!twitterLink) {
+    return '';
+  }
+  console2.log('twitterLink', twitterLink);
+
+  const twitterHandle = extractTwitterHandle(twitterLink?.href);
+  if (!twitterHandle) {
+    return '';
+  }
+  console2.log('twitterHandle', twitterHandle);
+
+  return !normalize ? twitterHandle : normalizeTwitterHandle(twitterHandle.replace('@', ''));
+}
+
 export function getTwitterHandle({ normalize = true } = {}) {
   try {
     const elems = [...document.querySelectorAll('div.MuiSelect-select[role="button"]')].filter((e) =>
