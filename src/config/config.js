@@ -273,4 +273,44 @@ export const overrideOptions = {
     'https://data.mongodb-api.com/app/application-0-pqnjz/endpoint/write_project_wins2',
   CLOUD_COUNT_PROJECT_WINS_URL2:
     'https://data.mongodb-api.com/app/application-0-pqnjz/endpoint/count_project_wins2',
+
+  // RAID
+
+  RAID_TEXTS: [
+    "let's go {EMOJI}",
+    "Let's go {EMOJI}",
+    'we are ready {EMOJI}',
+    'We are ready {EMOJI}',
+    'We are ready! {EMOJI}',
+    'Here! {EMOJI}',
+    'Gogogogo {EMOJI}',
+    'gmi {EMOJI}',
+    'GMI {EMOJI}',
+    'lfg {EMOJI}',
+    'LFG {EMOJI}',
+    '{EMOJI}',
+    '{EMOJI}',
+    '{EMOJI}',
+  ],
+  RAID_TEAM_TEXTS: [
+    '{TEAM} is ready {EMOJI}',
+    '{TEAM} is ready!! {EMOJI}',
+    '{TEAM} is here {EMOJI}',
+    '{TEAM} is here!! {EMOJI}',
+    '{TEAM} is here and ready {EMOJI}',
+    '{TEAM} is here and ready! {EMOJI}',
+    '{TEAM} supporting {EMOJI}',
+    "let's go {TEAM} {EMOJI}",
+    "Let's go {TEAM} {EMOJI}",
+    'lfg {TEAM} {EMOJI}',
+    'LFG {TEAM} {EMOJI}',
+  ],
+  RAID_TEAM_NAMES: [
+    'world of alpha: @worldofalpha, WoA, world of alpha, World of Alpha',
+    'scrapyard: scrapyard, Scrapyard, @scrapyard_wl',
+  ],
+  RAID_EMOJIS: ['🔥,👍, 🚀'],
+
+  RAID_MIN_EMOJIS: 0,
+  RAID_MAX_EMOJIS: 3,
 };

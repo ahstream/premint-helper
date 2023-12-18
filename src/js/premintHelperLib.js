@@ -14,6 +14,8 @@ import {
   // setStorageData,
 } from 'hx-lib';
 
+import { raidTwitterPost } from './raid';
+
 const console2 = myConsole();
 
 // DATA ----------------------------------------------------------------------------------
@@ -153,6 +155,7 @@ export function createStatusbarButtons({
   followers2 = true,
   followers3 = true,
   followers4 = true,
+  raid = true,
 } = {}) {
   console2.log(
     'createStatusbarButtons; options, help, results, reveal, followers:',
@@ -229,27 +232,28 @@ export function createStatusbarButtons({
     add('Reveal', 'Reveal odds and previously won wallets for all supported raffles on page', reveal);
   }
 
-  followers4 = true;
   if (followers4) {
     add('T3', 'Re-lookup follower counts for non-expired Twitter links on page', followers);
   }
 
-  followers3 = true;
   if (followers3) {
     add('T2', 'Re-lookup follower counts for expired Twitter links on page', followers);
   }
 
-  followers2 = true;
   if (followers2) {
     add('T1', 'Lookup follower counts for new Twitter links on page', followers);
   }
 
-  followers = true;
   if (followers) {
     add('Twitter', 'Lookup follower counts for Twitter links on page...', followers);
   }
 
-  console2.trace('createStatusbarButtons:', buttons);
+  if (raid) {
+    const callback = raid === 'disabled' ? '' : raidTwitterPost;
+    add('Raid', 'Raid Twitter post', callback);
+  }
+
+  console.trace('createStatusbarButtons:', buttons);
 
   return buttons.reverse();
 }
@@ -1054,4 +1058,33 @@ export function isClosableInternalWebPage(url) {
     'chrome-extension://ceegpiflkjflcklliibajfhlgoljefio/help.html',
   ];
   return !!closeableHrefs.some((x) => url && url.startsWith(x));
+}
+
+export async function copyToTheClipboard(textToCopy) {
+  const el = document.createElement('textarea');
+  el.value = textToCopy;
+  el.setAttribute('readonly', '');
+  el.style.position = 'absolute';
+  el.style.left = '-9999px';
+  document.body.appendChild(el);
+  el.select();
+  document.execCommand('copy');
+  document.body.removeChild(el);
+}
+
+export function focusMyPage() {
+  chrome.runtime.sendMessage({ cmd: 'focusMyTab' });
+}
+
+export function notifyRaid(request) {
+  if (!window.raidStarted) {
+    console.log('Ignore raid result');
+    return;
+  }
+  window.raidStarted = false;
+  focusMyPage();
+  window.alert(
+    `Done raiding ${request.fromUrl}.\n\nRetweeted post URL is copied to clipboard after closing this dialog.`
+  );
+  copyToTheClipboard(request.replyUrl);
 }

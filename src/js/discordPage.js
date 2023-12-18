@@ -17,9 +17,9 @@ import {
   myConsole,
 } from 'hx-lib';
 
-//import { createStatusbar } from 'hx-statusbar';
+import { createStatusbar } from 'hx-statusbar';
 
-// import { STATUSBAR_DEFAULT_TEXT } from './premintHelperLib';
+import { STATUSBAR_DEFAULT_TEXT, createStatusbarButtons, notifyRaid } from './premintHelperLib';
 
 const console2 = myConsole();
 
@@ -27,6 +27,11 @@ const console2 = myConsole();
 
 let storage = null;
 let parentTabId = null;
+
+let pageState = {
+  hashArgs: null,
+  parentTabId: null,
+};
 
 //let pageState = {};
 
@@ -48,16 +53,27 @@ async function runNow() {
     return;
   }
 
-  const hashArgs = createHashArgs(window.location.hash);
-  parentTabId = hashArgs.getOne('id');
-  console2.log('parentTabId', parentTabId);
-
-  // pageState.statusBar = createStatusbar('');
   window.addEventListener('load', onLoad);
 }
 
 function onLoad() {
   console2.log('onLoad');
+  const hashArgs = createHashArgs(window.location.hash);
+  parentTabId = hashArgs.getOne('id');
+  console2.log('parentTabId', parentTabId);
+  pageState = {
+    hashArgs,
+    parentTabId: hashArgs.getOne('id'),
+    statusBar: createStatusbar(STATUSBAR_DEFAULT_TEXT, {
+      buttons: createStatusbarButtons({
+        options: true,
+        results: 'disabled',
+        reveal: 'disabled',
+        raid: true,
+      }),
+    }),
+  };
+  console2.info('PageState:', pageState);
   runPage();
 }
 
@@ -70,8 +86,15 @@ window.addEventListener('beforeunload', function () {
   }
 });
 
-chrome.runtime.onMessage.addListener(async (request, sender) => {
+chrome.runtime.onMessage.addListener(async (request, sender, sendResponse) => {
   console2.info('Received message:', request, sender);
+
+  if (request.cmd === 'raidTwitterPostDone') {
+    notifyRaid(request);
+  }
+
+  sendResponse();
+  return true;
 });
 
 // PAGE FUNCS ----------------------------------------------------------------------------------

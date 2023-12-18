@@ -425,6 +425,23 @@ const options = [
       ['property', 'IS_FIRST_SUB_ACCOUNT', 'IS_FIRST_SUB_ACCOUNT', null, 'IS_FIRST_SUB_ACCOUNT'],
     ],
   },
+
+  // Raid
+  {
+    header: 'Raid',
+    hiddenKey: '',
+    options: [
+      ['description', 'LOREM'],
+      ['property', 'RAID_MIN_EMOJIS', 'RAID_MIN_EMOJIS', '', 'RAID_MIN_EMOJIS'],
+      ['property', 'RAID_MAX_EMOJIS', 'RAID_MAX_EMOJIS', '', 'RAID_MAX_EMOJIS'],
+      ['property', 'RAID_EMOJIS', 'RAID_EMOJIS', null, ''],
+      ['space', 10],
+
+      ['property', 'RAID_TEXTS', 'RAID_TEXTS', null, ''],
+      ['property', 'RAID_TEAM_TEXTS', 'RAID_TEAM_TEXTS', null, ''],
+      ['property', 'RAID_TEAM_NAMES', 'RAID_TEAM_NAMES', null, ''],
+    ],
+  },
 ];
 
 // STARTUP ----------------------------------------------------------------------------

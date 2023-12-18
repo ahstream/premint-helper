@@ -1,5 +1,7 @@
 console.info('twitterPage.js begin', window?.location?.href);
 
+import '../styles/twitterPage.css';
+
 import {
   switchToUser,
   isEmptyPage,
@@ -7,8 +9,9 @@ import {
   retweet,
   like,
   comment,
-  raid,
 } from './twitterLib.js';
+
+import { raidFromTwitterPage } from './raid.js';
 
 import {
   getStorageItems,
@@ -22,7 +25,11 @@ import {
   ONE_MINUTE,
 } from 'hx-lib';
 
-import { createObserver as createTwitterObserver } from './twitterObserver.js';
+import { createStatusbar } from 'hx-statusbar';
+
+import { STATUSBAR_DEFAULT_TEXT, createStatusbarButtons, notifyRaid } from './premintHelperLib';
+
+// import { createObserver as createTwitterObserver } from './twitterObserver.js';
 
 const console2 = myConsole();
 
@@ -47,25 +54,46 @@ async function runNow() {
     return console2.info('Options missing, exit!');
   }
 
-  const hashArgs = createHashArgs(window.location.hash);
-  pageState = {
-    hashArgs,
-    parentTabId: hashArgs.getOne('id'),
-    twitterObserver: await createTwitterObserver({
-      permissions: pageState.permissions,
-      logger: {},
-    }),
-  };
-
-  console2.info('PageState:', pageState);
-
   // window.addEventListener('load', onLoad);
   window.addEventListener('DOMContentLoaded', onLoad);
 }
 
 function onLoad() {
   console2.log('onLoad');
+
+  const hashArgs = createHashArgs(window.location.hash);
+  pageState = {
+    hashArgs,
+    parentTabId: hashArgs.getOne('id'),
+    statusBar: createStatusbar(STATUSBAR_DEFAULT_TEXT, {
+      buttons: createStatusbarButtons({
+        options: true,
+        results: 'disabled',
+        reveal: 'disabled',
+        raid: true,
+      }),
+    }),
+  };
+  console2.info('PageState:', pageState);
+  initEventHandlers();
   runPage();
+}
+
+// EVENT HANDLERS
+
+function initEventHandlers() {
+  console2.info('Init event handlers');
+
+  chrome.runtime.onMessage.addListener(async (request, sender, sendResponse) => {
+    console2.info('Received message:', request, sender);
+
+    if (request.cmd === 'raidTwitterPostDone') {
+      notifyRaid(request);
+    }
+
+    sendResponse();
+    return true;
+  });
 }
 
 // PAGE FUNCTIONS ----------------------------------------------------------------------------
@@ -73,8 +101,20 @@ function onLoad() {
 async function runPage() {
   console2.info('runPage');
 
+  const request1 = await dispatch(window.location.href.replace('x.com', 'twitter.com'), 5 * 60);
+  const request2 = await dispatch(window.location.href.replace('twitter.com', 'x.com'), 5 * 60);
+  const request = request1 || request2;
+
+  console2.info('Dispatched request:', request);
+  pageState.request = request;
+  pageState.action = request?.action;
+
   if (window.location.href.includes('/account/access')) {
     return await handleLockedTwitterAccount({ pageState });
+  }
+
+  if (pageState.action === 'raid') {
+    return raidFromTwitterPage({ team: pageState.request.team, gotoPost: true });
   }
 
   if (pageState.hashArgs.getOne('retweet')) {
@@ -90,7 +130,7 @@ async function runPage() {
   }
 
   if (pageState.hashArgs.getOne('raid')) {
-    return runRaid(pageState.hashArgs.getOne('raid'));
+    return raidFromTwitterPage({ gotoPost: true });
   }
 
   if (pageState.hashArgs.getOne('switchToUser')) {
@@ -131,13 +171,6 @@ async function runLike() {
 async function runComment(text) {
   console2.log('runComment', text);
   const result = await comment(text);
-  console2.log('result', result);
-  return result;
-}
-
-async function runRaid(text) {
-  console2.log('runRaid', text);
-  const result = await raid(text);
   console2.log('result', result);
   return result;
 }
