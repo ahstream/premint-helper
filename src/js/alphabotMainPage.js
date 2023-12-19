@@ -5,14 +5,13 @@ import { createObserver } from './observerGeneric.js';
 import { createObserver as createTwitterObserver } from './twitterObserver.js';
 import { fetchProjects } from './alphabotLib.js';
 import {
-  createStatusbarButtons,
+  createStatusbar,
   addRevealAlphabotRafflesRequest,
-  lookupTwitterFollowersClickEventHandler,
-  STATUSBAR_DEFAULT_TEXT,
+  //lookupTwitterFollowersClickEventHandler,
+  //STATUSBAR_DEFAULT_TEXT,
 } from './premintHelperLib';
 
 import { getStorageItems, createHashArgs, dispatch, myConsole, sleep } from 'hx-lib';
-import { createStatusbar } from 'hx-statusbar';
 import { getPermissions } from './permissions';
 
 const console2 = myConsole();
@@ -93,12 +92,13 @@ async function onLoad() {
       action: hashArgs.getOne('action'),
       pendingRequests: [],
       isRegistering: false,
-      statusbar: createStatusbar(STATUSBAR_DEFAULT_TEXT),
+      statusbar: createStatusbar(storage.options, {
+        buttons: { reveal: revealRafflesEventHandler },
+      }),
       lastURL: window.location.href,
       finishedTabsIds: [],
     },
   };
-
   console2.info('PageState:', pageState);
 
   runPage();
@@ -148,16 +148,6 @@ chrome.runtime.onMessage.addListener(async (request, sender, sendResponse) => {
 async function runPage() {
   console2.info('Run page');
   console2.info('PageState', pageState);
-
-  pageState.statusbar.buttons(
-    createStatusbarButtons({
-      options: true,
-      results: true,
-      reveal: revealRafflesEventHandler,
-      followers: lookupTwitterFollowersClickEventHandler,
-    })
-  );
-  console2.log('statusbar', pageState.statusbar);
 
   if (!pageState.action) {
     const request = await dispatch(window.location.href, 5 * 60);

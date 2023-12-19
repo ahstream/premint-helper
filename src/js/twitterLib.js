@@ -132,12 +132,13 @@ export async function handleLockedTwitterAccount() {
 }
 
 async function getBaseForStatusPage(maxWait, interval) {
-  const r = await waitForSelector('div[role="progressbar"]', maxWait, interval);
+  await waitForPageLoaded(maxWait, interval);
+  const r = document.querySelector('div[role="progressbar"][aria-valuemax="100"]');
   console.log('getBaseForStatusPage', r);
   return r;
 }
 
-export async function getLikeOrUnlikeButton(maxWait = 20000, interval = 10) {
+export async function getLikeOrUnlikeButton(maxWait = 20000, interval = 250) {
   console.log('getLikeOrUnlikeButton:', maxWait, interval);
 
   const base = await getBaseForStatusPage(maxWait, interval);
@@ -146,10 +147,10 @@ export async function getLikeOrUnlikeButton(maxWait = 20000, interval = 10) {
   }
 
   const parent = base.parentNode?.parentNode?.parentNode;
-  console.log('parent:', parent);
 
   const stopTime = millisecondsAhead(maxWait);
   while (Date.now() <= stopTime) {
+    console.log('base, parent:', base, parent);
     const likeBtn = parent.querySelector('div[data-testid="like"]');
     console.log('likeBtn:', likeBtn);
     if (likeBtn) {
@@ -166,7 +167,7 @@ export async function getLikeOrUnlikeButton(maxWait = 20000, interval = 10) {
   return {};
 }
 
-export async function getUnlikeButton(maxWait = 20000, interval = 10) {
+export async function getUnlikeButton(maxWait = 20000, interval = 250) {
   console2.log('getUnlikeButton:', maxWait, interval);
 
   const base = await getBaseForStatusPage(maxWait, interval);
@@ -175,11 +176,12 @@ export async function getUnlikeButton(maxWait = 20000, interval = 10) {
   }
 
   const parent = base.parentNode?.parentNode?.parentNode;
-  console.log('parent:', parent);
 
   const stopTime = millisecondsAhead(maxWait);
   while (Date.now() <= stopTime) {
+    console.log('base, parent:', base, parent);
     const unlikeBtn = parent.querySelector('div[data-testid="unlike"]');
+    console.log('unlikeBtn:', unlikeBtn);
     if (unlikeBtn) {
       return unlikeBtn;
     }
@@ -189,7 +191,7 @@ export async function getUnlikeButton(maxWait = 20000, interval = 10) {
   return null;
 }
 
-export async function getRetweetOrUnretweetButton(maxWait = 20000, interval = 10) {
+export async function getRetweetOrUnretweetButton(maxWait = 20000, interval = 250) {
   console2.log('getRetweetOrUnretweetButton:', maxWait, interval);
 
   const base = await getBaseForStatusPage(maxWait, interval);
@@ -198,15 +200,17 @@ export async function getRetweetOrUnretweetButton(maxWait = 20000, interval = 10
   }
 
   const parent = base.parentNode?.parentNode?.parentNode;
-  console.log('parent:', parent);
 
   const stopTime = millisecondsAhead(maxWait);
   while (Date.now() <= stopTime) {
+    console.log('base, parent:', base, parent);
     const retweetBtn = parent.querySelector('div[data-testid="retweet"]');
+    console.log('retweetBtn:', retweetBtn);
     if (retweetBtn) {
       return { retweetBtn };
     }
     const unretweetBtn = parent.querySelector('div[data-testid="unretweet"]');
+    console.log('unretweetBtn:', unretweetBtn);
     if (unretweetBtn) {
       return { unretweetBtn };
     }
@@ -216,7 +220,7 @@ export async function getRetweetOrUnretweetButton(maxWait = 20000, interval = 10
   return {};
 }
 
-export async function getUnretweetButton(maxWait = 20000, interval = 10) {
+export async function getUnretweetButton(maxWait = 20000, interval = 250) {
   console2.log('getUnretweetButton:', maxWait, interval);
 
   const base = await getBaseForStatusPage(maxWait, interval);
@@ -225,11 +229,12 @@ export async function getUnretweetButton(maxWait = 20000, interval = 10) {
   }
 
   const parent = base.parentNode?.parentNode?.parentNode;
-  console.log('parent:', parent);
 
   const stopTime = millisecondsAhead(maxWait);
   while (Date.now() <= stopTime) {
+    console.log('base, parent:', base, parent);
     const unretweetBtn = parent.querySelector('div[data-testid="unretweet"]');
+    console.log('unretweetBtn:', unretweetBtn);
     if (unretweetBtn) {
       return unretweetBtn;
     }
@@ -239,16 +244,18 @@ export async function getUnretweetButton(maxWait = 20000, interval = 10) {
   return null;
 }
 
-export async function getRetweetOrUnretweetConfirmButton(maxWait = 20000, interval = 10) {
+export async function getRetweetOrUnretweetConfirmButton(maxWait = 20000, interval = 250) {
   console2.log('getRetweetOrUnretweetConfirmButton:', maxWait, interval);
 
   const stopTime = millisecondsAhead(maxWait);
   while (Date.now() <= stopTime) {
     const retweetConfirmBtn = document.querySelector('div[data-testid="retweetConfirm"]');
+    console.log('retweetConfirmBtn:', retweetConfirmBtn);
     if (retweetConfirmBtn) {
       return { retweetConfirmBtn };
     }
     const unretweetConfirmBtn = document.querySelector('div[data-testid="unretweetConfirm"]');
+    console.log('unretweetConfirmBtn:', unretweetConfirmBtn);
     if (unretweetConfirmBtn) {
       return { unretweetConfirmBtn };
     }
@@ -260,6 +267,7 @@ export async function getRetweetOrUnretweetConfirmButton(maxWait = 20000, interv
 
 export async function retweet(maxWait = 20000, interval = 10, { real = false, simulate = true } = {}) {
   const btn = await getRetweetOrUnretweetButton(maxWait, interval);
+  console.log('btn:', btn);
   if (btn.unretweetBtn) {
     return true;
   }
@@ -270,6 +278,7 @@ export async function retweet(maxWait = 20000, interval = 10, { real = false, si
   await sleep(500);
 
   const confirmBtn = await getRetweetOrUnretweetConfirmButton(maxWait, interval);
+  console.log('confirmBtn:', confirmBtn);
   if (confirmBtn.unretweetConfirmBtn) {
     return true;
   }
@@ -280,6 +289,7 @@ export async function retweet(maxWait = 20000, interval = 10, { real = false, si
   await sleep(500);
 
   const unretweetBtn = await getUnretweetButton(5000, 10);
+  console.log('unretweetBtn:', unretweetBtn);
   if (!unretweetBtn) {
     return false;
   }
@@ -289,6 +299,7 @@ export async function retweet(maxWait = 20000, interval = 10, { real = false, si
 
 export async function like(maxWait = 20000, interval = 10, { real = false, simulate = true } = {}) {
   const btn = await getLikeOrUnlikeButton(maxWait, interval);
+  console.log('btn:', btn);
   if (btn.unlikeBtn) {
     return true;
   }
@@ -299,6 +310,7 @@ export async function like(maxWait = 20000, interval = 10, { real = false, simul
   await sleep(500);
 
   const unlikeBtn = await getUnlikeButton(5000, 10);
+  console.log('unlikeBtn:', unlikeBtn);
   if (!unlikeBtn) {
     return false;
   }
@@ -318,7 +330,7 @@ export async function waitForPost(text, maxWait = 20000, interval = 10) {
     if (elems?.length) {
       return elems[0];
     }
-    console.log('elems2', elems2);
+    console.log('elems, elems2', elems, elems2);
     await sleep(interval);
   }
   return null;
@@ -395,4 +407,19 @@ export async function raid(text, maxWait = 20000, interval = 10, { real = false,
     console.log('failed raid comment');
   }
   return url;
+}
+
+export async function waitForPageLoaded(maxWait = 20000, interval = 100) {
+  await sleep(50);
+  const stopTime = millisecondsAhead(maxWait);
+  while (Date.now() <= stopTime) {
+    const elem = document.querySelector('div[role="progressbar"][aria-valuemax="100"]');
+    console.log('elem:', elem);
+    if (elem && !elem.ariaLabel) {
+      return true;
+    }
+    console.log('waitForPageLoaded');
+    await sleep(interval);
+  }
+  return false;
 }

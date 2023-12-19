@@ -5,17 +5,14 @@ import './admin.scss';
 import {
   optimizeStorage,
   resetStorage,
-  createStatusbarButtons,
   getMyTabIdFromExtension,
-  STATUSBAR_DEFAULT_TEXT,
+  createStatusbar,
 } from '../../js/premintHelperLib.js';
 
 import { createHashArgs, getStorageData, setStorageData } from 'hx-lib';
 
 import { getPermissions } from '../../js/permissions.js';
 import { getCalendar, getCalendars } from '../../js/alphabotLib.js';
-
-import { createStatusbar } from 'hx-statusbar';
 
 // DATA ------------------------------
 
@@ -41,21 +38,12 @@ async function runPage() {
   pageState = {
     ...pageState,
     hashArgs,
-    statusbar: createStatusbar(STATUSBAR_DEFAULT_TEXT),
+    statusbar: createStatusbar(storage.options),
     permissions,
   };
 
   console.info('PageState:', pageState);
   resetSubStatus();
-
-  pageState.statusbar.buttons(
-    createStatusbarButtons({
-      options: true,
-      results: 'disabled',
-      reveal: 'disabled',
-      followers: 'disabled',
-    })
-  );
 
   updateMainStatus('');
 

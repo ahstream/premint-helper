@@ -29,7 +29,7 @@ export async function getAccount() {
   const m = html.match(/<i class="fas fa-wallet mr-1 c-base-1-gradient"><\/i>\s*([^\s]+)\s+<\/button>/im);
   console2.trace('m', m);
   const id = m?.length === 2 ? m[1] : null;
-  const _id = id.toString ? id.toString().toLowerCase() : null;
+  const _id = id?.toString ? id.toString().toLowerCase() : null;
   return {
     id: _id,
   };

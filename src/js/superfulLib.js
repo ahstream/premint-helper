@@ -31,7 +31,7 @@ export async function getAccount(authKey, options = {}) {
   console2.log('getAccount:', result);
 
   const address = result?.data?.address;
-  const _id = address.toString ? address.toString().toLowerCase() : null;
+  const _id = address?.toString ? address.toString().toLowerCase() : null;
 
   return {
     id: _id,

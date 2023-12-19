@@ -38,7 +38,6 @@ import {
 // import { waitForUser } from '../../js/twitterLib';
 
 import {
-  createStatusbarButtons,
   checkIfSubscriptionEnabled,
   toShortWallet,
   walletToAlias,
@@ -48,7 +47,6 @@ import {
   //getMyTabIdFromExtension,
   normalizeTwitterHandle,
   // normalizeDiscordUrl,
-  lookupTwitterFollowersClickEventHandler,
   // getMyTabIdFromExtension,
   loadStorage,
   reloadOptions,
@@ -56,7 +54,7 @@ import {
   updateMidStatus,
   updateSubStatus,
   resetSubStatus,
-  STATUSBAR_DEFAULT_TEXT,
+  createStatusbar,
 } from '../../js/premintHelperLib.js';
 
 import { trimPrice, trimText, trimTextNum } from '../../js/raffleResultsLib.js';
@@ -92,8 +90,6 @@ import {
 } from 'hx-lib';
 
 import { getPermissions } from '../../js/permissions';
-
-import { createStatusbar } from 'hx-statusbar';
 
 // import { createObserver } from '../../js/observerGeneric';
 
@@ -139,14 +135,7 @@ async function runNow() {
 async function runPage() {
   console2.log('runPage');
 
-  const statusbar = createStatusbar(STATUSBAR_DEFAULT_TEXT, {
-    buttons: createStatusbarButtons({
-      options: true,
-      results: 'disabled',
-      reveal: 'disabled',
-      followers: lookupTwitterFollowersClickEventHandler,
-    }),
-  });
+  const statusbar = createStatusbar(storage.options);
   const hashArgs = createHashArgs(window.location.hash);
   const permissions = await getPermissions();
 
@@ -292,7 +281,7 @@ function initStorage() {
 // UPDATE WINS ----------------------
 
 async function updateWins() {
-  updateMainStatus('Updating results');
+  updateMainStatus('Updating wins...');
   resetSubStatus();
 
   document.getElementById('main-table').innerHTML = '';
@@ -309,10 +298,10 @@ async function updateWins() {
     cloudWins = await readWins(fromTimestamp, storage.options);
     console2.info('cloudWins', cloudWins);
     if (cloudWins.error) {
-      statusLogger.sub('Failed getting results from Cloud! Error:' + cloudWins.msg);
+      statusLogger.sub('Failed getting wins from Cloud! Error:' + cloudWins.msg);
     } else {
-      console2.info(`Fetched ${cloudWins.length} new or updated winners from Cloud:`, cloudWins);
-      statusLogger.sub(`Fetched <b>${cloudWins.length}</b> new or updated winners from Cloud`);
+      console2.info(`Fetched ${cloudWins.length} new or updated wins from Cloud:`, cloudWins);
+      statusLogger.sub(`Fetched <b>${cloudWins.length}</b> new or updated wins from Cloud`);
       storage.results.lastCloudTimestamp = checkTime;
       console2.log('storage.results.lastCloudTimestamp', storage.results.lastCloudTimestamp);
       const lastCloudTimestamp = cloudWins?.length ? Math.max(...cloudWins.map((x) => x.hxCloudUpdated)) : 0;
@@ -376,7 +365,7 @@ async function updateWins() {
 
   await setStorageData(storage);
 
-  updateMainStatus('Raffle results updated!');
+  updateMainStatus('Raffle wins updated!');
 
   showPage();
 
@@ -397,7 +386,7 @@ async function updateProjectWins2() {
 
   if (storage.options.CLOUD_MODE === 'load') {
     statusLogger.sub(
-      `Won wallets is only fetched from Cloud when saving own wins to Cloud (this account is reading results from Cloud)`
+      `Won wallets is only fetched from Cloud when saving own wins to Cloud (this account is reading wins from Cloud)`
     );
     return;
   }
@@ -437,7 +426,7 @@ async function updateProjectWins2() {
 
     await setStorageData(storage);
 
-    updateMainStatus('Done getting wallets won from Cloud!');
+    updateMainStatus('Done getting wallets won from Cloud');
 
     // document.body.classList.toggle('success', true);
 
@@ -481,7 +470,7 @@ function hasProjectWinsChanged(oldWins, newWins) {
 }
 
 async function resetWins() {
-  if (!window.confirm('Do you want to reset all raffle results?')) {
+  if (!window.confirm('Do you want to reset all raffle wins?')) {
     return console2.log('no');
   }
 
@@ -555,9 +544,9 @@ async function showPage({
     storage,
   };
 
-  statusLogger.main('Showing raffle results below');
+  statusLogger.main('Showing raffle wins below');
 
-  console2.log('Done showing results page!');
+  console2.log('Done showing wins page!');
 }
 
 function appendWinsTable(table) {
@@ -594,11 +583,11 @@ async function updateAlphabotWins(checkTime, allCloudWins) {
   await reloadOptions(storage); // options may have changed, reload them!
 
   if (!storage.options.ALPHABOT_ENABLE_RESULTS) {
-    statusLogger.sub(`Skip fetching new ${providerName} results (disabled in Options)`);
+    statusLogger.sub(`Skip fetching new ${providerName} wins (disabled in Options)`);
     return [];
   }
 
-  updateMainStatus(`Get ${providerName} account info...`);
+  updateMainStatus(`Getting ${providerName} account info...`);
   const account = await getAlphabotAccount();
   console2.log('account', account);
   if (!account?.id) {
@@ -660,10 +649,10 @@ async function updateAlphabotWins(checkTime, allCloudWins) {
     console2.log('winsToUpload', winsToUpload);
     const writeResult = await writeWins(winsToUpload, storage.options);
     if (writeResult.error) {
-      statusLogger.sub(`Failed uploading ${providerName} results to Cloud. Network problems?`);
+      statusLogger.sub(`Failed uploading ${providerName} wins to Cloud. Network problems?`);
     } else {
       storage.results.lastCloudUpload = Date.now();
-      statusLogger.sub(`Uploaded ${winsToUpload.length} ${providerName} winners to Cloud`);
+      statusLogger.sub(`Uploaded ${winsToUpload.length} ${providerName} wins to Cloud`);
     }
   }
 
@@ -756,11 +745,11 @@ async function updatePremintWins(checkTime, allCloudWins) {
   await reloadOptions(storage); // options may have changed, reload them!
 
   if (!storage.options.PREMINT_ENABLE_RESULTS) {
-    statusLogger.sub(`Skip fetching new ${providerName} results (disabled in Options)`);
+    statusLogger.sub(`Skip fetching new ${providerName} wins (disabled in Options)`);
     return [];
   }
 
-  updateMainStatus(`Get ${providerName} account info`);
+  updateMainStatus(`Getting ${providerName} account info...`);
   const account = await getPremintAccount();
   console2.log('account', account);
   if (!account?.id) {
@@ -806,10 +795,10 @@ async function updatePremintWins(checkTime, allCloudWins) {
     console2.log('winsToUpload', winsToUpload);
     const writeResult = await writeWins(winsToUpload, storage.options);
     if (writeResult.error) {
-      statusLogger.sub(`Failed uploading ${providerName} results to Cloud. Network problems?`);
+      statusLogger.sub(`Failed uploading ${providerName} wins to Cloud. Network problems?`);
     } else {
       storage.results.lastCloudUpload = Date.now();
-      statusLogger.sub(`Uploaded ${winsToUpload.length} ${providerName} winners to Cloud`);
+      statusLogger.sub(`Uploaded ${winsToUpload.length} ${providerName} wins to Cloud`);
     }
   }
 
@@ -828,11 +817,11 @@ async function updateAtlasWins(checkTime, allCloudWins) {
   await reloadOptions(storage); // options may have changed, reload them!
 
   if (!storage.options.ATLAS_ENABLE_RESULTS) {
-    statusLogger.sub(`Skip fetching new ${providerName} results (disabled in Options)`);
+    statusLogger.sub(`Skip fetching new ${providerName} wins (disabled in Options)`);
     return [];
   }
 
-  updateMainStatus(`Get ${providerName} account info`);
+  updateMainStatus(`Getting ${providerName} account info...`);
   const account = await getAtlasAccount();
   console2.log('account', account);
   if (!account?.id) {
@@ -872,10 +861,10 @@ async function updateAtlasWins(checkTime, allCloudWins) {
     console2.log('winsToUpload', winsToUpload);
     const writeResult = await writeWins(winsToUpload, storage.options);
     if (writeResult.error) {
-      statusLogger.sub(`Failed uploading ${providerName} results to Cloud. Network problems?`);
+      statusLogger.sub(`Failed uploading ${providerName} wins to Cloud. Network problems?`);
     } else {
       storage.results.lastCloudUpload = Date.now();
-      statusLogger.sub(`Uploaded ${winsToUpload.length} ${providerName} winners to Cloud`);
+      statusLogger.sub(`Uploaded ${winsToUpload.length} ${providerName} wins to Cloud`);
     }
   }
 
@@ -894,11 +883,11 @@ async function updateLuckygoWins(checkTime, allCloudWins) {
   await reloadOptions(storage); // options may have changed, reload them!
 
   if (!storage.options.LUCKYGO_ENABLE_RESULTS) {
-    statusLogger.sub(`Skip fetching new ${providerName} results (disabled in Options)`);
+    statusLogger.sub(`Skip fetching new ${providerName} wins (disabled in Options)`);
     return [];
   }
 
-  updateMainStatus(`Get ${providerName} account info`);
+  updateMainStatus(`Getting ${providerName} account info...`);
   const account = await getLuckygoAccount();
   console2.log('account', account);
   if (!account?.id) {
@@ -947,10 +936,10 @@ async function updateLuckygoWins(checkTime, allCloudWins) {
     console2.log('winsToUpload', winsToUpload);
     const writeResult = await writeWins(winsToUpload, storage.options);
     if (writeResult.error) {
-      statusLogger.sub(`Failed uploading ${providerName} results to Cloud. Network problems?`);
+      statusLogger.sub(`Failed uploading ${providerName} wins to Cloud. Network problems?`);
     } else {
       storage.results.lastCloudUpload = Date.now();
-      statusLogger.sub(`Uploaded ${winsToUpload.length} ${providerName} winners to Cloud`);
+      statusLogger.sub(`Uploaded ${winsToUpload.length} ${providerName} wins to Cloud`);
     }
   }
 
@@ -970,11 +959,11 @@ async function updateSuperfulWins(checkTime, allCloudWins) {
   await reloadOptions(storage); // options may have changed, reload them!
 
   if (!storage.options.SUPERFUL_ENABLE_RESULTS) {
-    statusLogger.sub(`Skip fetching new ${providerName} results (disabled in Options)`);
+    statusLogger.sub(`Skip fetching new ${providerName} wins (disabled in Options)`);
     return [];
   }
 
-  updateMainStatus(`Get ${providerName} authentication key`);
+  updateMainStatus(`Getting ${providerName} authentication key...`);
   const authKey = await getSuperfulAuth(pageState);
   if (!authKey) {
     statusLogger.sub(`Failed getting ${providerName} authentication key. Check if logged in to website.`);
@@ -983,7 +972,7 @@ async function updateSuperfulWins(checkTime, allCloudWins) {
   console2.log('authKey', authKey);
   console.log('authKey', authKey);
 
-  updateMainStatus(`Get ${providerName} account info`);
+  updateMainStatus(`Getting ${providerName} account info...`);
   const account = await getSuperfulAccount(authKey);
   console2.log('account', account);
   console.log('account', account);
@@ -1029,10 +1018,10 @@ async function updateSuperfulWins(checkTime, allCloudWins) {
     console2.log('winsToUpload', winsToUpload);
     const writeResult = await writeWins(winsToUpload, storage.options);
     if (writeResult.error) {
-      statusLogger.sub(`Failed uploading ${providerName} results to Cloud. Network problems?`);
+      statusLogger.sub(`Failed uploading ${providerName} wins to Cloud. Network problems?`);
     } else {
       storage.results.lastCloudUpload = Date.now();
-      statusLogger.sub(`Uploaded ${winsToUpload.length} ${providerName} winners to Cloud`);
+      statusLogger.sub(`Uploaded ${winsToUpload.length} ${providerName} wins to Cloud`);
     }
   }
 
@@ -1288,7 +1277,7 @@ function createWinsTable(
     div.className = 'provider-wins';
     div.innerHTML =
       (header ? `<h3>${header} (${sortedWins.length})</h3>` : '') +
-      (sortedWins.length ? jht(sortedWins, keys) : 'No results');
+      (sortedWins.length ? jht(sortedWins, keys) : 'No wins');
     return div;
   }
 
@@ -1517,8 +1506,7 @@ function createWinsTable(
   const div = document.createElement('div');
   div.id = id;
   div.className = 'provider-wins';
-  div.innerHTML =
-    (header ? `<h3>${header} (${numWins})</h3>` : '') + (numWins ? table.outerHTML : 'No results');
+  div.innerHTML = (header ? `<h3>${header} (${numWins})</h3>` : '') + (numWins ? table.outerHTML : 'No wins');
 
   return div;
 }
@@ -1782,9 +1770,9 @@ function showLastUpdatedStatus() {
     } else if (days1 > 0) {
       agoText1 = `${days1} ${pluralize(days1, 'day', 'days')} ago`;
     }
-    updateSubStatus(`Results last fetched from raffle providers at ${timeText1} (<b>${agoText1}</b>)`);
+    updateSubStatus(`Wins last fetched from raffle providers at ${timeText1} (<b>${agoText1}</b>)`);
   } else {
-    updateSubStatus(`Results never fetched from raffle providers`);
+    updateSubStatus(`Wins never fetched from raffle providers`);
   }
 
   if (storage.results.lastCloudUpdate) {
@@ -1806,9 +1794,9 @@ function showLastUpdatedStatus() {
     } else if (days2 > 0) {
       agoText2 = `${days2} ${pluralize(days2, 'day', 'days')} ago`;
     }
-    updateSubStatus(`Results last fetched from Cloud at ${timeText2} (<b>${agoText2}</b>)`);
+    updateSubStatus(`Wins last fetched from Cloud at ${timeText2} (<b>${agoText2}</b>)`);
   } else {
-    updateSubStatus(`Results never fetched from Cloud`);
+    updateSubStatus(`Wins never fetched from Cloud`);
   }
 
   if (storage.results.lastCloudUpload) {
@@ -1830,9 +1818,9 @@ function showLastUpdatedStatus() {
     } else if (days2 > 0) {
       agoText2 = `${days2} ${pluralize(days2, 'day', 'days')} ago`;
     }
-    updateSubStatus(`Results last uploaded to Cloud at ${timeText2} (<b>${agoText2}</b>)`);
+    updateSubStatus(`Wins last uploaded to Cloud at ${timeText2} (<b>${agoText2}</b>)`);
   } else {
-    //updateSubStatus(`Results never uploaded to Cloud`);
+    //updateSubStatus(`Wins never uploaded to Cloud`);
   }
 }
 

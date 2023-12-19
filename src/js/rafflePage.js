@@ -1,6 +1,4 @@
 import {
-  STATUSBAR_DEFAULT_TEXT,
-  createStatusbarButtons,
   exitActionMain,
   getMyTabIdFromExtension,
   checkIfSubscriptionEnabled,
@@ -11,6 +9,7 @@ import {
   clickElement,
   normalizeTwitterHandle,
   normalizeDiscordHandle,
+  createStatusbar,
 } from './premintHelperLib';
 
 import {
@@ -34,7 +33,6 @@ import {
 
 import { createHistory } from './history';
 import { getPermissions } from './permissions';
-import { createStatusbar } from 'hx-statusbar';
 
 const console2 = myConsole();
 
@@ -116,7 +114,9 @@ async function onLoad() {
       storageModified: false,
       pendingRequests: [],
       isRegistering: false,
-      statusbar: createStatusbar(STATUSBAR_DEFAULT_TEXT),
+      statusbar: createStatusbar(storage.options, {
+        buttons: provider?.statusbarBtnOptions || {},
+      }),
       history: await createHistory(),
       lastURL: window.location.href,
       finishedTabsIds: [],
@@ -210,24 +210,11 @@ function getWaitForRegistered() {
   return n ? n * 1000 : null;
 }
 
-function getStatusbarBtnOptions() {
-  return (
-    provider?.statusbarBtnOptions || {
-      options: true,
-      results: true,
-      reveal: 'disabled',
-      followers: 'disabled',
-    }
-  );
-}
-
 // PAGE FUNCS ----------------------------------------------------------------------------------
 
 async function showPage() {
   const href = window.location.href;
   console2.log('showPage; pageState, href:', pageState, href);
-
-  pageState.statusbar.buttons(createStatusbarButtons(getStatusbarBtnOptions()));
 
   if (provider.isPendingReg()) {
     pageState.isPendingReg = true;

@@ -3,7 +3,7 @@ console.info('raffles.js begin', window?.location?.href);
 import './raffles.scss';
 
 import {
-  createStatusbarButtons,
+  createStatusbar,
   getMyTabIdFromExtension,
   loadStorage,
   reloadOptions,
@@ -11,7 +11,6 @@ import {
   updateMidStatus,
   updateSubStatus,
   resetSubStatus,
-  STATUSBAR_DEFAULT_TEXT,
   normalizeTwitterHandle,
 } from '../../js/premintHelperLib.js';
 
@@ -50,8 +49,6 @@ import {
 import { getRaffles as getAlphabotRaffles } from '../../js/alphabotLib.js';
 
 import { getRaffles as getSuperfulRaffles, getAuth as getSuperfulAuth } from '../../js/superfulLib.js';
-
-import { createStatusbar } from 'hx-statusbar';
 
 import { createObserver as createTwitterObserver } from '../../js/twitterObserver.js';
 import { createObserver } from '../../js/observerGeneric.js';
@@ -93,14 +90,6 @@ async function runNow() {
 async function runPage() {
   console2.log('runPage');
 
-  const statusbar = createStatusbar(STATUSBAR_DEFAULT_TEXT, {
-    buttons: createStatusbarButtons({
-      options: true,
-      results: 'disabled',
-      reveal: 'disabled',
-      followers: 'disabled',
-    }),
-  });
   const hashArgs = createHashArgs(window.location.hash);
   const permissions = await getPermissions();
   const twitterObserver = await createTwitterObserver({ permissions });
@@ -108,6 +97,8 @@ async function runPage() {
 
   storage = await loadStorage({}, null, [], [{ key: 'raffles', val: {} }]);
   console.log('storage', storage);
+
+  const statusbar = createStatusbar(storage.options);
 
   initEventHandlers(pageState);
 

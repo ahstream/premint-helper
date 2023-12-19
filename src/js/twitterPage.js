@@ -9,6 +9,7 @@ import {
   retweet,
   like,
   comment,
+  waitForPageLoaded,
 } from './twitterLib.js';
 
 import { raidFromTwitterPage } from './raid.js';
@@ -25,9 +26,7 @@ import {
   ONE_MINUTE,
 } from 'hx-lib';
 
-import { createStatusbar } from 'hx-statusbar';
-
-import { STATUSBAR_DEFAULT_TEXT, createStatusbarButtons, notifyRaid } from './premintHelperLib';
+import { createStatusbar, notifyRaid } from './premintHelperLib';
 
 // import { createObserver as createTwitterObserver } from './twitterObserver.js';
 
@@ -65,14 +64,7 @@ function onLoad() {
   pageState = {
     hashArgs,
     parentTabId: hashArgs.getOne('id'),
-    statusBar: createStatusbar(STATUSBAR_DEFAULT_TEXT, {
-      buttons: createStatusbarButtons({
-        options: true,
-        results: 'disabled',
-        reveal: 'disabled',
-        raid: true,
-      }),
-    }),
+    statusbar: createStatusbar(storage.options),
   };
   console2.info('PageState:', pageState);
   initEventHandlers();
@@ -114,6 +106,7 @@ async function runPage() {
   }
 
   if (pageState.action === 'raid') {
+    await waitForPageLoaded();
     return raidFromTwitterPage({ team: pageState.request.team, gotoPost: true });
   }
 

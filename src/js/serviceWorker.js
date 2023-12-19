@@ -77,7 +77,7 @@ function messageHandler(request, sender, sendResponse) {
       chrome.tabs.query({ active: true, currentWindow: true }, function (tabs) {
         const currTab = tabs[0];
         if (currTab && currTab.id) {
-          chrome.tabs.sendMessage(currTab.id, { cmd: 'lookupTwitterFollowers' });
+          chrome.tabs.sendMessage(currTab.id, { cmd: 'lookupTwitterFollowers', scope: 0 });
         }
       });
       break;
@@ -86,7 +86,7 @@ function messageHandler(request, sender, sendResponse) {
       chrome.tabs.query({ active: true, currentWindow: true }, function (tabs) {
         const currTab = tabs[0];
         if (currTab && currTab.id) {
-          chrome.tabs.sendMessage(currTab.id, { cmd: 'lookupTwitterFollowers' });
+          chrome.tabs.sendMessage(currTab.id, { cmd: 'lookupTwitterFollowers', scope: request.scope });
         }
       });
       break;

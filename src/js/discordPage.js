@@ -17,9 +17,7 @@ import {
   myConsole,
 } from 'hx-lib';
 
-import { createStatusbar } from 'hx-statusbar';
-
-import { STATUSBAR_DEFAULT_TEXT, createStatusbarButtons, notifyRaid } from './premintHelperLib';
+import { createStatusbar, notifyRaid } from './premintHelperLib';
 
 const console2 = myConsole();
 
@@ -64,14 +62,7 @@ function onLoad() {
   pageState = {
     hashArgs,
     parentTabId: hashArgs.getOne('id'),
-    statusBar: createStatusbar(STATUSBAR_DEFAULT_TEXT, {
-      buttons: createStatusbarButtons({
-        options: true,
-        results: 'disabled',
-        reveal: 'disabled',
-        raid: true,
-      }),
-    }),
+    statusbar: createStatusbar(storage.options),
   };
   console2.info('PageState:', pageState);
   runPage();

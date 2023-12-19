@@ -46,7 +46,7 @@ export async function getAccount() {
   }
 
   const address = m?.length === 1 ? m[0][1] : null;
-  const _id = address.toString ? address.toString().toLowerCase() : null;
+  const _id = address?.toString ? address.toString().toLowerCase() : null;
 
   return {
     id: _id,

@@ -111,7 +111,7 @@ chrome.runtime.onMessage.addListener(async (request, sender, sendResponse) => {
   console2.log('Received request:', request, sender);
 
   if (request.cmd === 'lookupTwitterFollowers') {
-    lookupTwitterFollowersHandler();
+    lookupTwitterFollowersHandler(request.scope);
   }
 
   if (request.cmd === 'switchedToTwitterUser') {
@@ -223,7 +223,88 @@ function handleTwitterLinkFromMutation(link) {
 
 // TWITTER -------------------------------------------------------------
 
-async function lookupTwitterFollowersHandler() {
+async function lookupTwitterFollowersHandler(scope) {
+  await reloadOptions(storage);
+  console2.all('lookupTwitterFollowers, storage:', storage);
+
+  if (!storage.options.TWITTER_FETCH_FOLLOWERS_USER) {
+    window.alert(
+      'It is recommended to set TWITTER_FETCH_FOLLOWERS_USER property on Optins page before fetching follower counts!'
+    );
+  }
+
+  const urls = getTwitterUrlsOnPage();
+  if (!urls.twitterUrls.length) {
+    return window.alert('No Twitter links found on page!');
+    // window.alert('No Twitter links with unknown follower count found on page!');
+  }
+
+  if (scope === 0 || scope === 1) {
+    return lookupTwitterFollowersScope(urls.newUrls, 'new');
+  }
+
+  if (scope === 2) {
+    return lookupTwitterFollowersScope(urls.expiredUrls, 'expired');
+  }
+
+  if (scope === 3) {
+    return lookupTwitterFollowersScope(urls.nonExpiredUrls, 'non-expired');
+  }
+}
+
+async function lookupTwitterFollowersScope(urls, key) {
+  const getRealMax = (length) => {
+    return length <= storage.options.TWITTER_MAX_LOOKUPS
+      ? `${length}`
+      : `max ${storage.options.TWITTER_MAX_LOOKUPS} of ${length}`;
+  };
+
+  let answer1 = null;
+
+  answer1 = window.confirm(
+    `Lookup follower counts for ${getRealMax(urls.length)} ${key} Twitter handles on page?`
+  );
+
+  if (!answer1) {
+    return;
+  }
+
+  const useUrls = urls.splice(0, storage.options.TWITTER_MAX_LOOKUPS);
+  console2.log('useUrls', useUrls);
+
+  await getMyTabIdFromExtension(pageState, 5000);
+  if (!pageState.myTabId) {
+    console2.error('Invalid myTabId');
+    logError(`Failed getting own page tab id when looking up Twitter followers!`);
+    window.alert('Failed getting own page tab id when looking up Twitter followers!');
+    return;
+  }
+
+  if (storage.options.TWITTER_FETCH_FOLLOWERS_USER && !(await switchTwitterUserBeforeFetchingFollowers())) {
+    return;
+  }
+
+  let ct = 0;
+  for (const url of useUrls) {
+    ct++;
+    logInfo(`Getting follower count for Twitter handle (${ct}/${useUrls.length})`);
+    console2.log(`Get Twitter followers ${ct}/${useUrls.length}: ${url}`);
+    if (await fetchTwitterUser(url, pageState.myTabId)) {
+      chrome.runtime.sendMessage({ cmd: 'focusMyTab' });
+      await sleep(2000);
+    }
+  }
+
+  logInfo(`Done getting follower counts for ${useUrls.length} ${key} Twitter handles`);
+  await saveTwitter();
+
+  chrome.runtime.sendMessage({ cmd: 'focusMyTab' });
+
+  window.alert(`Done getting follower counts for ${useUrls.length} ${key} Twitter handles`);
+}
+
+/*
+async function lookupTwitterFollowersHandlerOrg(scope) {
   await reloadOptions(storage);
   console2.all('lookupTwitterFollowers, storage:', storage);
 
@@ -300,6 +381,7 @@ async function lookupTwitterFollowersHandler() {
 
   window.alert(`Done getting follower counts for ${useUrls.length} ${desc} Twitter handles`);
 }
+*/
 
 function updateTwitterUserLinksOnPage(user, href) {
   console2.log('updateTwitterUserLinksOnPage', href, user);
@@ -380,12 +462,19 @@ function getTwitterUrlsOnPage(all = false) {
       .map((x) => x.href)
   );
 
+  const nonExpiredUrls = noDuplicates(
+    twitterLinks
+      .filter((x) => (x.classList.contains('hx-twitter-link') && !x.classList.contains('expired')) || all)
+      .map((x) => x.href)
+  );
+
   console2.trace('twitterLinks:', twitterLinks);
   console2.trace('twitterUrls:', twitterUrls);
   console2.trace('newUrls:', newUrls);
   console2.trace('expiredUrls:', expiredUrls);
+  console2.trace('nonExpiredUrls:', nonExpiredUrls);
 
-  return { twitterUrls, newUrls, expiredUrls };
+  return { twitterUrls, newUrls, expiredUrls, nonExpiredUrls };
 }
 
 async function fetchTwitterUser(baseUrl, myTabId) {

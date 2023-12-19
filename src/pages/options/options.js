@@ -3,14 +3,12 @@ console.info('options.js begin', window?.location?.href);
 import './options.css';
 
 import { initOptionsPage, mountOptionsPage } from 'hx-chrome-lib';
-import { createStatusbarButtons, STATUSBAR_DEFAULT_TEXT } from '../../js/premintHelperLib.js';
-import { createStatusbar } from 'hx-statusbar';
+
+import { createStatusbar, loadStorage } from '../../js/premintHelperLib.js';
 
 // DATA ----------------------------------------------------------------------------
 
-let pageState = {
-  statusbar: null,
-};
+let storage = {};
 
 const options = [
   // Alphabot.app Raffles
@@ -442,6 +440,17 @@ const options = [
       ['property', 'RAID_TEAM_NAMES', 'RAID_TEAM_NAMES', null, ''],
     ],
   },
+
+  // MIsc
+  {
+    header: 'Raid',
+    hiddenKey: '',
+    options: [
+      ['description', 'LOREM'],
+      ['property', 'STATUSBAR_HIDE_TIME_SHORT', 'STATUSBAR_HIDE_TIME_SHORT', '', 'STATUSBAR_HIDE_TIME_SHORT'],
+      ['property', 'STATUSBAR_HIDE_TIME_LONG', 'STATUSBAR_HIDE_TIME_LONG', '', 'STATUSBAR_HIDE_TIME_LONG'],
+    ],
+  },
 ];
 
 // STARTUP ----------------------------------------------------------------------------
@@ -449,19 +458,8 @@ const options = [
 runNow();
 
 async function runNow() {
-  pageState = {
-    statusbar: createStatusbar(STATUSBAR_DEFAULT_TEXT),
-  };
-
-  pageState.statusbar.buttons(
-    createStatusbarButtons({
-      options: 'disabled',
-      results: true,
-      reveal: 'disabled',
-      followers: 'disabled',
-    })
-  );
-
+  storage = await loadStorage({}, null, ['options'], []);
+  createStatusbar(storage.options);
   initOptionsPage();
   mountOptionsPage(options);
 }

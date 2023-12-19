@@ -16,6 +16,8 @@ import {
 
 import { raidTwitterPost } from './raid';
 
+import { createStatusbar as createStatusbarMain } from 'hx-statusbar';
+
 const console2 = myConsole();
 
 // DATA ----------------------------------------------------------------------------------
@@ -145,119 +147,6 @@ export async function addRevealAlphabotRafflesRequest() {
   return url;
 }
 
-export function createStatusbarButtons({
-  options = true,
-  help = false,
-  results = true,
-  raffles = true,
-  reveal = true,
-  followers = false,
-  followers2 = true,
-  followers3 = true,
-  followers4 = true,
-  raid = true,
-} = {}) {
-  console2.log(
-    'createStatusbarButtons; options, help, results, reveal, followers:',
-    options,
-    help,
-    results,
-    raffles,
-    reveal,
-    followers
-  );
-
-  const buttons = [];
-
-  const add = (text, title, handler) => {
-    const btn = document.createElement('button');
-    btn.innerText = text;
-    btn.title = title;
-    if (typeof handler === 'function') {
-      btn.addEventListener('click', handler);
-    } else {
-      btn.disabled = true;
-    }
-    buttons.push(btn);
-  };
-
-  if (options) {
-    const callback =
-      options === 'disabled' ? '' : () => chrome.runtime.sendMessage({ cmd: 'openOptionsPage' });
-    add('Options', 'Open Premint Helper Options page', callback);
-  }
-
-  if (help) {
-    const callback =
-      help === 'disabled'
-        ? ''
-        : () =>
-            chrome.runtime.sendMessage({
-              cmd: 'openTab',
-              active: true,
-              url: chrome.runtime.getURL('/help.html'),
-            });
-    add('Help', 'Open Premint Helper Help page', callback);
-  }
-
-  results = true;
-  if (results) {
-    const callback =
-      results === 'disabled'
-        ? ''
-        : () =>
-            chrome.runtime.sendMessage({
-              cmd: 'openTab',
-              active: true,
-              url: chrome.runtime.getURL('raffleResults.html'),
-            });
-    add('Wins', 'Open Premint Helper Raffle Wins page', callback);
-  }
-
-  raffles = true;
-  if (raffles) {
-    const callback =
-      raffles === 'disabled'
-        ? ''
-        : () =>
-            chrome.runtime.sendMessage({
-              cmd: 'openTab',
-              active: true,
-              url: chrome.runtime.getURL('raffles.html'),
-            });
-    add('Live Raffles', 'Open Live Raffles page', callback);
-  }
-
-  if (reveal) {
-    add('Reveal', 'Reveal odds and previously won wallets for all supported raffles on page', reveal);
-  }
-
-  if (followers4) {
-    add('T3', 'Re-lookup follower counts for non-expired Twitter links on page', followers);
-  }
-
-  if (followers3) {
-    add('T2', 'Re-lookup follower counts for expired Twitter links on page', followers);
-  }
-
-  if (followers2) {
-    add('T1', 'Lookup follower counts for new Twitter links on page', followers);
-  }
-
-  if (followers) {
-    add('Twitter', 'Lookup follower counts for Twitter links on page...', followers);
-  }
-
-  if (raid) {
-    const callback = raid === 'disabled' ? '' : raidTwitterPost;
-    add('Raid', 'Raid Twitter post', callback);
-  }
-
-  console.trace('createStatusbarButtons:', buttons);
-
-  return buttons.reverse();
-}
-
 function setPageBodyClass(className) {
   document.body.classList.add(className);
 }
@@ -304,7 +193,7 @@ export function exitActionMain(result, context, options) {
       if (options.retries) {
         handleRetries(context, options.retries, options.retrySecs);
       } else {
-        context.updateStatusbarInfo(`Raffle error`);
+        context.updateStatusbarInfo(`Raffle error (2)`);
       }
       context.pageState.pause = true;
     }
@@ -597,7 +486,7 @@ export async function finishTask(request, sender, context) {
   if (context.pageState.pendingRequests.length === 0) {
     console2.info('All required links finished, but gone one finished task anyway?!');
   } else {
-    console2.info('Not all required links finished yet!');
+    console2.info('Not all required links finished yet!', context.pageState.pendingRequests);
   }
 
   if (context.options.TWITTER_QUEUE_TASK_LINKS & request.twitter) {
@@ -681,12 +570,6 @@ export function getCookie(name) {
   const value = `; ${document.cookie}`;
   const parts = value.split(`; ${name}=`);
   if (parts.length === 2) return parts.pop().split(';').shift();
-}
-
-export function lookupTwitterFollowersClickEventHandler(event) {
-  event.preventDefault();
-  event.stopImmediatePropagation();
-  chrome.runtime.sendMessage({ cmd: 'lookupTwitterFollowersFromBtn' });
 }
 
 export function normalizeDiscordHandle(s) {
@@ -1087,4 +970,109 @@ export function notifyRaid(request) {
     `Done raiding ${request.fromUrl}.\n\nRetweeted post URL is copied to clipboard after closing this dialog.`
   );
   copyToTheClipboard(request.replyUrl);
+}
+
+export function createStatusbar(options, { text = STATUSBAR_DEFAULT_TEXT, buttons = {} } = {}) {
+  console.log('createStatusbar', buttons);
+  return createStatusbarMain(text, {
+    hideTimeShort: options.STATUSBAR_HIDE_TIME_SHORT * 1000 || 6000,
+    hideTimeLong: options.STATUSBAR_HIDE_TIME_LONG * 1000 || 60000,
+    buttons: createStatusbarButtons({
+      options: true,
+      results: true,
+      raffles: true,
+      twitter: true,
+      raid: false,
+      reveal: false,
+      ...buttons,
+    }),
+  });
+}
+
+export function createStatusbarButtons({ options, results, raffles, reveal, raid, twitter, help } = options) {
+  console.log('createStatusbarButtons', options);
+
+  const buttons = [];
+
+  const add = (text, title, handler) => {
+    const btn = document.createElement('button');
+    btn.innerText = text;
+    btn.title = title;
+    if (typeof handler === 'function') {
+      btn.addEventListener('click', handler);
+    } else {
+      btn.disabled = true;
+    }
+    buttons.push(btn);
+  };
+
+  const makeCallback = (val, cb) => (val === 'disabled' ? '' : cb);
+
+  if (options) {
+    const callback = makeCallback(options, () => chrome.runtime.sendMessage({ cmd: 'openOptionsPage' }));
+    add('Options', 'Open Premint Helper Options page', callback);
+  }
+
+  if (help) {
+    const callback = makeCallback(help, () =>
+      chrome.runtime.sendMessage({
+        cmd: 'openTab',
+        active: true,
+        url: chrome.runtime.getURL('/help.html'),
+      })
+    );
+    add('Help', 'Open Premint Helper Help page', callback);
+  }
+
+  if (results) {
+    const callback = makeCallback(results, () =>
+      chrome.runtime.sendMessage({
+        cmd: 'openTab',
+        active: true,
+        url: chrome.runtime.getURL('raffleResults.html'),
+      })
+    );
+    add('Wins', 'Open Premint Helper Raffle Wins page', callback);
+  }
+
+  if (raffles) {
+    const callback = makeCallback(raffles, () =>
+      chrome.runtime.sendMessage({
+        cmd: 'openTab',
+        active: true,
+        url: chrome.runtime.getURL('raffles.html'),
+      })
+    );
+    add('Raffles', 'Open Live Raffles page', callback);
+  }
+
+  if (raid) {
+    add('Raid', 'Raid Twitter post', makeCallback(raid, raidTwitterPost));
+  }
+
+  if (reveal) {
+    add('Reveal', 'Reveal odds and previously won wallets for all supported raffles on page', reveal);
+  }
+
+  if (twitter) {
+    add('T3', 'Re-lookup follower counts for non-expired Twitter links on page', (event) =>
+      lookupTwitterFollowersClickEventHandler(event, 3)
+    );
+    add('T2', 'Re-lookup follower counts for expired Twitter links on page', (event) =>
+      lookupTwitterFollowersClickEventHandler(event, 2)
+    );
+    add('Twitter', 'Lookup follower counts for new Twitter links on page', (event) =>
+      lookupTwitterFollowersClickEventHandler(event, 1)
+    );
+  }
+
+  console.trace('createStatusbarButtons:', buttons);
+
+  return buttons.reverse();
+}
+
+export function lookupTwitterFollowersClickEventHandler(event, scope = 0) {
+  event.preventDefault();
+  event.stopImmediatePropagation();
+  chrome.runtime.sendMessage({ cmd: 'lookupTwitterFollowersFromBtn', scope });
 }
