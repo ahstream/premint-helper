@@ -93,8 +93,8 @@ function initEventHandlers() {
 async function runPage() {
   console2.info('runPage');
 
-  const request1 = await dispatch(window.location.href.replace('x.com', 'twitter.com'), 5 * 60);
-  const request2 = await dispatch(window.location.href.replace('twitter.com', 'x.com'), 5 * 60);
+  const request1 = await dispatch(window.location.href.replace('x.com', 'twitter.com'), 5 * 60, true);
+  const request2 = await dispatch(window.location.href.replace('twitter.com', 'x.com'), 5 * 60, true);
   const request = request1 || request2;
 
   console2.info('Dispatched request:', request);
@@ -103,6 +103,12 @@ async function runPage() {
 
   if (window.location.href.includes('/account/access')) {
     return await handleLockedTwitterAccount({ pageState });
+  }
+
+  if (request?.action === 'unlocked') {
+    await chrome.runtime.sendMessage({ cmd: 'broadcast', request: { cmd: 'unlockedTwitterAccount' } });
+    window.close();
+    return;
   }
 
   if (pageState.action === 'raid') {
@@ -204,7 +210,7 @@ async function runSwitchToUser() {
 async function runHomePage() {
   console2.info('runHomePage');
 
-  const request = await dispatch(window.location.href, 60, true);
+  const request = pageState.request; // await dispatch(window.location.href, 60, true);
   //const request2 = await dispatch(urlWithoutArgs(window.location.href), 60, true);
   //const request = request1?.action ? request1 : request2;
 
@@ -221,12 +227,6 @@ async function runHomePage() {
       to: request.parentTabId,
       request: { cmd: 'switchedToTwitterUser', user: request.user, ok: true },
     });
-    window.close();
-    return;
-  }
-
-  if (request?.action === 'unlocked') {
-    await chrome.runtime.sendMessage({ cmd: 'broadcast', request: { cmd: 'unlockedTwitterAccount' } });
     window.close();
     return;
   }
@@ -252,7 +252,7 @@ async function runMainLoop() {
 
   console.log(await getStorageData());
 
-  const request = await dispatch(window.location.href, 60, true);
+  const request = pageState.request; // await dispatch(window.location.href, 60, true);
   console.log('request', request);
 
   if (request?.action === 'visit') {

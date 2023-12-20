@@ -235,6 +235,15 @@ a:hover.show-provider {
   text-decoration: underline;
 }
 
+a.my-team {
+  background: #d6fdcb;
+  color: black;
+}
+
+a.my-team:not(.first) {
+  color: black;
+}
+
 a.background-link {
   margin-left: 3px;
   cursor: pointer;

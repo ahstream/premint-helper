@@ -126,7 +126,9 @@ export async function handleLockedTwitterAccount() {
   if (btn) {
     await sleep(2000);
     await addPendingRequest('https://twitter.com/', { action: 'unlocked' });
+    await sleep(200);
     btn.click();
+    await sleep(200);
     return;
   }
 }

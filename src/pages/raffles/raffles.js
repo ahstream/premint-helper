@@ -193,6 +193,7 @@ async function showPage() {
   );
 
   updateAlphabotSelectedRaffles();
+  console.log('foobar');
   showRafflesTableForOne('alphabotSelected', 'Selected Alphabot Raffles', '', skipDups);
   showRafflesTableForOne('alphabotMine', 'My Alphabot Raffles', '', skipDups);
   showRafflesTableForOne('alphabotAll', 'All Alphabot Raffles', '', skipDups);
@@ -409,7 +410,9 @@ async function updateSearchRafflesOne(key, header, query, authKeyLuckygo, authKe
       statusLogger.sub(`Invalid search query (need to be >= 2 characters):`, query);
       continue;
     }
-    statusLogger.main(`Fetching raffles for ${key} search query ${i + 1} of ${queries.length}: ${query}`);
+    statusLogger.main(
+      `Fetching raffles for (${header}) search query ${i + 1} of ${queries.length}: ${query}`
+    );
 
     const alphabotRaffles = await getAlphabotRaffles(null, {
       statusLogger,
@@ -832,9 +835,14 @@ function createRafflesTable(packedRafflesIn, header, subHeader, sectionId, { all
         url: x.url,
         text: trimText(x.teamName, MAX_LEN_TEAM_NAME),
         fullText: x.name,
+        raffle: x,
       };
     });
-    row.appendChild(createCell(createMultiLinks(teamNames, { className: 'raffle-link', target: '_blank' })));
+    const isMyTeams = teamNames.map((x) => isMyTeam(x.raffle));
+    const classNames = isMyTeams.map((x) => (x ? 'my-team' : ''));
+    row.appendChild(
+      createCell(createMultiLinks(teamNames, { className: 'raffle-link', classNames, target: '_blank' }))
+    );
 
     // CELL: raffle links + query
     const raffleLinks = parent.raffles.map((x) => {
@@ -1046,7 +1054,7 @@ function createMultiTexts(
 
 function createMultiLinks(
   links,
-  { target, className, addBackgroundLink = true, addIgnoreLink, raffles } = {}
+  { target, className, classNames, addBackgroundLink = true, addIgnoreLink, raffles } = {}
 ) {
   const elem = document.createElement('SPAN');
   elem.style.whiteSpace = 'nowrap';
@@ -1057,19 +1065,22 @@ function createMultiLinks(
     if (!isFirst) {
       elem.appendChild(document.createElement('BR'));
     }
-    const thisClass = `${className || ''} ${isFirst ? 'first' : ''} ${link.isNew ? 'is-new' : ''} ${
+    const baseClass = `${className || ''} ${isFirst ? 'first' : ''} ${link.isNew ? 'is-new' : ''} ${
+      link.isUpdated ? 'is-updated' : ''
+    } ${classNames?.length && classNames[idx] ? classNames[idx] : ''}`.trim();
+    const subLinkClass = `${className || ''} ${isFirst ? 'first' : ''} ${link.isNew ? 'is-new' : ''} ${
       link.isUpdated ? 'is-updated' : ''
     }`.trim();
     const thisUrl = pageState.permissions?.enabled ? link.url : 'http://example.org/hidden-premium-feature';
     const thisText = pageState.permissions?.enabled ? link.text : 'Hidden Raffle Name';
     if (addIgnoreLink) {
-      elem.appendChild(createIgnoreLink(raffles[idx], { className: thisClass }));
+      elem.appendChild(createIgnoreLink(raffles[idx], { className: subLinkClass }));
     }
     elem.appendChild(
-      createLink(thisUrl, thisText, { target, className: thisClass, fullText: link.fullText })
+      createLink(thisUrl, thisText, { target, className: baseClass, fullText: link.fullText })
     );
     if (addBackgroundLink) {
-      elem.appendChild(createBackgroundLink(thisUrl, '+', { className: thisClass }));
+      elem.appendChild(createBackgroundLink(thisUrl, '+', { className: subLinkClass }));
     }
     isFirst = false;
     idx++;
@@ -1481,4 +1492,24 @@ function createLabel(text, className) {
   const elem = createElement('label', className);
   elem.innerText = text;
   return elem;
+}
+
+export function isMyTeam(raffle) {
+  const searchFor = raffle.teamName?.toLowerCase();
+  const searchFrom = raffle.name?.toLowerCase();
+  console.log('isMyTeam:', searchFor, searchFrom, storage.options.RAFFLE_LIST_MY_TEAMS);
+
+  if (!pageState.myTeams) {
+    pageState.myTeams = storage.options.RAFFLE_LIST_MY_TEAMS.map((x) => x.split(','))
+      .flat()
+      .map((x) => x.toLowerCase().trim());
+  }
+
+  const found1 = pageState.myTeams.includes(searchFor);
+  const found2 = pageState.myTeams.find((x) => searchFrom.includes(x));
+  const found = !!(found1 || found2);
+
+  console.log('isMyTeam result:', searchFor, searchFrom, found, pageState.myTeams);
+
+  return found;
 }

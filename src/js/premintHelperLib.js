@@ -164,19 +164,19 @@ export function exitActionMain(result, context, options) {
     );
     context.pageState.pause = true;
     context.pageState.done = true;
-    chrome.runtime.sendMessage({ cmd: 'focusMyTab' });
+    focusMyTabOnce(context.pageState);
   }
   if (result === 'raffleCaptcha') {
     context.updateStatusbarError('Raffle has captcha! First solve captcha, then click register button.');
     context.pageState.pause = true;
-    chrome.runtime.sendMessage({ cmd: 'focusMyTab' });
+    focusMyTabOnce(context.pageState);
   }
   if (result === 'invalidContext') {
     context.updateStatusbarError(
       'Chrome Extension is not recognized by web page. Reload extension and webpage and try again.'
     );
     context.pageState.pause = true;
-    chrome.runtime.sendMessage({ cmd: 'focusMyTab' });
+    focusMyTabOnce(context.pageState);
   }
   if (result === 'raffleUnknownError') {
     context.updateStatusbarError('Raffle error');
@@ -203,19 +203,20 @@ export function exitActionMain(result, context, options) {
     context.updateStatusbarOk('You won a raffle for this project from the same team already');
     context.removeQuickRegBtn();
     context.pageState.pause = true;
-    chrome.runtime.sendMessage({ cmd: 'focusMyTab' });
+    focusMyTabOnce(context.pageState);
   }
   if (result === 'walletConnectDialog') {
     context.updateStatusbarError('Raffle has wallet connect dialog, need to be done manually');
     context.pageState.pause = true;
-    chrome.runtime.sendMessage({ cmd: 'focusMyTab' });
+    focusMyTabOnce(context.pageState);
   }
   if (result === 'doingItTooOften') {
     context.updateStatusbarError('Alphabot says you are doing that too often. Please try again later.');
     context.pageState.pause = true;
-    chrome.runtime.sendMessage({ cmd: 'focusMyTab' });
+    focusMyTabOnce(context.pageState);
   }
   if (result === 'registered') {
+    focusMyTabOnce(context.pageState);
     context.pageState.done = true;
     context.updateStatusbarOk('You are registered');
     context.removeQuickRegBtn();
@@ -225,7 +226,6 @@ export function exitActionMain(result, context, options) {
     closeRaffleWhenFinished(context);
     cleanupRaffleWhenFinished(context);
     closeTasksWhenFinished(context);
-    chrome.runtime.sendMessage({ cmd: 'focusMyTab' });
   }
   if (result === 'notRegisterProperly') {
     context.updateStatusbarError('Raffle does not seem to register properly');
@@ -254,13 +254,13 @@ export function exitActionMain(result, context, options) {
     context.updateStatusbarError('Cannot recognize raffle elements');
     context.removeQuickRegBtn();
     context.pageState.pause = true;
-    chrome.runtime.sendMessage({ cmd: 'focusMyTab' });
+    focusMyTabOnce(context.pageState);
   }
   if (result === 'noRaffleRegisterBtn') {
     context.updateStatusbarError('Cannot recognize Register button');
     context.removeQuickRegBtn();
     context.pageState.pause = true;
-    chrome.runtime.sendMessage({ cmd: 'focusMyTab' });
+    focusMyTabOnce(context.pageState);
   }
   if (result === 'ignoredRaffle') {
     context.updateStatusbar('Raffle is ignored');
@@ -286,6 +286,20 @@ export function exitActionMain(result, context, options) {
   } else {
     //chrome.runtime.sendMessage({ cmd: 'focusMyTab' });
   }
+}
+
+function focusMyTabOnce(pageState) {
+  if (pageState?.tabFocused) {
+    return;
+  }
+  if (pageState) {
+    pageState.tabFocused = true;
+  }
+  focusMyTab();
+}
+
+function focusMyTab() {
+  chrome.runtime.sendMessage({ cmd: 'focusMyTab' });
 }
 
 function minimizeVerifiedRaffle(context) {
@@ -955,17 +969,13 @@ export async function copyToTheClipboard(textToCopy) {
   document.body.removeChild(el);
 }
 
-export function focusMyPage() {
-  chrome.runtime.sendMessage({ cmd: 'focusMyTab' });
-}
-
 export function notifyRaid(request) {
   if (!window.raidStarted) {
     console.log('Ignore raid result');
     return;
   }
   window.raidStarted = false;
-  focusMyPage();
+  focusMyTab();
   window.alert(
     `Done raiding ${request.fromUrl}.\n\nRetweeted post URL is copied to clipboard after closing this dialog.`
   );

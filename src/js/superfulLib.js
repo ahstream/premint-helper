@@ -69,7 +69,7 @@ export async function getAuth(context) {
 export async function getRaffles(authKey, options) {
   const raffles = await fetchRaffles(authKey, options);
   console.log('raffles', raffles);
-  return raffles.map((x) => convertRaffle(x));
+  return raffles.length ? raffles.map((x) => convertRaffle(x)) : [];
 }
 
 async function fetchRaffles(authKey, { search_text = '', page_size = 12, interval, max, statusLogger } = {}) {

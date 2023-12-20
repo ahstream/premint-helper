@@ -135,7 +135,6 @@ async function runNow() {
 async function runPage() {
   console2.log('runPage');
 
-  const statusbar = createStatusbar(storage.options);
   const hashArgs = createHashArgs(window.location.hash);
   const permissions = await getPermissions();
 
@@ -158,15 +157,14 @@ async function runPage() {
     []
   );
   console.log('storage', storage);
-
-  // storage.superful = {}; // todo
+  initStorage();
 
   initEventHandlers(pageState);
 
   pageState = {
     ...pageState,
     hashArgs,
-    statusbar,
+    statusbar: createStatusbar(storage.options),
     permissions,
     observer: await createTwitterObserver({ permissions }),
   };
@@ -174,8 +172,6 @@ async function runPage() {
 
   resetSubStatus();
   updateMainStatus('');
-
-  initStorage();
 
   checkIfSubscriptionEnabled(pageState.permissions, false, pageState.statusbar.warn);
 
