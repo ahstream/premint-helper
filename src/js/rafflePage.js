@@ -1069,5 +1069,6 @@ async function handleDiscordCaptcha() {
 async function reloadStorage() {
   const keys = provider.storageKeys?.length ? provider.storageKeys : ['options'];
   storage = await loadStorage({ keys });
+  await provider.setStorage(storage);
   console2.info('storage', storage);
 }

@@ -446,6 +446,8 @@ function hasProjectWinsChanged(oldWins, newWins) {
     oldWins
   );
 
+  // todo if diff length, check if all new wins is in old wins -> not changed!
+
   if (Object.getOwnPropertyNames(oldWins).length !== Object.getOwnPropertyNames(newWins).length) {
     console.log('length <> length');
     return true;

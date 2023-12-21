@@ -9,6 +9,7 @@ import {
 
 import { raid, isTwitterPage } from './twitterLib';
 import { getFirstTwitterStatusLink, getActiveServerName, isDiscordPage } from './discordLib';
+import { copyToTheClipboard } from './premintHelperLib';
 
 const console2 = myConsole();
 console2.log();
@@ -27,10 +28,10 @@ export async function raidTwitterPost({ gotoPost = true } = {}) {
   console.log('isDiscordPage(href)', isDiscordPage(href));
   console.log('isTwitterPage(href)', isTwitterPage(href));
   if (isDiscordPage(href)) {
-    return raidFromDiscordPage();
+    return raidLiteFromDiscordPage();
   }
   if (isTwitterPage(href)) {
-    return raidFromTwitterPage({ gotoPost });
+    return raidLiteFromTwitterPage({ gotoPost });
   }
 }
 
@@ -50,6 +51,29 @@ export async function raidFromDiscordPage() {
   return true;
 }
 
+export async function raidLiteFromDiscordPage() {
+  console.log('raid discord');
+
+  const url = getFirstTwitterStatusLink();
+  if (!url) {
+    return false;
+  }
+
+  storage = await getStorageItems(['options']);
+  console.log('storage', storage);
+
+  const team = getActiveServerName();
+  const raidText = getRaidText(storage.options, team);
+
+  copyToTheClipboard(raidText);
+
+  //await addPendingRequest(url, { action: 'raid', team });
+  window.open(url, '_blank');
+  //chrome.runtime.sendMessage({ cmd: 'openTab', url, active: true });
+
+  return true;
+}
+
 export async function raidFromTwitterPage({ team = null, gotoPost = true }) {
   console.log('raidFromTwitterPage', team, gotoPost);
 
@@ -62,6 +86,18 @@ export async function raidFromTwitterPage({ team = null, gotoPost = true }) {
   await raidFromTwitterPageProcess(raidText, gotoPost);
 }
 
+export async function raidLiteFromTwitterPage({ team = null }) {
+  console.log('raidLiteFromTwitterPage', team);
+
+  storage = await getStorageItems(['options']);
+  console.log('storage', storage);
+
+  const raidText = getRaidText(storage.options, team);
+  console.log('raidText', raidText);
+
+  copyToTheClipboard(raidText);
+}
+
 async function raidFromTwitterPageProcess(raidText, gotoPost) {
   console.log('raidFromTwitterPageProcess', raidText, gotoPost);
 
@@ -72,16 +108,6 @@ async function raidFromTwitterPageProcess(raidText, gotoPost) {
     return false;
   }
 
-  /*
-  if (parentTabId) {
-    chrome.runtime.sendMessage({
-      cmd: 'raidTwitterPostDone',
-      to: parentTabId,
-      srcUrl: window.location.href,
-      replyUrl,
-    });
-  }
-  */
   await chrome.runtime.sendMessage({
     cmd: 'broadcast',
     request: {

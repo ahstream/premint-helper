@@ -4,7 +4,7 @@ import '../styles/twitterPage.css';
 
 import { switchToUser, isEmptyPage, handleAccountAccess, waitForPageLoaded } from './twitterLib.js';
 
-import { raidFromTwitterPage } from './raid.js';
+import { raidLiteFromTwitterPage } from './raid.js';
 
 import {
   getStorageData,
@@ -147,7 +147,7 @@ async function runUnlocked() {
 
 async function runRaid() {
   await waitForPageLoaded();
-  await raidFromTwitterPage({ team: pageState.request.team, gotoPost: true });
+  await raidLiteFromTwitterPage({ team: pageState.request.team, gotoPost: true });
 }
 
 /*
