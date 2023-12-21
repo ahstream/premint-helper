@@ -50,6 +50,25 @@ function messageHandler(request, sender, sendResponse) {
   });
   */
 
+    case 'debugger':
+      chrome.debugger.attach({ tabId: sender.tab.id }, '1.2', function () {
+        chrome.debugger.sendCommand({ tabId: sender.tab.id }, 'Input.dispatchMouseEvent', {
+          type: 'mousePressed',
+          button: 'left',
+          clickCount: 1,
+          x: parseFloat(request.x),
+          y: parseFloat(request.y),
+        });
+        chrome.debugger.sendCommand({ tabId: sender.tab.id }, 'Input.dispatchMouseEvent', {
+          type: 'mouseReleased',
+          button: 'left',
+          clickCount: 1,
+          x: parseFloat(request.x),
+          y: parseFloat(request.y),
+        });
+      });
+      break;
+
     case 'ping':
       console.log('sender.tab:', sender.tab);
       chrome.tabs.sendMessage(sender.tab.id, { cmd: 'pong' });

@@ -4,7 +4,15 @@
   "version": "1.0.17",
   "manifest_version": 3,
   "key": "MIIBIjANBgkqhkiG9w0BAQEFAAOCAQ8AMIIBCgKCAQEAtBG2GzzMaindjNnmdcuwljsoeodL8HETZtNpUiUCPsFigwQQ66WJvKkNH3M5d5McBrOdV39C1uR7iePIOKJ4PiCiMVr2IBo0NhdxrMQm5MUZhwgRgNqIHll732BLfxsralHHxw4nLEDiPY5kwJu9wEXX06pwOwVaBB4Xv0FVYdTeQlI7V/Za02IMqIu9NUnsdwrlCAbYEA2qJy+LxvPY9Y/lNF4cmhEw5JzqET6UviOj9q3hb++41FPTgTLB7O4j5myT4f8v3Qt8ko9aqX0KTPiqLFl4UGoyaFNIZhLFLWUBcY20TzczQFr9tdiTufqFEPKtY4YesAvcwstTK4OvhQIDAQAB",
-  "permissions": ["storage", "unlimitedStorage", "activeTab", "tabs", "webNavigation", "clipboardWrite"],
+  "permissions": [
+    "storage",
+    "unlimitedStorage",
+    "activeTab",
+    "tabs",
+    "webNavigation",
+    "clipboardWrite",
+    "debugger"
+  ],
 
   "options_ui": {
     "page": "options.html",

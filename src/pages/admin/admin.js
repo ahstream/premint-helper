@@ -52,6 +52,45 @@ async function runPage() {
   document.getElementById('hx-optimize-storage').addEventListener('click', () => optimizeStorageHandler());
   document.getElementById('hx-reset-storage').addEventListener('click', () => resetStorageHandler());
   document.getElementById('hx-get-alphabot-calendar').addEventListener('click', () => getAlphabotCalendar());
+
+  document.getElementById('hx-event-click1').addEventListener('click', (event) => {
+    console.log('click1 event.isTrusted, event:', event.isTrusted, event);
+    /*
+    const elem = document.getElementById('hx-event-click2');
+    elem.click();
+    simulateClick(elem);
+
+    var changeEvent = new Event('click', { bubbles: true });
+    elem.dispatchEvent(changeEvent);
+    */
+    const elem2 = document.getElementById('hx-event-click2');
+    var rect = elem2.getBoundingClientRect();
+    console.log(rect);
+    console.log('elem2:', elem2);
+
+    chrome.runtime.sendMessage({ cmd: 'debugger', x: rect.left + 5, y: rect.top + 5 });
+  });
+
+  document.getElementById('hx-event-click2').addEventListener('click', (event) => {
+    console.log('click2 event.isTrusted, event:', event.isTrusted, event);
+  });
+
+  document.getElementById('hx-event-click2').addEventListener('mousedown', (event) => {
+    console.log('mousedown event.isTrusted, event:', event.isTrusted, event);
+  });
+
+  document.getElementById('hx-event-click2').addEventListener('mouseup', (event) => {
+    console.log('mouseup event.isTrusted, event:', event.isTrusted, event);
+  });
+
+  /*
+  document.getElementById('main').addEventListener('mouseup', (event) => {
+    console.log('mouseup event.isTrusted, event:', event.isTrusted, event);
+  });
+  document.getElementById('main').addEventListener('mousedown', (event) => {
+    console.log('mousedown event.isTrusted, event:', event.isTrusted, event);
+  });
+  */
 }
 
 async function getAlphabotCalendar() {

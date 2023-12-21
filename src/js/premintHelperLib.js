@@ -863,24 +863,30 @@ export function initBaseEventHandlers(pageState) {
 
 // STORAGE -----------------------------------------------------
 
-export async function loadStorage(storage, key = null, keys = [], base = []) {
-  console.log('loadStorage', storage, key, keys, base);
+export async function saveStorage(storage) {
+  await setStorageData(storage);
+}
+
+export async function loadStorage({ to = {}, key = null, keys = [], ensure = [] } = {}) {
+  console.log('loadStorage', to, key, keys, ensure);
+
+  let storage = to;
 
   if (key) {
     const storageTemp = await getStorageItems([key]);
     storage[key] = storageTemp[key];
-    console2.info('Load storage by key:', key, storage);
+    console2.info('Load storage by key:', key, to);
   } else {
     storage = await getStorageItems(keys?.length ? keys : null);
     console2.info('Load storage by keys:', keys, storage);
   }
-  return await setBaseStorage(storage, base);
+  return await setBaseStorage(storage, ensure);
 }
 
-async function setBaseStorage(storage, base) {
-  console2.info('Set base storage:', storage, base);
+async function setBaseStorage(storage, ensure) {
+  console2.info('Set ensure storage:', storage, ensure);
   let modified = false;
-  base.forEach((b) => {
+  ensure.forEach((b) => {
     if (!storage[b.key]) {
       storage[b.key] = b.val;
       modified = true;
@@ -888,7 +894,7 @@ async function setBaseStorage(storage, base) {
   });
   if (modified) {
     await setStorageData(storage);
-    console2.info('Base storage modified!', storage);
+    console2.info('Ensure storage modified!', storage);
   }
   return storage;
 }

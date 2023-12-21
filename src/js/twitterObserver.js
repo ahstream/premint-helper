@@ -5,6 +5,7 @@ import {
   reloadOptions,
   getMyTabIdFromExtension,
   normalizeTwitterHandle,
+  loadStorage,
 } from './premintHelperLib.js';
 
 import {
@@ -16,7 +17,6 @@ import {
   extractTwitterHandle,
   //ONE_DAY,
   noDuplicates,
-  getStorageItems,
   setStorageData,
   createLogLevelArg,
   daysBetween,
@@ -58,7 +58,8 @@ function logError(text) {
 export async function createObserver({ permissions, cacheTwitterHours = 72, logger = null } = {}) {
   console2.trace('createObserver:', ...arguments);
 
-  await reloadStorage();
+  storage = await loadStorage({ keys: ['options', 'twitterObserver', 'projectObserver'] });
+  console2.info('storage', storage);
 
   if (!storage.twitterObserver) {
     storage.twitterObserver = {};
@@ -283,6 +284,7 @@ async function lookupTwitterFollowersScope(urls, key) {
   if (storage.options.TWITTER_FETCH_FOLLOWERS_USER && !(await switchTwitterUserBeforeFetchingFollowers())) {
     return;
   }
+  await sleep(2000, null, 0.2);
 
   let ct = 0;
   for (const url of useUrls) {
@@ -291,7 +293,7 @@ async function lookupTwitterFollowersScope(urls, key) {
     console2.log(`Get Twitter followers ${ct}/${useUrls.length}: ${url}`);
     if (await fetchTwitterUser(url, pageState.myTabId)) {
       chrome.runtime.sendMessage({ cmd: 'focusMyTab' });
-      await sleep(2000);
+      await sleep(storage.options.TWITTER_LOOKUPS_SLEEP_BETWEEN, null, 0.1);
     }
   }
 
@@ -563,14 +565,4 @@ function saveTwitter() {
     setStorageData({ twitterObserver: storage.twitterObserver });
     pageState.twitterModified = false;
   }, 2000);
-}
-
-async function reloadStorage(key = null) {
-  if (!key) {
-    storage = await getStorageItems(['options', 'twitterObserver', 'projectObserver']);
-  } else {
-    const storageTemp = await getStorageItems([key]);
-    storage[key] = storageTemp[key];
-  }
-  console2.all('reloadStorage:', storage);
 }

@@ -62,7 +62,7 @@ function onLoad() {
   pageState = {
     hashArgs,
     parentTabId: hashArgs.getOne('id'),
-    statusbar: createStatusbar(storage.options),
+    statusbar: createStatusbar(storage.options, { buttons: { raid: true } }),
   };
   console2.info('PageState:', pageState);
   runPage();

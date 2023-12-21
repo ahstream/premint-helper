@@ -10,9 +10,13 @@ import {
   stripEmojis,
 } from 'hx-lib';
 
-import { clickElement } from './premintHelperLib';
+import { clickElement, saveStorage } from './premintHelperLib';
 
 const console2 = myConsole();
+
+// DATA ----------------------------------------------------------------------------------
+
+const ACCOUNT_ACCESS_PERIOD = 60000;
 
 // IS ----------------------------------------------------------------------------------
 
@@ -117,13 +121,34 @@ export async function waitForUser(handleIn, myTabId, context, maxWait = 20000, i
   return null;
 }
 
-export async function handleLockedTwitterAccount() {
-  console2.info('handleLockedTwitterAccount');
+export async function handleAccountAccess(storage) {
+  console2.info('handleAccountAccess');
+
+  if (
+    storage.runtime.lastTwitterAccountAccess &&
+    storage.runtime.lastTwitterAccountAccess + ACCOUNT_ACCESS_PERIOD > Date.now()
+  ) {
+    console2.info('Skip duplicate Twitter account access page load');
+    return;
+  }
+
+  storage.runtime.lastTwitterAccountAccess = Date.now();
+  await saveStorage(storage);
 
   await chrome.runtime.sendMessage({ cmd: 'broadcast', request: { cmd: 'lockedTwitterAccount' } });
 
-  const btn = await waitForSelector('input[type="submit"]', ONE_SECOND * 30, 250);
+  if (!storage.stats.twitterAccount) {
+    storage.stats.twitterAccount = {
+      softLocks: [],
+      hardLocks: [],
+    };
+  }
+
+  const btn = await waitForSelector('input[type="submit"]', ONE_SECOND * 10, 250);
   if (btn) {
+    storage.stats.twitterAccount.softLocks.push(Date.now());
+    await saveStorage(storage);
+
     await sleep(2000);
     await addPendingRequest('https://twitter.com/', { action: 'unlocked' });
     await sleep(200);
@@ -131,6 +156,9 @@ export async function handleLockedTwitterAccount() {
     await sleep(200);
     return;
   }
+
+  storage.stats.twitterAccount.hardLocks.push(Date.now());
+  await saveStorage(storage);
 }
 
 async function getBaseForStatusPage(maxWait, interval) {

@@ -10,13 +10,13 @@ import {
   normalizeTwitterHandle,
   normalizeDiscordHandle,
   createStatusbar,
+  loadStorage,
 } from './premintHelperLib';
 
 import {
   ONE_MINUTE,
   myConsole,
   createLogLevelArg,
-  getStorageItems,
   setStorageData,
   sleep,
   createHashArgs,
@@ -73,8 +73,7 @@ export async function initRafflePage(raffleProvider) {
   pageState.permissions = permissions;
   console2.info('PageState:', pageState);
 
-  await loadStorage();
-  console2.info('storage:', storage);
+  await reloadStorage();
 
   if (!storage?.options) {
     return console2.info('Options missing, exit!');
@@ -339,7 +338,7 @@ async function joinRaffle() {
     return;
   }
 
-  await loadStorage();
+  await reloadStorage();
 
   pageState.abort = false;
 
@@ -1067,13 +1066,8 @@ async function handleDiscordCaptcha() {
 
 // MISC HELPERS -------------------------------------
 
-async function loadStorage(key = null) {
-  if (!key) {
-    storage = await getStorageItems(provider.storageKeys);
-  } else {
-    const storageTemp = await getStorageItems([key]);
-    storage[key] = storageTemp[key];
-  }
-  provider.setStorage(storage);
-  console2.log('loadStorage:', key, storage);
+async function reloadStorage() {
+  const keys = provider.storageKeys?.length ? provider.storageKeys : ['options'];
+  storage = await loadStorage({ keys });
+  console2.info('storage', storage);
 }

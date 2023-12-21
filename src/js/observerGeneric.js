@@ -5,7 +5,6 @@ import {
   round,
   kFormatter,
   extractTwitterHandle,
-  getStorageItems,
   setStorageData,
   createLogLevelArg,
   isTwitterURL,
@@ -42,27 +41,7 @@ export async function createObserver({
     permissions,
   };
 
-  storage = await loadStorage(
-    {},
-    null,
-    [
-      'options',
-      'twitterObserver',
-      'projectObserver',
-      'allProjectWins',
-      'allProjectWins2',
-      'allProjectWinsMap',
-    ],
-    [
-      { key: 'twitterObserver', val: {} },
-      { key: 'projectObserver', val: {} },
-      { key: 'allProjectWins', val: {} },
-      { key: 'allProjectWins2', val: {} },
-      { key: 'allProjectWinsMap', val: {} },
-    ]
-  );
-
-  console2.trace('storage:', storage);
+  await reloadStorage();
 
   pageState.cacheTwitterHours =
     typeof cacheTwitterHours === 'undefined'
@@ -739,21 +718,23 @@ function makeRaffleOdds(entries, winners) {
   }
 }
 
-async function reloadStorage(key = null) {
-  console.info('reloadStorage start');
-  if (!key) {
-    storage = await getStorageItems([
+async function reloadStorage() {
+  storage = await loadStorage({
+    keys: [
       'options',
       'twitterObserver',
       'projectObserver',
       'allProjectWins',
       'allProjectWins2',
       'allProjectWinsMap',
-    ]);
-  } else {
-    const storageTemp = await getStorageItems([key]);
-    storage[key] = storageTemp[key];
-  }
-  console.info('reloadStorage end', storage);
-  console2.all('reloadStorage:', storage);
+    ],
+    ensure: [
+      { key: 'twitterObserver', val: {} },
+      { key: 'projectObserver', val: {} },
+      { key: 'allProjectWins', val: {} },
+      { key: 'allProjectWins2', val: {} },
+      { key: 'allProjectWinsMap', val: {} },
+    ],
+  });
+  console2.info('storage:', storage);
 }

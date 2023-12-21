@@ -458,7 +458,9 @@ const options = [
 runNow();
 
 async function runNow() {
-  storage = await loadStorage({}, null, ['options'], []);
+  storage = await loadStorage({ keys: ['options'] });
+  console.info('storage', storage);
+
   createStatusbar(storage.options);
   initOptionsPage();
   mountOptionsPage(options);

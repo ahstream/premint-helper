@@ -19,9 +19,25 @@ async function runNow() {
     // document.querySelector('#storage').style.display = 'none';
   }
 
-  storage = await loadStorage({}, null, ['options'], []);
+  storage = await loadStorage({ keys: ['options', 'stats'] });
+  console.info('storage', storage);
+
   createStatusbar(storage.options);
 
   initHelpPage();
   mountHelpPage();
+
+  addTwitterLockInfo();
+}
+
+function addTwitterLockInfo() {
+  const softLocks = storage.stats.twitterAccount?.softLocks || [];
+  const hardLocks = storage.stats.twitterAccount?.hardLocks || [];
+
+  document.getElementById('mount-twitter-locks').innerHTML = `
+  <h4>Soft locks</h4>
+  ${!softLocks.length ? ' None' : softLocks.map((x) => new Date(x).toLocaleString()).join('<br>')}
+  <h4>Hard locks</h4>
+  ${!hardLocks.length ? ' None' : hardLocks.map((x) => new Date(x).toLocaleString()).join('<br>')}
+    `;
 }

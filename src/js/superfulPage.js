@@ -88,6 +88,6 @@ async function getAuth() {
     to: pageState.parentTabId,
     request: { cmd: 'getAuth', val: token },
   });
-  await sleep(1);
+  await sleep(1200, 1500);
   window.close();
 }

@@ -2,20 +2,11 @@ console.info('twitterPage.js begin', window?.location?.href);
 
 import '../styles/twitterPage.css';
 
-import {
-  switchToUser,
-  isEmptyPage,
-  handleLockedTwitterAccount,
-  retweet,
-  like,
-  comment,
-  waitForPageLoaded,
-} from './twitterLib.js';
+import { switchToUser, isEmptyPage, handleAccountAccess, waitForPageLoaded } from './twitterLib.js';
 
 import { raidFromTwitterPage } from './raid.js';
 
 import {
-  getStorageItems,
   getStorageData,
   dispatch,
   sleep,
@@ -26,7 +17,7 @@ import {
   ONE_MINUTE,
 } from 'hx-lib';
 
-import { createStatusbar, notifyRaid } from './premintHelperLib';
+import { createStatusbar, notifyRaid, loadStorage } from './premintHelperLib';
 
 // import { createObserver as createTwitterObserver } from './twitterObserver.js';
 
@@ -46,8 +37,7 @@ let pageState = {
 runNow();
 
 async function runNow() {
-  storage = await getStorageItems(['options']);
-  console2.log('storage', storage);
+  await reloadStorage();
 
   if (!storage?.options) {
     return console2.info('Options missing, exit!');
@@ -64,11 +54,22 @@ function onLoad() {
   pageState = {
     hashArgs,
     parentTabId: hashArgs.getOne('id'),
-    statusbar: createStatusbar(storage.options),
+    statusbar: createStatusbar(storage.options, { buttons: { raid: true, twitter: false } }),
   };
   console2.info('PageState:', pageState);
   initEventHandlers();
   runPage();
+}
+
+async function reloadStorage() {
+  storage = await loadStorage({
+    keys: ['options', 'stats', 'runtime'],
+    ensure: [
+      { key: 'stats', val: {} },
+      { key: 'runtime', val: {} },
+    ],
+  });
+  console2.info('storage', storage);
 }
 
 // EVENT HANDLERS
@@ -96,56 +97,36 @@ async function runPage() {
   const request1 = await dispatch(window.location.href.replace('x.com', 'twitter.com'), 5 * 60, true);
   const request2 = await dispatch(window.location.href.replace('twitter.com', 'x.com'), 5 * 60, true);
   const request = request1 || request2;
-
   console2.info('Dispatched request:', request);
   pageState.request = request;
   pageState.action = request?.action;
 
   if (window.location.href.includes('/account/access')) {
-    return await handleLockedTwitterAccount({ pageState });
+    return await runAccountAccess();
   }
 
   if (request?.action === 'unlocked') {
-    await chrome.runtime.sendMessage({ cmd: 'broadcast', request: { cmd: 'unlockedTwitterAccount' } });
-    window.close();
-    return;
+    return await runUnlocked();
   }
 
   if (pageState.action === 'raid') {
-    await waitForPageLoaded();
-    return raidFromTwitterPage({ team: pageState.request.team, gotoPost: true });
-  }
-
-  if (pageState.hashArgs.getOne('retweet')) {
-    return runRetweet();
-  }
-
-  if (pageState.hashArgs.getOne('like')) {
-    return runLike();
-  }
-
-  if (pageState.hashArgs.getOne('comment')) {
-    return runComment(pageState.hashArgs.getOne('comment'));
-  }
-
-  if (pageState.hashArgs.getOne('raid')) {
-    return raidFromTwitterPage({ gotoPost: true });
+    return await runRaid();
   }
 
   if (pageState.hashArgs.getOne('switchToUser')) {
-    return runSwitchToUser();
+    return await runSwitchToUser();
   }
 
   if (pageState.hashArgs.getOne('getProfile')) {
-    return runGetProfile();
+    return await runGetProfile();
   }
 
   if (window.location.pathname === '/home') {
-    return runHomePage();
+    return await runHomePage();
   }
 
   if (window.location.pathname === '/') {
-    return runHomePage();
+    return await runHomePage();
   }
 
   await runMainLoop();
@@ -153,6 +134,23 @@ async function runPage() {
   console2.info('Exit runPage!');
 }
 
+async function runAccountAccess() {
+  await reloadStorage();
+  await handleAccountAccess(storage, { pageState });
+}
+
+async function runUnlocked() {
+  await chrome.runtime.sendMessage({ cmd: 'broadcast', request: { cmd: 'unlockedTwitterAccount' } });
+  await sleep(1200, 1500);
+  window.close();
+}
+
+async function runRaid() {
+  await waitForPageLoaded();
+  await raidFromTwitterPage({ team: pageState.request.team, gotoPost: true });
+}
+
+/*
 async function runRetweet() {
   console2.log('runRetweet');
   const result = await retweet();
@@ -173,6 +171,7 @@ async function runComment(text) {
   console2.log('result', result);
   return result;
 }
+*/
 
 async function runSwitchToUser() {
   console2.log('runSwitchToUser');
@@ -197,6 +196,7 @@ async function runSwitchToUser() {
       to: pageState.parentTabId,
       request: { cmd: 'switchedToTwitterUser', user, ok: true },
     });
+    await sleep(1200, 1500);
     window.close();
   } else {
     await chrome.runtime.sendMessage({
@@ -227,6 +227,7 @@ async function runHomePage() {
       to: request.parentTabId,
       request: { cmd: 'switchedToTwitterUser', user: request.user, ok: true },
     });
+    await sleep(1200, 1500);
     window.close();
     return;
   }
@@ -243,7 +244,7 @@ async function runGetProfile() {
     to: pageState.parentTabId,
     request: { cmd: 'profileResult', profile },
   });
-  await sleep(1);
+  await sleep(storage.options.TWITTER_LOOKUPS_SLEEP_BETWEEN, null, 0.1);
   window.close();
 }
 
@@ -270,7 +271,7 @@ async function runMainLoop() {
 }
 
 async function visitPage(request) {
-  await sleep(request.duration);
+  await sleep(request.duration, null, 0.2);
   window.close();
 }
 
@@ -334,3 +335,5 @@ function parseJSON(str) {
     return undefined;
   }
 }
+
+// MISC HELPERS -------------------------------------

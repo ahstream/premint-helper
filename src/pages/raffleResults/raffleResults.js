@@ -138,10 +138,8 @@ async function runPage() {
   const hashArgs = createHashArgs(window.location.hash);
   const permissions = await getPermissions();
 
-  storage = await loadStorage(
-    {},
-    null,
-    [
+  storage = await loadStorage({
+    keys: [
       'options',
       'wins',
       'allProjectWins',
@@ -154,9 +152,9 @@ async function runPage() {
       'luckygo',
       'superful',
     ],
-    []
-  );
-  console.log('storage', storage);
+  });
+  console2.info('storage', storage);
+
   initStorage();
 
   initEventHandlers(pageState);

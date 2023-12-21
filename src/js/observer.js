@@ -1,4 +1,4 @@
-import { trimWallet, walletToAlias, sortWallets } from './premintHelperLib';
+import { trimWallet, walletToAlias, sortWallets, loadStorage } from './premintHelperLib';
 import {
   timestampToLocaleString,
   sleep,
@@ -8,7 +8,6 @@ import {
   extractTwitterHandle,
   ONE_DAY,
   noDuplicates,
-  getStorageItems,
   setStorageData,
   myConsole,
   createLogLevelArg,
@@ -637,17 +636,9 @@ function makeRaffleOdds(entries, winners) {
   }
 }
 
-async function reloadStorage(key = null) {
-  if (!key) {
-    storage = await getStorageItems([
-      'options',
-      'twitterObserver',
-      'projectObserver',
-      'alphabotProjectWinners',
-    ]);
-  } else {
-    const storageTemp = await getStorageItems([key]);
-    storage[key] = storageTemp[key];
-  }
-  console2.log('reloadStorage:', storage);
+async function reloadStorage() {
+  storage = await loadStorage({
+    keys: ['options', 'twitterObserver', 'projectObserver', 'alphabotProjectWinners'],
+  });
+  console2.info('storage:', storage);
 }
