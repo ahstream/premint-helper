@@ -361,7 +361,7 @@ async function updateWins() {
 
   updateMainStatus('Raffle wins updated!');
 
-  showPage();
+  showPage({ isPageUpdate: true });
 
   if (storage.options.IS_MAIN_ACCOUNT && storage.options.CLOUD_MODE === 'load') {
     if (hasChanged) {
@@ -497,6 +497,7 @@ async function showPage({
   allRaffles = false,
   extended = false,
   updateStatus = true,
+  isPageUpdate = false,
 } = {}) {
   console2.log('showPage');
 
@@ -515,23 +516,45 @@ async function showPage({
   }
 
   appendWinsTable(
-    createWinsTable(storage.wins, 'All raffle providers', 'all-providers', { allRaffles, extended })
+    createWinsTable(storage.wins, 'All raffle providers', 'all-providers', {
+      allRaffles,
+      extended,
+      isPageUpdate,
+    })
   );
   appendWinsTable(
-    createWinsTable(storage.alphabot?.wins, 'Alphabot raffles', 'alphabot', { allRaffles, extended })
+    createWinsTable(storage.alphabot?.wins, 'Alphabot raffles', 'alphabot', {
+      allRaffles,
+      extended,
+      isPageUpdate,
+    })
   );
   appendWinsTable(
-    createWinsTable(storage.premint?.wins, 'Premint raffles', 'premint', { allRaffles, extended })
-  );
-  appendWinsTable(createWinsTable(storage.atlas?.wins, 'Atlas raffles', 'atlas', { allRaffles, extended }));
-  appendWinsTable(
-    createWinsTable(storage.luckygo?.wins, 'LuckyGo raffles', 'luckygo', { allRaffles, extended })
-  );
-  appendWinsTable(
-    createWinsTable(storage.superful?.wins, 'Superful raffles', 'superful', { allRaffles, extended })
+    createWinsTable(storage.premint?.wins, 'Premint raffles', 'premint', {
+      allRaffles,
+      extended,
+      isPageUpdate,
+    })
   );
   appendWinsTable(
-    createWinsTable(storage.wins, 'Debug', 'debug', { allColumns: true, allRaffles, extended })
+    createWinsTable(storage.atlas?.wins, 'Atlas raffles', 'atlas', { allRaffles, extended, isPageUpdate })
+  );
+  appendWinsTable(
+    createWinsTable(storage.luckygo?.wins, 'LuckyGo raffles', 'luckygo', {
+      allRaffles,
+      extended,
+      isPageUpdate,
+    })
+  );
+  appendWinsTable(
+    createWinsTable(storage.superful?.wins, 'Superful raffles', 'superful', {
+      allRaffles,
+      extended,
+      isPageUpdate,
+    })
+  );
+  appendWinsTable(
+    createWinsTable(storage.wins, 'Debug', 'debug', { allColumns: true, allRaffles, extended, isPageUpdate })
   );
 
   // await updateTwitterFollowers();
@@ -1255,7 +1278,7 @@ function createWinsTable(
   wins,
   header,
   id,
-  { allColumns = false, allRaffles = false, extended = false } = {}
+  { allColumns = false, allRaffles = false, extended = false, isPageUpdate = false } = {}
 ) {
   console2.log('createWinsTable wins', header, allColumns, wins);
 
@@ -1319,8 +1342,16 @@ function createWinsTable(
 
     // CELL: raffle links
     const raffleLinks = wins.map((x) => {
-      const isNew = x.hxCreated && x.hxCreated >= storage.results.lastWinsUpdatePrev;
-      const isUpdated = x.hxUpdated && x.hxUpdated >= storage.results.lastWinsUpdatePrev;
+      const isNew =
+        x.hxCreated &&
+        (isPageUpdate
+          ? x.hxCreated > storage.results.lastWinsUpdatePrev
+          : x.hxCreated >= storage.results.lastWinsUpdatePrev);
+      const isUpdated =
+        x.hxUpdated &&
+        (isPageUpdate
+          ? x.hxUpdated > storage.results.lastWinsUpdatePrev
+          : x.hxUpdated >= storage.results.lastWinsUpdatePrev);
       return {
         url: x.url,
         text: trimText(x.name, MAX_LEN_RAFFLE_NAME),
