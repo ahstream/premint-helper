@@ -7,7 +7,7 @@ console.log(global);
 
 import { switchToUser, isEmptyPage, handleAccountAccess, waitForPageLoaded } from './twitterLib.js';
 
-import { raidFromTwitterPage } from './raid.js';
+import { raidTweet } from './raid.js';
 
 import {
   getStorageData,
@@ -20,7 +20,7 @@ import {
   ONE_MINUTE,
 } from 'hx-lib';
 
-import { createStatusbar, notifyRaid, loadStorage } from './premintHelperLib';
+import { createStatusbar, focusMyTab, copyToTheClipboard, loadStorage } from './premintHelperLib';
 
 // import { createObserver as createTwitterObserver } from './twitterObserver.js';
 
@@ -83,13 +83,26 @@ function initEventHandlers() {
   chrome.runtime.onMessage.addListener(async (request, sender, sendResponse) => {
     console2.info('Received message:', request, sender);
 
-    if (request.cmd === 'raidTwitterPostDone') {
-      notifyRaid(request);
+    if (request.cmd === 'raidFromTwitterDone') {
+      notifyRaidInTwitter(request);
     }
 
     sendResponse();
     return true;
   });
+}
+
+function notifyRaidInTwitter(request) {
+  if (!window.raidStarted) {
+    console.log('Ignore raid result');
+    return;
+  }
+  window.raidStarted = false;
+  focusMyTab();
+  window.alert(
+    `Done raiding ${request.fromUrl}.\n\nRetweeted post URL is copied to clipboard after closing this dialog.`
+  );
+  copyToTheClipboard(request.replyUrl);
 }
 
 // PAGE FUNCTIONS ----------------------------------------------------------------------------
@@ -112,8 +125,8 @@ async function runPage() {
     return await runUnlocked();
   }
 
-  if (pageState.action === 'raid') {
-    return await runRaid();
+  if (pageState.action === 'raidFromDiscordPage') {
+    return await runRaidFromDiscord();
   }
 
   if (pageState.hashArgs.getOne('switchToUser')) {
@@ -148,9 +161,9 @@ async function runUnlocked() {
   window.close();
 }
 
-async function runRaid() {
+async function runRaidFromDiscord() {
   await waitForPageLoaded();
-  await raidFromTwitterPage(storage.options, { team: pageState.request.team, gotoPost: false });
+  await raidTweet(storage.options, 'discord', pageState.request.team);
 }
 
 async function runSwitchToUser() {

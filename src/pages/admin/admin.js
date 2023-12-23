@@ -10,11 +10,11 @@ import {
   resetStorage,
   getMyTabIdFromExtension,
   createStatusbar,
-  debuggerClickMouse,
-  debuggerInsertText,
 } from '../../js/premintHelperLib.js';
 
-import { createHashArgs, getStorageData, setStorageData } from 'hx-lib';
+import { debuggerClickMouse, debuggerClickEnter, debuggerInsertText } from '../../js/chromeDebugger';
+
+import { createHashArgs, getStorageData, setStorageData, sleep } from 'hx-lib';
 
 import { getPermissions } from '../../js/permissions.js';
 import { getCalendar, getCalendars } from '../../js/alphabotLib.js';
@@ -81,6 +81,8 @@ async function runPage() {
     const elem = document.getElementById('text');
     // debuggerClickMouse(elem);
     debuggerInsertText(elem, 'foobar 🔥 123');
+    await sleep(1000);
+    debuggerClickEnter(document.getElementById('hx-event-click2'), 13);
   });
 
   document.getElementById('hx-event-click1').addEventListener('mousedown', (event) => {
@@ -112,6 +114,7 @@ async function runPage() {
 
   document.getElementById('hx-event-click2').addEventListener('click', (event) => {
     console.log('click2 event.isTrusted, event:', event.isTrusted, event);
+    window.alert('hx-event-click2');
   });
 
   document.getElementById('hx-event-click2').addEventListener('mousedown', (event) => {

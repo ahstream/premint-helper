@@ -14,11 +14,15 @@ import {
   getStorageData,
   setStorageData,
   getStorageItems,
-  randomInt,
   // setStorageData,
 } from 'hx-lib';
 
-import { raidTwitterPost } from './raid';
+import { isDiscordPage } from './discordLib';
+import { isTwitterPage } from './twitterLib';
+
+import { raidFromDiscordPage, raidFromTwitterPage } from './raid';
+
+import { debuggerClickMouse, debuggerClickEnter } from './chromeDebugger';
 
 import { createStatusbar as createStatusbarMain } from 'hx-statusbar';
 
@@ -302,7 +306,7 @@ function focusMyTabOnce(pageState) {
   focusMyTab();
 }
 
-function focusMyTab() {
+export function focusMyTab() {
   chrome.runtime.sendMessage({ cmd: 'focusMyTab' });
 }
 
@@ -979,19 +983,6 @@ export async function copyToTheClipboard(textToCopy) {
   document.body.removeChild(el);
 }
 
-export function notifyRaid(request) {
-  if (!window.raidStarted) {
-    console.log('Ignore raid result');
-    return;
-  }
-  window.raidStarted = false;
-  focusMyTab();
-  window.alert(
-    `Done raiding ${request.fromUrl}.\n\nRetweeted post URL is copied to clipboard after closing this dialog.`
-  );
-  copyToTheClipboard(request.replyUrl);
-}
-
 export function createStatusbar(options, { text = STATUSBAR_DEFAULT_TEXT, buttons = {} } = {}) {
   console.log('createStatusbar', buttons);
   return createStatusbarMain(text, {
@@ -1067,7 +1058,7 @@ export function createStatusbarButtons({ options, results, raffles, reveal, raid
   }
 
   if (raid) {
-    add('Raid', 'Raid Twitter post', makeCallback(raid, raidTwitterPost));
+    add('Raid', 'Raid Twitter post', makeCallback(raid, raidButtonEventHandler));
   }
 
   if (reveal) {
@@ -1091,37 +1082,28 @@ export function createStatusbarButtons({ options, results, raffles, reveal, raid
   return buttons.reverse();
 }
 
+async function raidButtonEventHandler() {
+  window.raidStarted = true;
+
+  const storage = await getStorageItems(['options']);
+  console.log('storage', storage);
+
+  const href = window.location.href.toLowerCase();
+  console.log('isDiscordPage(href)', isDiscordPage(href));
+  console.log('isTwitterPage(href)', isTwitterPage(href));
+
+  if (isDiscordPage(href)) {
+    return raidFromDiscordPage();
+  }
+  if (isTwitterPage(href)) {
+    return raidFromTwitterPage(storage.options);
+  }
+}
+
 export function lookupTwitterFollowersClickEventHandler(event, scope = 0) {
   event.preventDefault();
   event.stopImmediatePropagation();
   chrome.runtime.sendMessage({ cmd: 'lookupTwitterFollowersFromBtn', scope });
-}
-
-export async function debuggerClickMouse(elem, delay = null) {
-  var rect = elem.getBoundingClientRect();
-  const x = randomCoord(rect.left, rect.right);
-  const y = randomCoord(rect.top, rect.bottom);
-  const clickDelay = delay || randomInt(80, 120);
-  console.log('debuggerClickMouse', x, y, delay, elem);
-  chrome.runtime.sendMessage({ cmd: 'debuggerClickMouse', x, y, delay: clickDelay });
-}
-
-export async function debuggerInsertText(elem, text, delay = null, delayBeforeBlur = 1000) {
-  const clickDelay = delay || randomInt(80, 120);
-  console.log('debuggerClickKey', text, delay);
-  elem.focus();
-  chrome.runtime.sendMessage({ cmd: 'debuggerInsertText', text, delay: clickDelay });
-  await sleep(delayBeforeBlur);
-  elem.blur();
-}
-
-function randomCoord(min, max) {
-  return addNoiseToCoord(randomInt(min, max), max);
-}
-
-function addNoiseToCoord(coord, max) {
-  const coordWithNoise = coord + randomInt(0, 100) / 100;
-  return coordWithNoise <= max ? coordWithNoise : max;
 }
 
 export async function clickTwitterElem(options, elem, delay = null) {
@@ -1135,4 +1117,11 @@ export async function clickTwitterElem(options, elem, delay = null) {
   }
   console.log('elem.click');
   elem.click();
+}
+
+export async function submitTwitterElem(options, elem, delay = null) {
+  if (options.CLICK_TWITTER_ELEM_DEBUGGER) {
+    console.log('debuggerClickEnter');
+    return debuggerClickEnter(elem, delay);
+  }
 }

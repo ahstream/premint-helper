@@ -20,7 +20,9 @@ import {
   myConsole,
 } from 'hx-lib';
 
-import { createStatusbar, notifyRaid } from './premintHelperLib';
+import { createStatusbar, focusMyTab, copyToTheClipboard } from './premintHelperLib';
+
+import { debuggerInsertText, debuggerClickEnter } from './chromeDebugger';
 
 const console2 = myConsole(global.LOGLEVEL);
 
@@ -83,13 +85,39 @@ window.addEventListener('beforeunload', function () {
 chrome.runtime.onMessage.addListener(async (request, sender, sendResponse) => {
   console2.info('Received message:', request, sender);
 
-  if (request.cmd === 'raidTwitterPostDone') {
-    notifyRaid(request);
+  if (request.cmd === 'raidFromDiscordDone') {
+    await notifyRaidInDiscord(request);
   }
 
   sendResponse();
   return true;
 });
+
+async function notifyRaidInDiscord(request) {
+  if (!window.raidStarted) {
+    console.log('Ignore raid result');
+    return;
+  }
+  window.raidStarted = false;
+  focusMyTab();
+  if (storage.options.RAID_FROM_DISCORD_PAGE_FULL) {
+    await postMessageByInputField(request.replyUrl);
+  } else {
+    window.alert(
+      `Done raiding ${request.fromUrl}.\n\nRetweeted post URL is copied to clipboard after closing this dialog.`
+    );
+    copyToTheClipboard(request.replyUrl);
+  }
+}
+
+async function postMessageByInputField(msg) {
+  console.log(msg);
+  const textbox = document.querySelector('main').querySelector('div[role="textbox"]');
+
+  debuggerInsertText(textbox, msg + '\r');
+  await sleep(50);
+  debuggerClickEnter(textbox);
+}
 
 // PAGE FUNCS ----------------------------------------------------------------------------------
 

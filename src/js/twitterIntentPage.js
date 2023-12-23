@@ -15,7 +15,7 @@ import {
   ONE_MINUTE,
 } from 'hx-lib';
 
-import { clickTwitterElem } from './premintHelperLib.js';
+import { clickTwitterElem, submitTwitterElem } from './premintHelperLib.js';
 
 const console2 = myConsole(global.LOGLEVEL);
 
@@ -130,7 +130,7 @@ async function runIntentAction() {
 
   console2.trace('click intentBtn:', intentBtn);
   // clickTwitterElem(storage.options, intentBtn);
-  await ensureIntentBtnClicked(intentBtn);
+  await ensureIntentButtonClicked(intentBtn);
   // intentBtn.click();
 
   await waitForNoIntentBtn();
@@ -147,17 +147,25 @@ async function runIntentAction() {
   }
 }
 
-async function ensureIntentBtnClicked(btn, maxWait = ONE_MINUTE, interval = 250) {
+async function ensureIntentButtonClicked(btn, maxWait = ONE_MINUTE, interval = 250) {
   console2.info('ensureIntentBtnClicked', btn);
 
   const stopTime = millisecondsAhead(maxWait);
   while (Date.now() <= stopTime) {
     await clickTwitterElem(storage.options, btn);
     await sleep(interval);
-    if (!getIntentButton()) {
+    btn = getIntentButton();
+    if (!btn) {
       return;
     }
+    await submitTwitterElem(storage.options, btn);
+
     await sleep(interval);
+    btn = getIntentButton();
+    if (!btn) {
+      return;
+    }
+    console2.log('New btn:', btn);
   }
   console2.info('Failed ensureIntentBtnClicked', btn);
 }
@@ -169,7 +177,7 @@ async function waitForNoIntentBtn(maxWait = 10 * ONE_MINUTE, interval = 250) {
   while (Date.now() <= stopTime) {
     console2.log('waitForNoIntentBtn...');
     if (!getIntentButton()) {
-      break;
+      return;
     }
     await sleep(interval);
   }

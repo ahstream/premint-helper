@@ -13,7 +13,9 @@ import {
   stripEmojis,
 } from 'hx-lib';
 
-import { clickTwitterElem, saveStorage, debuggerInsertText } from './premintHelperLib';
+import { clickTwitterElem, saveStorage, submitTwitterElem } from './premintHelperLib';
+
+import { debuggerInsertText } from './chromeDebugger';
 
 const console2 = myConsole(global.LOGLEVEL);
 
@@ -307,9 +309,24 @@ export async function retweet(options, maxWait = 20000, interval = 250) {
   if (!btn.retweetBtn) {
     return false;
   }
-  clickTwitterElem(options, btn.retweetBtn);
+
+  if (
+    !(await ensureButtonClicked(
+      options,
+      btn,
+      'retweetBtn',
+      'unretweetBtn',
+      getRetweetOrUnretweetButton,
+      maxWait
+    ))
+  ) {
+    console.log('failed retweetBtn');
+    return false;
+  }
+  //clickTwitterElem(options, btn.retweetBtn);
   await sleep(500);
 
+  /*
   const confirmBtn = await getRetweetOrUnretweetConfirmButton(maxWait, interval);
   console.log('confirmBtn:', confirmBtn);
   if (confirmBtn.unretweetConfirmBtn) {
@@ -318,8 +335,23 @@ export async function retweet(options, maxWait = 20000, interval = 250) {
   if (!confirmBtn.retweetConfirmBtn) {
     return false;
   }
-  clickTwitterElem(options, confirmBtn.retweetConfirmBtn);
+
+  if (
+    !(await ensureButtonClicked(
+      options,
+      confirmBtn,
+      'retweetConfirmBtn',
+      'unretweetConfirmBtn',
+      getRetweetOrUnretweetConfirmButton,
+      maxWait
+    ))
+  ) {
+    console.log('failed confirmBtn');
+    return false;
+  }
+  // clickTwitterElem(options, confirmBtn.retweetConfirmBtn);
   await sleep(500);
+  */
 
   const unretweetBtn = await getUnretweetButton(5000, 10);
   console.log('unretweetBtn:', unretweetBtn);
@@ -339,7 +371,13 @@ export async function like(options, maxWait = 20000, interval = 250) {
   if (!btn.likeBtn) {
     return false;
   }
-  clickTwitterElem(options, btn.likeBtn);
+
+  // ensureLikeButtonClicked(options, btn, maxWait);
+  if (!(await ensureButtonClicked(options, btn, 'likeBtn', 'unlikeBtn', getLikeOrUnlikeButton, maxWait))) {
+    console.log('failed likeBtn');
+    return false;
+  }
+  //clickTwitterElem(options, btn.likeBtn);
   await sleep(500);
 
   const unlikeBtn = await getUnlikeButton(5000, 10);
@@ -403,17 +441,21 @@ export async function comment(options, text, maxWait = 20000, interval = 250) {
   */
   await sleep(1500, 3000);
 
-  const replyBtn = await waitForSelector('div[data-testid="tweetButtonInline"]', maxWait, interval);
-  console.log('replyBtn', replyBtn);
-  if (!replyBtn) {
+  const btn = await getReplyButton(maxWait, interval);
+  console.log('btn', btn);
+  if (!btn.replyBtn) {
     return '';
   }
 
-  clickTwitterElem(options, replyBtn);
+  if (!(await ensureButtonClicked(options, btn, 'replyBtn', null, getReplyButton, maxWait))) {
+    console.log('failed replyBtn');
+    return false;
+  }
+  //clickTwitterElem(options, replyBtn);
   await sleep(1500, 3000);
 
-  const textNoEmojis = stripEmojis(text, false);
-  console2.log('textNoEmojis:', textNoEmojis);
+  const textNoEmojis = stripEmojis(text, false).trim();
+  console2.log('textNoEmojis:', textNoEmojis, textNoEmojis.length);
 
   const post = await waitForPost(textNoEmojis, maxWait, interval);
   console.log('post', post);
@@ -462,6 +504,18 @@ export async function comment(options, text, maxWait = 20000, interval = 250) {
   }
 }
 
+async function getReplyButton(maxWait, interval) {
+  console.log('getReplyButton:', maxWait, interval);
+  const replyBtn = await waitForSelector(
+    'div[data-testid="tweetButtonInline"]:not([aria-disabled="true"])',
+    maxWait,
+    interval
+  );
+  return {
+    replyBtn,
+  };
+}
+
 export async function raid(options, text, maxWait = 20000, interval = 250) {
   if (!(await like(options, maxWait, clearInterval))) {
     console.log('failed raid like');
@@ -496,5 +550,54 @@ export async function waitForPageLoaded(maxWait = 20000, interval = 200) {
     console.log('waitForPageLoaded');
     await sleep(interval);
   }
+  return false;
+}
+
+/*
+async function ensureLikeButtonClicked(options, btn, maxWait) {
+  console2.info('ensureLikeButtonClicked', btn, maxWait);
+
+  const stopTime = millisecondsAhead(maxWait);
+  while (Date.now() <= stopTime) {
+    await clickTwitterElem(options, btn.likeBtn);
+    await sleep(500);
+    btn = await getLikeOrUnlikeButton(100);
+    if (!btn.likeBtn) {
+      return;
+    }
+    await submitTwitterElem(options, btn.likeBtn);
+    await sleep(500);
+    btn = await getLikeOrUnlikeButton(100);
+    if (!btn.likeBtn) {
+      return;
+    }
+    console2.log('New btn:', btn);
+  }
+  console2.info('Failed ensureBtnClicked', btn);
+}
+*/
+
+async function ensureButtonClicked(options, btn, buttonKey1, buttonKey2, getter, maxWait) {
+  if (btn[buttonKey2]) {
+    return true;
+  }
+
+  const stopTime = millisecondsAhead(maxWait);
+  while (Date.now() <= stopTime) {
+    await clickTwitterElem(options, btn[buttonKey1]);
+    await sleep(500);
+    btn = await getter(100);
+    if (!btn[buttonKey1] || btn[buttonKey2]) {
+      return true;
+    }
+    await submitTwitterElem(options, btn[buttonKey1]);
+    await sleep(500);
+    btn = await getter(100);
+    if (!btn[buttonKey1] || btn[buttonKey2]) {
+      return true;
+    }
+    console2.log('New btn:', btn);
+  }
+  console2.info('Failed ensureButtonClicked', btn);
   return false;
 }

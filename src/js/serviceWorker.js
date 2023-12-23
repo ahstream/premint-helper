@@ -64,7 +64,9 @@ async function attachDebugger(tabId) {
 }
 
 async function messageHandler(request, sender, sendResponse) {
-  //let temp = null;
+  let r1 = null;
+  let r2 = null;
+  let r3 = null;
   switch (request.cmd) {
     /*
   await chrome.runtime.sendMessage({
@@ -75,49 +77,78 @@ async function messageHandler(request, sender, sendResponse) {
 
     case 'debuggerClickMouse':
       await attachDebugger(sender.tab.id);
-      chrome.debugger.sendCommand({ tabId: sender.tab.id }, 'Input.dispatchMouseEvent', {
+      r1 = await chrome.debugger.sendCommand({ tabId: sender.tab.id }, 'Input.dispatchMouseEvent', {
         type: 'mousePressed',
         button: 'left',
         clickCount: 1,
         x: parseFloat(request.x),
         y: parseFloat(request.y),
       });
+      console.log('r1', r1, request);
       await sleep(request.delay || 5);
-      chrome.debugger.sendCommand({ tabId: sender.tab.id }, 'Input.dispatchMouseEvent', {
+      r2 = await chrome.debugger.sendCommand({ tabId: sender.tab.id }, 'Input.dispatchMouseEvent', {
         type: 'mouseReleased',
         button: 'left',
         clickCount: 1,
         x: parseFloat(request.x),
         y: parseFloat(request.y),
       });
+      console.log('r2', r2, request);
       break;
 
     case 'debuggerInsertText':
       await attachDebugger(sender.tab.id);
-      chrome.debugger.sendCommand({ tabId: sender.tab.id }, 'Input.insertText', {
+      r1 = await chrome.debugger.sendCommand({ tabId: sender.tab.id }, 'Input.insertText', {
         text: request.text,
       });
-      /*
-        chrome.debugger.sendCommand({ tabId: sender.tab.id }, 'Input.dispatchKeyEvent ', {
-          type: 'char',
-          text: 'b',
-        });
-        */
+      console.log('r1', r1, request);
       await sleep(request.delay || 5);
+      break;
+
+    case 'debuggerClickEnter':
+      await attachDebugger(sender.tab.id);
+
+      r1 = await chrome.debugger.sendCommand({ tabId: sender.tab.id }, 'Input.dispatchKeyEvent', {
+        type: 'rawKeyDown',
+        windowsVirtualKeyCode: 13,
+        unmodifiedText: '\r',
+        text: '\r',
+      });
+      console.log('r1', r1, request);
+      await sleep(request.delay || 5);
+
+      r2 = await chrome.debugger.sendCommand({ tabId: sender.tab.id }, 'Input.dispatchKeyEvent', {
+        type: 'char',
+        windowsVirtualKeyCode: 13,
+        unmodifiedText: '\r',
+        text: '\r',
+      });
+      console.log('r2', r2, request);
+      await sleep(request.delay || 5);
+
+      r3 = await chrome.debugger.sendCommand({ tabId: sender.tab.id }, 'Input.dispatchKeyEvent', {
+        type: 'keyUp',
+        windowsVirtualKeyCode: 13,
+        unmodifiedText: '\r',
+        text: '\r',
+      });
+      console.log('r3', r3, request);
+
       break;
 
     case 'debuggerClickKey':
       await attachDebugger(sender.tab.id);
-      chrome.debugger.sendCommand({ tabId: sender.tab.id }, 'Input.insertText', {
-        text: 'b',
+      r1 = await chrome.debugger.sendCommand({ tabId: sender.tab.id }, 'Input.dispatchKeyEvent', {
+        type: 'keyDown',
+        code: request.code,
       });
-      /*
-          chrome.debugger.sendCommand({ tabId: sender.tab.id }, 'Input.dispatchKeyEvent ', {
-            type: 'char',
-            text: 'b',
-          });
-          */
+      console.log('r1', r1, request);
       await sleep(request.delay || 5);
+      r2 = await chrome.debugger.sendCommand({ tabId: sender.tab.id }, 'Input.dispatchKeyEvent', {
+        type: 'keyUp',
+        code: request.code,
+      });
+      console.log('r2', r2, request);
       break;
 
     case 'ping':
