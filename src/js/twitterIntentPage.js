@@ -135,7 +135,7 @@ async function runIntentAction() {
 
   await waitForNoIntentBtn();
 
-  console2.log('checkForAction...');
+  console2.log('checkForAction');
 
   if (await checkForAction()) {
     console2.log('checkForAction true');
