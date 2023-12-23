@@ -2,6 +2,9 @@ console.info('luckygoPage.js begin', window?.location?.href);
 
 import '../styles/luckygoPage.css';
 
+import global from './global.js';
+console.log(global);
+
 import {
   // OTHER API
   isAutomateTwitterTasksSelected,
@@ -43,7 +46,7 @@ import { createObserver as createTwitterObserver } from './twitterObserver.js';
 
 import { sleep, myConsole } from 'hx-lib';
 
-const console2 = myConsole();
+const console2 = myConsole(global.LOGLEVEL);
 
 // DATA ----------------------------------------------------------------------------
 

@@ -1,7 +1,10 @@
+import global from './global.js';
+console.log(global);
+
 import { getSearchParam, myConsole } from 'hx-lib';
 import { normalizeDiscordHandle, normalizeTwitterHandle } from './premintHelperLib';
 
-const console2 = myConsole();
+const console2 = myConsole(global.LOGLEVEL);
 
 const normalizeKey = (key) => normalizeDiscordHandle(normalizeTwitterHandle(key.toLowerCase()));
 

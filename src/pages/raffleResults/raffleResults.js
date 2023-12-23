@@ -2,6 +2,9 @@ console.info('raffleResults.js begin', window?.location?.href);
 
 import './raffleResults.scss';
 
+import global from '../../js/global.js';
+console.log(global);
+
 import {
   getAccount as getAlphabotAccount,
   getWinsByNewest as getAlphabotWinsByNewest,
@@ -97,7 +100,7 @@ import { createObserver as createTwitterObserver } from '../../js/twitterObserve
 
 const jht = require('json-html-table');
 
-const console2 = myConsole();
+const console2 = myConsole(global.LOGLEVEL);
 
 // DATA ------------------------------
 
@@ -1307,8 +1310,18 @@ function createWinsTable(
   for (const parent of packedWins) {
     const wins = parent.wins;
     const firstWin = parent.wins[0];
-    const allWallets = wins.map((x) => x.wallets).flat();
-    const allUsers = wins.map((x) => x.userId).flat();
+    const allWallets = noDuplicates(
+      wins
+        .map((x) => x.wallets)
+        .flat()
+        .map((x) => (x.toLowerCase ? x.toLowerCase() : ''))
+    );
+    const allUsers = noDuplicates(
+      wins
+        .map((x) => x.userId)
+        .flat()
+        .map((x) => (x.toLowerCase ? x.toLowerCase() : ''))
+    );
 
     /*
     console2.log('pwin', parent);
@@ -1316,6 +1329,7 @@ function createWinsTable(
     console2.log('firstWin', firstWin);
     console2.log('allWallets', allWallets);
     */
+    console.log('allWallets', allWallets);
 
     const row = document.createElement('TR');
 

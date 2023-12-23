@@ -1,9 +1,12 @@
+import global from './global.js';
+console.log(global);
+
 console.info('superfulPage.js begin', window?.location?.href);
 
 import { getStorageItems, myConsole, sleep, createHashArgs, dispatch } from 'hx-lib';
 import { getCookie } from './premintHelperLib';
 
-const console2 = myConsole();
+const console2 = myConsole(global.LOGLEVEL);
 
 // DATA ----------------------------------------------------------------------------------
 

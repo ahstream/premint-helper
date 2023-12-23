@@ -2,6 +2,9 @@ console.info('alphabotRafflePage.js begin', window?.location?.href);
 
 import '../styles/alphabotPage.css';
 
+import global from './global.js';
+console.log(global);
+
 import {
   getRaffleTwitterHandle,
   getTwitterHandle,
@@ -46,7 +49,7 @@ import {
   myConsole,
 } from 'hx-lib';
 
-const console2 = myConsole();
+const console2 = myConsole(global.LOGLEVEL);
 
 // DATA ----------------------------------------------------------------------------
 
@@ -329,7 +332,7 @@ function hasDoingItTooOften() {
   return result;
 }
 
-function isIgnored(pageState) {
+function isIgnored(options, pageState) {
   const teamName = getTeamName();
   let ignored =
     pageState.isAutoStarted && // only ignore auto started raffles!

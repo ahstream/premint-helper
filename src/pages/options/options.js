@@ -2,6 +2,9 @@ console.info('options.js begin', window?.location?.href);
 
 import './options.css';
 
+import global from '../../js/global.js';
+console.log(global);
+
 import { initOptionsPage, mountOptionsPage } from 'hx-chrome-lib';
 
 import { createStatusbar, loadStorage } from '../../js/premintHelperLib.js';
@@ -430,6 +433,22 @@ const options = [
     hiddenKey: '',
     options: [
       ['description', 'LOREM'],
+
+      [
+        'property',
+        'RAID_FROM_TWITTER_PAGE_FULL',
+        'RAID_FROM_TWITTER_PAGE_FULL',
+        '',
+        'RAID_FROM_TWITTER_PAGE_FULL',
+      ],
+      [
+        'property',
+        'RAID_FROM_DISCORD_PAGE_FULL',
+        'RAID_FROM_DISCORD_PAGE_FULL',
+        '',
+        'RAID_FROM_DISCORD_PAGE_FULL',
+      ],
+      ['space', 10],
       ['property', 'RAID_MIN_EMOJIS', 'RAID_MIN_EMOJIS', '', 'RAID_MIN_EMOJIS'],
       ['property', 'RAID_MAX_EMOJIS', 'RAID_MAX_EMOJIS', '', 'RAID_MAX_EMOJIS'],
       ['property', 'RAID_EMOJIS', 'RAID_EMOJIS', null, ''],
@@ -441,14 +460,28 @@ const options = [
     ],
   },
 
-  // MIsc
+  // Misc
   {
-    header: 'Raid',
+    header: 'Misc',
     hiddenKey: '',
     options: [
       ['description', 'LOREM'],
       ['property', 'STATUSBAR_HIDE_TIME_SHORT', 'STATUSBAR_HIDE_TIME_SHORT', '', 'STATUSBAR_HIDE_TIME_SHORT'],
       ['property', 'STATUSBAR_HIDE_TIME_LONG', 'STATUSBAR_HIDE_TIME_LONG', '', 'STATUSBAR_HIDE_TIME_LONG'],
+      [
+        'property',
+        'CLICK_TWITTER_ELEM_DEBUGGER',
+        'CLICK_TWITTER_ELEM_DEBUGGER',
+        '',
+        'CLICK_TWITTER_ELEM_DEBUGGER',
+      ],
+      [
+        'property',
+        'CLICK_TWITTER_ELEM_SIMULATE',
+        'CLICK_TWITTER_ELEM_SIMULATE',
+        '',
+        'CLICK_TWITTER_ELEM_SIMULATE',
+      ],
     ],
   },
 ];

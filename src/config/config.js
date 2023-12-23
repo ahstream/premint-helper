@@ -238,8 +238,11 @@ export const defaultOptions = {
   RAFFLE_LIST_SKIP_DUPS: true,
   RAFFLE_LIST_SKIP_SEARCH_DUPS: true,
 
-  STATUSBAR_HIDE_TIME_SHORT: 10,
-  STATUSBAR_HIDE_TIME_LONG: 600,
+  CLICK_TWITTER_ELEM_DEBUGGER: false,
+  CLICK_TWITTER_ELEM_SIMULATE: false,
+
+  RAID_FROM_TWITTER_PAGE_FULL: false,
+  RAID_FROM_DISCORD_PAGE_FULL: false,
 };
 
 export const overrideOptions = {
@@ -320,9 +323,16 @@ export const overrideOptions = {
   RAID_TEAM_NAMES: [
     'world of alpha: @worldofalpha, WoA, World of Alpha',
     'scrapyard: scrapyard, Scrapyard, @scrapyard_wl',
+    'Orange Alpha 🍊: Orange Alpha, @AlphaOrange',
+    'Orange Alpha: Orange Alpha, @AlphaOrange',
   ],
   RAID_EMOJIS: ['🔥, 🚀, 👊, 💯'],
 
   RAID_MIN_EMOJIS: 0,
   RAID_MAX_EMOJIS: 2,
+
+  STATUSBAR_HIDE_TIME_SHORT: 10,
+  STATUSBAR_HIDE_TIME_LONG: 600,
+
+  TWITTER_DELAY_BEFORE_CLICK_INTENT_BTN: 1000,
 };

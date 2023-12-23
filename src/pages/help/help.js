@@ -2,6 +2,9 @@ console.info('help.js begin', window?.location?.href);
 
 import './help.css';
 
+import global from '../../js/global.js';
+console.log(global);
+
 import { initHelpPage, mountHelpPage } from 'hx-chrome-lib';
 
 import { createStatusbar, loadStorage } from '../../js/premintHelperLib.js';

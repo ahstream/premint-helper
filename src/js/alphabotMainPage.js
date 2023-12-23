@@ -1,6 +1,10 @@
 console.info('alphabotMainPage.js begin', window?.location?.href);
 
 import '../styles/alphabotPage.css';
+
+import global from './global.js';
+console.log(global);
+
 import { createObserver } from './observerGeneric.js';
 import { createObserver as createTwitterObserver } from './twitterObserver.js';
 import { fetchProjects } from './alphabotLib.js';
@@ -14,7 +18,7 @@ import {
 import { getStorageItems, createHashArgs, dispatch, myConsole, sleep } from 'hx-lib';
 import { getPermissions } from './permissions';
 
-const console2 = myConsole();
+const console2 = myConsole(global.LOGLEVEL);
 
 // DATA ----------------------------------------------------------------------------------
 

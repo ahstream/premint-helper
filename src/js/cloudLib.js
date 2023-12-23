@@ -1,6 +1,9 @@
+import global from './global.js';
+console.log(global);
+
 import { fetchHelper, myConsole } from 'hx-lib';
 
-const console2 = myConsole();
+const console2 = myConsole(global.LOGLEVEL);
 
 // DATA ----------------------------------------------------------------------------------
 

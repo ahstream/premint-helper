@@ -1,3 +1,6 @@
+import global from './global.js';
+console.log(global);
+
 import {
   exitActionMain,
   getMyTabIdFromExtension,
@@ -34,7 +37,7 @@ import {
 import { createHistory } from './history';
 import { getPermissions } from './permissions';
 
-const console2 = myConsole();
+const console2 = myConsole(global.LOGLEVEL);
 
 // DATA ----------------------------------------------------------------------------------
 
@@ -284,7 +287,7 @@ async function showRafflePage(runPage) {
     return;
   }
 
-  if (provider.isIgnored(pageState)) {
+  if (provider.isIgnored(storage.options, pageState)) {
     console2.log('ignored 2');
     return exitAction('ignoredRaffle');
   }
@@ -319,7 +322,7 @@ async function runRafflePage() {
 
   await sleep(100);
 
-  if (provider.isIgnored(pageState)) {
+  if (provider.isIgnored(storage.options, pageState)) {
     console2.log('ignored 1');
     return exitAction('ignoredRaffle');
   }

@@ -1,3 +1,6 @@
+import global from './global.js';
+console.log(global);
+
 import {
   //trimWallet,
   //walletToAlias,
@@ -26,7 +29,7 @@ import {
 
 import { waitForUser } from './twitterLib.js';
 
-const console2 = myConsole();
+const console2 = myConsole(global.LOGLEVEL);
 
 // DATA ----------------------------------------------------------------------------------
 

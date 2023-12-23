@@ -2,6 +2,9 @@ console.info('popup.js begin', window?.location?.href);
 
 import './popup.css';
 
+import global from '../../js/global.js';
+console.log(global);
+
 import { initPopupPage, mountPopupPage } from 'hx-chrome-lib';
 import { showPermissions } from '../../js/permissions';
 

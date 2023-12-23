@@ -2,6 +2,9 @@ console.info('premintRafflePage.js begin', window?.location?.href);
 
 import '../styles/premintPage.css';
 
+import global from './global.js';
+console.log(global);
+
 import {
   // RAFFLE API
   getRaffleTwitterHandle,
@@ -45,7 +48,7 @@ import {
   //addPendingRequest,
 } from 'hx-lib';
 
-const console2 = myConsole();
+const console2 = myConsole(global.LOGLEVEL);
 
 // DATA ----------------------------------------------------------------------------
 

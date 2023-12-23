@@ -1,3 +1,6 @@
+import global from './global.js';
+console.log(global);
+
 import {
   sleep,
   fetchHelper,
@@ -11,7 +14,7 @@ import {
 
 import { normalizeTwitterHandle, normalizeDiscordHandle } from './premintHelperLib.js';
 
-const console2 = myConsole();
+const console2 = myConsole(global.LOGLEVEL);
 console2.log();
 
 // DATA ----------------------------------------------------------------------------------

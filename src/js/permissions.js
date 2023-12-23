@@ -1,8 +1,11 @@
+import global from './global.js';
+console.log(global);
+
 import { getStorageItems, setStorageData, myConsole } from 'hx-lib';
 
 import CryptoJS from 'crypto-js';
 
-const console2 = myConsole();
+const console2 = myConsole(global.LOGLEVEL);
 
 // DATA ----------------------------------------------------------------------------------
 

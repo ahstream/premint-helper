@@ -1,3 +1,6 @@
+import global from './global.js';
+console.log(global);
+
 import { sleep, fetchHelper, rateLimitHandler, myConsole, noDuplicates, millisecondsAhead } from 'hx-lib';
 
 import {
@@ -7,7 +10,7 @@ import {
   getFromWebPage,
 } from './premintHelperLib.js';
 
-const console2 = myConsole();
+const console2 = myConsole(global.LOGLEVEL);
 console2.log();
 
 // DATA ----------------------------------------------------------------------------------

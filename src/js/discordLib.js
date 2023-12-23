@@ -1,8 +1,11 @@
+import global from './global.js';
+console.log(global);
+
 import { myConsole } from 'hx-lib';
 
 import { isTwitterStatusPage } from './twitterLib';
 
-const console2 = myConsole();
+const console2 = myConsole(global.LOGLEVEL);
 console2.log();
 
 // FUNCS ----------------------------------------------------------------------------------

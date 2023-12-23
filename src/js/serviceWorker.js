@@ -1,7 +1,10 @@
 console.info('serviceWorker.js begin');
 
+import global from './global.js';
+console.log(global);
+
 import { defaultOptions, overrideOptions } from '../config/config';
-import { initStorageWithOptions, fetchHelper } from 'hx-lib';
+import { initStorageWithOptions, fetchHelper, sleep } from 'hx-lib';
 import { defaultMessageHandler } from 'hx-chrome-lib';
 import {
   addRevealAlphabotRafflesRequest,
@@ -10,6 +13,8 @@ import {
 } from './premintHelperLib.js';
 
 const customStorage = { runtime: { pendingRequests: [] }, pendingPremintReg: {} };
+
+const pageState = {};
 
 chrome.runtime.onInstalled.addListener(() => {
   initStorageWithOptions(defaultOptions, overrideOptions, customStorage);
@@ -20,7 +25,14 @@ chrome.webNavigation.onHistoryStateUpdated.addListener(function (data) {
   handleAlphabotNavigation(data);
 });
 
-chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {
+chrome.debugger.onDetach.addListener(function (event) {
+  console.info('onDetach', event);
+  if (pageState?.attached && pageState.attached[event.tabId]) {
+    pageState.attached[event.tabId] = false;
+  }
+});
+
+chrome.runtime.onMessage.addListener(async (request, sender, sendResponse) => {
   console.info('Received message:', request, sender);
 
   const defaultResult = defaultMessageHandler(request, sender);
@@ -33,7 +45,7 @@ chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {
   }
 
   if (messageHandler) {
-    messageHandler(request, sender, sendResponse);
+    await messageHandler(request, sender, sendResponse);
   } else {
     sendResponse();
   }
@@ -41,7 +53,18 @@ chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {
 
 // MAIN FUNCTIONS
 
-function messageHandler(request, sender, sendResponse) {
+async function attachDebugger(tabId) {
+  if (pageState?.attached && pageState?.attached[tabId]) {
+    console.log('debugger already attached');
+  } else {
+    pageState.attached = pageState.attached || {};
+    await chrome.debugger.attach({ tabId: tabId }, '1.2');
+    pageState.attached[tabId] = true;
+  }
+}
+
+async function messageHandler(request, sender, sendResponse) {
+  //let temp = null;
   switch (request.cmd) {
     /*
   await chrome.runtime.sendMessage({
@@ -50,23 +73,51 @@ function messageHandler(request, sender, sendResponse) {
   });
   */
 
-    case 'debugger':
-      chrome.debugger.attach({ tabId: sender.tab.id }, '1.2', function () {
-        chrome.debugger.sendCommand({ tabId: sender.tab.id }, 'Input.dispatchMouseEvent', {
-          type: 'mousePressed',
-          button: 'left',
-          clickCount: 1,
-          x: parseFloat(request.x),
-          y: parseFloat(request.y),
-        });
-        chrome.debugger.sendCommand({ tabId: sender.tab.id }, 'Input.dispatchMouseEvent', {
-          type: 'mouseReleased',
-          button: 'left',
-          clickCount: 1,
-          x: parseFloat(request.x),
-          y: parseFloat(request.y),
-        });
+    case 'debuggerClickMouse':
+      await attachDebugger(sender.tab.id);
+      chrome.debugger.sendCommand({ tabId: sender.tab.id }, 'Input.dispatchMouseEvent', {
+        type: 'mousePressed',
+        button: 'left',
+        clickCount: 1,
+        x: parseFloat(request.x),
+        y: parseFloat(request.y),
       });
+      await sleep(request.delay || 5);
+      chrome.debugger.sendCommand({ tabId: sender.tab.id }, 'Input.dispatchMouseEvent', {
+        type: 'mouseReleased',
+        button: 'left',
+        clickCount: 1,
+        x: parseFloat(request.x),
+        y: parseFloat(request.y),
+      });
+      break;
+
+    case 'debuggerInsertText':
+      await attachDebugger(sender.tab.id);
+      chrome.debugger.sendCommand({ tabId: sender.tab.id }, 'Input.insertText', {
+        text: request.text,
+      });
+      /*
+        chrome.debugger.sendCommand({ tabId: sender.tab.id }, 'Input.dispatchKeyEvent ', {
+          type: 'char',
+          text: 'b',
+        });
+        */
+      await sleep(request.delay || 5);
+      break;
+
+    case 'debuggerClickKey':
+      await attachDebugger(sender.tab.id);
+      chrome.debugger.sendCommand({ tabId: sender.tab.id }, 'Input.insertText', {
+        text: 'b',
+      });
+      /*
+          chrome.debugger.sendCommand({ tabId: sender.tab.id }, 'Input.dispatchKeyEvent ', {
+            type: 'char',
+            text: 'b',
+          });
+          */
+      await sleep(request.delay || 5);
       break;
 
     case 'ping':

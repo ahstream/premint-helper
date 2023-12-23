@@ -1,3 +1,6 @@
+import global from './global.js';
+console.log(global);
+
 import {
   ONE_DAY,
   ONE_SECOND,
@@ -10,9 +13,9 @@ import {
   stripEmojis,
 } from 'hx-lib';
 
-import { clickElement, saveStorage } from './premintHelperLib';
+import { clickTwitterElem, saveStorage, debuggerInsertText } from './premintHelperLib';
 
-const console2 = myConsole();
+const console2 = myConsole(global.LOGLEVEL);
 
 // DATA ----------------------------------------------------------------------------------
 
@@ -38,7 +41,7 @@ export function isTwitterPage(url) {
 
 // FUNCS ----------------------------------------------------------------------------------
 
-export async function switchToUser(handleIn, parentTabId, redirectTo = null) {
+export async function switchToUser(options, handleIn, parentTabId, redirectTo = null) {
   console2.info('switchToUser:', handleIn, parentTabId, redirectTo);
 
   const handle = handleIn.replace('@', '');
@@ -63,7 +66,7 @@ export async function switchToUser(handleIn, parentTabId, redirectTo = null) {
     return { error: 'noMenuButton' };
   }
   console2.log('click menuBtn:', menuBtn);
-  menuBtn.click();
+  clickTwitterElem(options, menuBtn);
   await sleep(50);
 
   const addAccountBtn = await waitForSelector(
@@ -89,18 +92,18 @@ export async function switchToUser(handleIn, parentTabId, redirectTo = null) {
       redirectTo,
       user: handle,
     });
-    switchBtn.click();
+    clickTwitterElem(options, switchBtn);
     // Page will be reloaded, stay in forever-ish sleep to wait for reload...
     await sleep(ONE_DAY);
   } else {
     setTimeout(() => {
-      switchBtn.click();
+      clickTwitterElem(options, switchBtn);
     }, 1);
     return { ok: true };
   }
 }
 
-export async function waitForUser(handleIn, myTabId, context, maxWait = 20000, interval = 10) {
+export async function waitForUser(handleIn, myTabId, context, maxWait = 20000, interval = 100) {
   console2.log('waitForUser:', handleIn, maxWait, interval);
 
   const handle = handleIn.replace('@', '');
@@ -152,7 +155,7 @@ export async function handleAccountAccess(storage) {
     await sleep(2000);
     await addPendingRequest('https://twitter.com/', { action: 'unlocked' });
     await sleep(200);
-    btn.click();
+    clickTwitterElem(storage.options, btn);
     await sleep(200);
     return;
   }
@@ -295,7 +298,7 @@ export async function getRetweetOrUnretweetConfirmButton(maxWait = 20000, interv
   return {};
 }
 
-export async function retweet(maxWait = 20000, interval = 10, { real = false, simulate = true } = {}) {
+export async function retweet(options, maxWait = 20000, interval = 250) {
   const btn = await getRetweetOrUnretweetButton(maxWait, interval);
   console.log('btn:', btn);
   if (btn.unretweetBtn) {
@@ -304,7 +307,7 @@ export async function retweet(maxWait = 20000, interval = 10, { real = false, si
   if (!btn.retweetBtn) {
     return false;
   }
-  clickElement(btn.retweetBtn, { real, simulate });
+  clickTwitterElem(options, btn.retweetBtn);
   await sleep(500);
 
   const confirmBtn = await getRetweetOrUnretweetConfirmButton(maxWait, interval);
@@ -315,7 +318,7 @@ export async function retweet(maxWait = 20000, interval = 10, { real = false, si
   if (!confirmBtn.retweetConfirmBtn) {
     return false;
   }
-  clickElement(confirmBtn.retweetConfirmBtn, { real, simulate });
+  clickTwitterElem(options, confirmBtn.retweetConfirmBtn);
   await sleep(500);
 
   const unretweetBtn = await getUnretweetButton(5000, 10);
@@ -327,7 +330,7 @@ export async function retweet(maxWait = 20000, interval = 10, { real = false, si
   return true;
 }
 
-export async function like(maxWait = 20000, interval = 10, { real = false, simulate = true } = {}) {
+export async function like(options, maxWait = 20000, interval = 250) {
   const btn = await getLikeOrUnlikeButton(maxWait, interval);
   console.log('btn:', btn);
   if (btn.unlikeBtn) {
@@ -336,7 +339,7 @@ export async function like(maxWait = 20000, interval = 10, { real = false, simul
   if (!btn.likeBtn) {
     return false;
   }
-  clickElement(btn.likeBtn, { real, simulate });
+  clickTwitterElem(options, btn.likeBtn);
   await sleep(500);
 
   const unlikeBtn = await getUnlikeButton(5000, 10);
@@ -348,25 +351,27 @@ export async function like(maxWait = 20000, interval = 10, { real = false, simul
   return true;
 }
 
-export async function waitForPost(text, maxWait = 20000, interval = 10) {
+export async function waitForPost(text, maxWait = 20000, interval = 250) {
   console2.log('waitForPost:', text, maxWait, interval);
+
+  const searchFor = text.trim();
 
   const stopTime = millisecondsAhead(maxWait);
   while (Date.now() <= stopTime) {
     const elems = [...document.querySelectorAll('div[data-testid="tweetText"]')].filter(
-      (x) => x.textContent === text
+      (x) => x.textContent.trim() === searchFor
     );
     const elems2 = [...document.querySelectorAll('div[data-testid="tweetText"]')].map((x) => x.textContent);
     if (elems?.length) {
       return elems[0];
     }
-    console.log('elems, elems2', elems, elems2);
+    console.log('text, elems, elems2', searchFor, elems, elems2);
     await sleep(interval);
   }
   return null;
 }
 
-export async function comment(text, maxWait = 20000, interval = 10, { real = false, simulate = true } = {}) {
+export async function comment(options, text, maxWait = 20000, interval = 250) {
   const base = await waitForSelector(
     '.public-DraftStyleDefault-block.public-DraftStyleDefault-ltr',
     maxWait,
@@ -387,10 +392,15 @@ export async function comment(text, maxWait = 20000, interval = 10, { real = fal
   console.log('elem', elem);
 
   base.focus();
+  const elemWithValueSetter = elem.parentNode.parentNode.parentNode.parentNode;
+  console.log('elemWithValueSetter', elemWithValueSetter);
 
+  debuggerInsertText(elemWithValueSetter, text);
+  /*
   elem.textContent = text;
-  elem.click();
+  clickTwitterElem(options, elem);
   elem.dispatchEvent(new Event('input', { bubbles: true }));
+  */
   await sleep(1500, 3000);
 
   const replyBtn = await waitForSelector('div[data-testid="tweetButtonInline"]', maxWait, interval);
@@ -398,8 +408,9 @@ export async function comment(text, maxWait = 20000, interval = 10, { real = fal
   if (!replyBtn) {
     return '';
   }
-  clickElement(replyBtn, { real, simulate });
-  await sleep(1000, 1500);
+
+  clickTwitterElem(options, replyBtn);
+  await sleep(1500, 3000);
 
   const textNoEmojis = stripEmojis(text, false);
   console2.log('textNoEmojis:', textNoEmojis);
@@ -411,11 +422,39 @@ export async function comment(text, maxWait = 20000, interval = 10, { real = fal
   }
 
   try {
+    console2.log('textNoEmojis:', textNoEmojis);
+
+    const e1 = [...document.querySelectorAll('div[data-testid="tweetText"]')];
+    console.log('e1', e1);
+    console.log(
+      'e1.textContent',
+      e1.map((x) => x.textContent)
+    );
+    const e2 = e1.filter((x) => x.textContent.trim() === textNoEmojis);
+    console.log('e2', e2);
+    const e3 = e2[0];
+    console.log('e3', e3);
+    const e4 = e3.parentNode.parentNode;
+    console.log('e4', e4);
+    const e5 = [...e4.querySelectorAll('a')];
+    console.log('e5', e5);
+    const e6 = e5.filter((x) => x.getElementsByTagName('time').length);
+    console.log('e6', e6);
+    const e7 = e6[0];
+    console.log('e7', e7);
+    const e8 = e7.href;
+    console.log('e8', e8);
+
+    const url = e8;
+    console.log('url', url);
+
+    /*
     const url = [
       ...[...document.querySelectorAll('div[data-testid="tweetText"]')]
-        .filter((x) => x.textContent === textNoEmojis)[0]
+        .filter((x) => x.textContent.trim() === textNoEmojis)[0]
         .parentNode.parentNode.querySelectorAll('a'),
     ].filter((x) => x.getElementsByTagName('time').length)[0].href;
+*/
     return url;
   } catch (e) {
     console.log('error:', e);
@@ -423,23 +462,29 @@ export async function comment(text, maxWait = 20000, interval = 10, { real = fal
   }
 }
 
-export async function raid(text, maxWait = 20000, interval = 10, { real = false, simulate = true } = {}) {
-  if (!(await like(maxWait, interval, { real, simulate }))) {
+export async function raid(options, text, maxWait = 20000, interval = 250) {
+  if (!(await like(options, maxWait, clearInterval))) {
     console.log('failed raid like');
     return false;
   }
-  if (!(await retweet(maxWait, interval, { real, simulate }))) {
+  await sleep(1000, 1500);
+
+  if (!(await retweet(options, maxWait, interval))) {
     console.log('failed raid retweet');
     return false;
   }
-  const url = await comment(text, maxWait, interval, { real, simulate });
+  await sleep(1500, 2000);
+
+  const url = await comment(options, text, maxWait, interval);
   if (!url) {
     console.log('failed raid comment');
+    return '';
   }
+
   return url;
 }
 
-export async function waitForPageLoaded(maxWait = 20000, interval = 100) {
+export async function waitForPageLoaded(maxWait = 20000, interval = 200) {
   await sleep(50);
   const stopTime = millisecondsAhead(maxWait);
   while (Date.now() <= stopTime) {

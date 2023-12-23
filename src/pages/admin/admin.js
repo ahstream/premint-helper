@@ -2,11 +2,16 @@ console.info('admin.js begin', window?.location?.href);
 
 import './admin.scss';
 
+import global from '../../js/global.js';
+console.log(global);
+
 import {
   optimizeStorage,
   resetStorage,
   getMyTabIdFromExtension,
   createStatusbar,
+  debuggerClickMouse,
+  debuggerInsertText,
 } from '../../js/premintHelperLib.js';
 
 import { createHashArgs, getStorageData, setStorageData } from 'hx-lib';
@@ -53,6 +58,39 @@ async function runPage() {
   document.getElementById('hx-reset-storage').addEventListener('click', () => resetStorageHandler());
   document.getElementById('hx-get-alphabot-calendar').addEventListener('click', () => getAlphabotCalendar());
 
+  document.getElementById('text').addEventListener('click', (event) => {
+    console.log('text click:', event);
+  });
+  document.getElementById('text').addEventListener('mouseDown', (event) => {
+    console.log('text mouseDown:', event);
+  });
+  document.getElementById('text').addEventListener('mouseUp', (event) => {
+    console.log('text mouseUp:', event);
+  });
+  document.getElementById('text').addEventListener('change', (event) => {
+    console.log('text change:', event);
+  });
+  document.getElementById('text').addEventListener('focus', (event) => {
+    console.log('text focus:', event);
+  });
+  document.getElementById('text').addEventListener('blur', (event) => {
+    console.log('text blur:', event);
+  });
+
+  document.getElementById('hx-input-click').addEventListener('click', async () => {
+    const elem = document.getElementById('text');
+    // debuggerClickMouse(elem);
+    debuggerInsertText(elem, 'foobar 🔥 123');
+  });
+
+  document.getElementById('hx-event-click1').addEventListener('mousedown', (event) => {
+    console.log('mousedown1 event.isTrusted, event:', event.isTrusted, event);
+  });
+
+  document.getElementById('hx-event-click1').addEventListener('mouseup', (event) => {
+    console.log('mouseup1 event.isTrusted, event:', event.isTrusted, event);
+  });
+
   document.getElementById('hx-event-click1').addEventListener('click', (event) => {
     console.log('click1 event.isTrusted, event:', event.isTrusted, event);
     /*
@@ -68,7 +106,8 @@ async function runPage() {
     console.log(rect);
     console.log('elem2:', elem2);
 
-    chrome.runtime.sendMessage({ cmd: 'debugger', x: rect.left + 5, y: rect.top + 5 });
+    // chrome.runtime.sendMessage({ cmd: 'debuggerClickMouse', x: rect.left + 5, y: rect.top + 5 });
+    debuggerClickMouse(elem2);
   });
 
   document.getElementById('hx-event-click2').addEventListener('click', (event) => {

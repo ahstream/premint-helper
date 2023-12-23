@@ -1,3 +1,6 @@
+import global from './global.js';
+console.log(global);
+
 import {
   myConsole,
   getStorageItems,
@@ -11,7 +14,7 @@ import { raid, isTwitterPage } from './twitterLib';
 import { getFirstTwitterStatusLink, getActiveServerName, isDiscordPage } from './discordLib';
 import { copyToTheClipboard } from './premintHelperLib';
 
-const console2 = myConsole();
+const console2 = myConsole(global.LOGLEVEL);
 console2.log();
 
 // DATA ----------------------------------------------------------------------------------
@@ -21,17 +24,22 @@ const DEFAULT_RAID_TEXT = 'gm';
 
 // FUNCTIONS ----------------------------------------------------------------------------------
 
-export async function raidTwitterPost({ gotoPost = true } = {}) {
+export async function raidTwitterPost({ gotoPost = false } = {}) {
   console.log('raidTwitterPost', gotoPost);
   window.raidStarted = true;
+
+  storage = await getStorageItems(['options']);
+  console.log('storage', storage);
+
   const href = window.location.href.toLowerCase();
   console.log('isDiscordPage(href)', isDiscordPage(href));
   console.log('isTwitterPage(href)', isTwitterPage(href));
+
   if (isDiscordPage(href)) {
-    return raidLiteFromDiscordPage();
+    return raidFromDiscordPage();
   }
   if (isTwitterPage(href)) {
-    return raidLiteFromTwitterPage({ gotoPost });
+    return raidFromTwitterPage(storage.options, { gotoPost });
   }
 }
 
@@ -46,11 +54,11 @@ export async function raidFromDiscordPage() {
 
   await addPendingRequest(url, { action: 'raid', team });
   window.open(url, '_blank');
-  //chrome.runtime.sendMessage({ cmd: 'openTab', url, active: true });
 
   return true;
 }
 
+/*
 export async function raidLiteFromDiscordPage() {
   console.log('raid discord');
 
@@ -73,35 +81,42 @@ export async function raidLiteFromDiscordPage() {
 
   return true;
 }
+*/
 
-export async function raidFromTwitterPage({ team = null, gotoPost = true }) {
+export async function raidFromTwitterPage(options, { team = null, gotoPost = false }) {
   console.log('raidFromTwitterPage', team, gotoPost);
 
+  /*
   storage = await getStorageItems(['options']);
   console.log('storage', storage);
+  */
 
-  const raidText = getRaidText(storage.options, team);
+  const raidText = getRaidText(options, team);
   console.log('raidText', raidText);
 
-  await raidFromTwitterPageProcess(raidText, gotoPost);
+  if (options.RAID_FROM_TWITTER_PAGE_FULL) {
+    return await raidFromTwitterPageFull(options, raidText, gotoPost);
+  }
+  return await raidFromTwitterPageLite(raidText);
 }
 
-export async function raidLiteFromTwitterPage({ team = null }) {
-  console.log('raidLiteFromTwitterPage', team);
+async function raidFromTwitterPageLite(raidText) {
+  console.log('raidFromTwitterPageLite', raidText);
 
+  /*
   storage = await getStorageItems(['options']);
   console.log('storage', storage);
-
   const raidText = getRaidText(storage.options, team);
   console.log('raidText', raidText);
+  */
 
   copyToTheClipboard(raidText);
 }
 
-async function raidFromTwitterPageProcess(raidText, gotoPost) {
-  console.log('raidFromTwitterPageProcess', raidText, gotoPost);
+async function raidFromTwitterPageFull(options, raidText, gotoPost) {
+  console.log('raidFromTwitterPageFull', raidText, gotoPost);
 
-  const replyUrl = await raid(raidText);
+  const replyUrl = await raid(options, raidText);
   console.log('Raid new post url:', replyUrl);
 
   if (!replyUrl) {

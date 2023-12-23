@@ -1,5 +1,8 @@
 console.info('twitterIntentPage.js begin', window?.location?.href);
 
+import global from './global.js';
+console.log(global);
+
 import { switchToUser } from './twitterLib.js';
 import {
   getStorageItems,
@@ -9,9 +12,12 @@ import {
   millisecondsAhead,
   myConsole,
   ONE_HOUR,
+  ONE_MINUTE,
 } from 'hx-lib';
 
-const console2 = myConsole();
+import { clickTwitterElem } from './premintHelperLib.js';
+
+const console2 = myConsole(global.LOGLEVEL);
 
 // DATA ----------------------------------------------------------------------------------
 
@@ -85,7 +91,7 @@ async function runMainLoop() {
   console2.log('user', user);
 
   if (user) {
-    const result = await switchToUser(user, pageState.parentTabId, window.location.href);
+    const result = await switchToUser(storage.options, user, pageState.parentTabId, window.location.href);
     if (result.error) {
       await chrome.runtime.sendMessage({
         cmd: 'sendTo',
@@ -119,10 +125,13 @@ async function runIntentAction() {
   }
 
   await waitForPageLoaded();
-  await sleep(10);
+  await sleep(20);
+  await sleep(storage.options.TWITTER_DELAY_BEFORE_CLICK_INTENT_BTN, null, 0.5);
 
   console2.trace('click intentBtn:', intentBtn);
-  intentBtn.click();
+  // clickTwitterElem(storage.options, intentBtn);
+  await ensureIntentBtnClicked(intentBtn);
+  // intentBtn.click();
 
   await waitForNoIntentBtn();
 
@@ -138,21 +147,34 @@ async function runIntentAction() {
   }
 }
 
-async function waitForNoIntentBtn() {
+async function ensureIntentBtnClicked(btn, maxWait = ONE_MINUTE, interval = 250) {
+  console2.info('ensureIntentBtnClicked', btn);
+
+  const stopTime = millisecondsAhead(maxWait);
+  while (Date.now() <= stopTime) {
+    await clickTwitterElem(storage.options, btn);
+    await sleep(interval);
+    if (!getIntentButton()) {
+      return;
+    }
+    await sleep(interval);
+  }
+  console2.info('Failed ensureIntentBtnClicked', btn);
+}
+
+async function waitForNoIntentBtn(maxWait = 10 * ONE_MINUTE, interval = 250) {
   console2.log('waitForNoIntentBtn');
   // eslint-disable-next-line no-constant-condition
-  while (true) {
-    const btn = getIntentButton();
-    if (btn) {
-      console2.log('waitForNoIntentBtn...');
-      // not sure if we really should click here: btn.click();
-      await sleep(10);
-    } else {
+  const stopTime = millisecondsAhead(maxWait);
+  while (Date.now() <= stopTime) {
+    console2.log('waitForNoIntentBtn...');
+    if (!getIntentButton()) {
       break;
     }
+    await sleep(interval);
   }
   await sleep(100);
-  console2.log('Exit waitForNoIntentBtn!');
+  console2.info('Failed waitForNoIntentBtn!');
 }
 
 async function waitForPageLoaded() {

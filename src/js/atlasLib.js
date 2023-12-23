@@ -1,7 +1,10 @@
+import global from './global.js';
+console.log(global);
+
 import { sleep, fetchHelper, rateLimitHandler, myConsole } from 'hx-lib';
 import { normalizeTwitterHandle } from './premintHelperLib.js';
 
-const console2 = myConsole();
+const console2 = myConsole(global.LOGLEVEL);
 
 // DATA ----------------------------------------------------------------------------------
 

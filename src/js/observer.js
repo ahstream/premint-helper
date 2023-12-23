@@ -1,3 +1,6 @@
+import global from './global.js';
+console.log(global);
+
 import { trimWallet, walletToAlias, sortWallets, loadStorage } from './premintHelperLib';
 import {
   timestampToLocaleString,
@@ -14,7 +17,7 @@ import {
   isTwitterURL,
 } from 'hx-lib';
 
-const console2 = myConsole();
+const console2 = myConsole(global.LOGLEVEL);
 
 // DATA ----------------------------------------------------------------------------------
 

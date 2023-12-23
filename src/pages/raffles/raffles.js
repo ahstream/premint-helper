@@ -3,7 +3,7 @@ console.info('raffles.js begin', window?.location?.href);
 import './raffles.scss';
 
 import global from '../../js/global.js';
-console.log('global', global);
+console.log(global);
 
 import {
   createStatusbar,

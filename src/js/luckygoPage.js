@@ -1,10 +1,13 @@
 console.info('luckygoPage.js begin', window?.location?.href);
 
+import global from './global.js';
+console.log(global);
+
 import { getStorageItems, myConsole, sleep, createHashArgs, dispatch } from 'hx-lib';
 import { getCookie } from './premintHelperLib';
 // import { getRaffles } from './luckygoLib.js';
 
-const console2 = myConsole();
+const console2 = myConsole(global.LOGLEVEL);
 
 // DATA ----------------------------------------------------------------------------------
 

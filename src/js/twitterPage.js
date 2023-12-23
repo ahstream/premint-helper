@@ -2,9 +2,12 @@ console.info('twitterPage.js begin', window?.location?.href);
 
 import '../styles/twitterPage.css';
 
+import global from './global.js';
+console.log(global);
+
 import { switchToUser, isEmptyPage, handleAccountAccess, waitForPageLoaded } from './twitterLib.js';
 
-import { raidLiteFromTwitterPage } from './raid.js';
+import { raidFromTwitterPage } from './raid.js';
 
 import {
   getStorageData,
@@ -21,7 +24,7 @@ import { createStatusbar, notifyRaid, loadStorage } from './premintHelperLib';
 
 // import { createObserver as createTwitterObserver } from './twitterObserver.js';
 
-const console2 = myConsole();
+const console2 = myConsole(global.LOGLEVEL);
 
 // DATA ----------------------------------------------------------------------------------
 
@@ -147,31 +150,8 @@ async function runUnlocked() {
 
 async function runRaid() {
   await waitForPageLoaded();
-  await raidLiteFromTwitterPage({ team: pageState.request.team, gotoPost: true });
+  await raidFromTwitterPage(storage.options, { team: pageState.request.team, gotoPost: false });
 }
-
-/*
-async function runRetweet() {
-  console2.log('runRetweet');
-  const result = await retweet();
-  console2.log('result', result);
-  return result;
-}
-
-async function runLike() {
-  console2.log('runLike');
-  const result = await like();
-  console2.log('result', result);
-  return result;
-}
-
-async function runComment(text) {
-  console2.log('runComment', text);
-  const result = await comment(text);
-  console2.log('result', result);
-  return result;
-}
-*/
 
 async function runSwitchToUser() {
   console2.log('runSwitchToUser');
@@ -180,7 +160,7 @@ async function runSwitchToUser() {
   console2.log('user', user);
 
   if (user) {
-    const result = await switchToUser(user, pageState.parentTabId);
+    const result = await switchToUser(storage.options, user, pageState.parentTabId);
     if (result.error) {
       await chrome.runtime.sendMessage({
         cmd: 'sendTo',

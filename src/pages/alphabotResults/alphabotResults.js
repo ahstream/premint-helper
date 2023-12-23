@@ -62,7 +62,7 @@ import { getPermissions } from '../../js/permissions';
 
 import { createStatusbar } from 'hx-statusbar';
 
-const console2 = myConsole();
+const console2 = myConsole(global.LOGLEVEL);
 
 // DATA ----------------------------------------------------------------------------
 

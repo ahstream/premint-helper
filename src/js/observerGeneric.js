@@ -1,3 +1,6 @@
+import global from './global.js';
+console.log(global);
+
 import { trimWallet, walletToAlias, sortWallets, loadStorage } from './premintHelperLib';
 import {
   sleep,
@@ -12,7 +15,7 @@ import {
   noDuplicates,
 } from 'hx-lib';
 
-const console2 = myConsole();
+const console2 = myConsole(global.LOGLEVEL);
 
 // DATA ----------------------------------------------------------------------------------
 

@@ -2,6 +2,9 @@ console.info('atlasPage.js begin', window?.location?.href);
 
 import '../styles/atlasPage.css';
 
+import global from './global.js';
+console.log(global);
+
 import { JOIN_BUTTON_TEXT, JOIN_BUTTON_IN_PROGRESS_TEXT, JOIN_BUTTON_TITLE } from './premintHelperLib';
 
 import { initRafflePage } from './rafflePage';
@@ -24,7 +27,7 @@ import {
 import { createObserver as createRaffleObserver, getPreviousWalletsWon } from './observerGeneric';
 import { createObserver as createTwitterObserver } from './twitterObserver.js';
 
-const console2 = myConsole();
+const console2 = myConsole(global.LOGLEVEL);
 
 // DATA ----------------------------------------------------------------------------
 

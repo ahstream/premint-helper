@@ -1,3 +1,6 @@
+import global from './global.js';
+console.log(global);
+
 import {
   sleep,
   millisecondsAhead,
@@ -11,6 +14,7 @@ import {
   getStorageData,
   setStorageData,
   getStorageItems,
+  randomInt,
   // setStorageData,
 } from 'hx-lib';
 
@@ -18,7 +22,7 @@ import { raidTwitterPost } from './raid';
 
 import { createStatusbar as createStatusbarMain } from 'hx-statusbar';
 
-const console2 = myConsole();
+const console2 = myConsole(global.LOGLEVEL);
 
 // DATA ----------------------------------------------------------------------------------
 
@@ -1091,4 +1095,44 @@ export function lookupTwitterFollowersClickEventHandler(event, scope = 0) {
   event.preventDefault();
   event.stopImmediatePropagation();
   chrome.runtime.sendMessage({ cmd: 'lookupTwitterFollowersFromBtn', scope });
+}
+
+export async function debuggerClickMouse(elem, delay = null) {
+  var rect = elem.getBoundingClientRect();
+  const x = randomCoord(rect.left, rect.right);
+  const y = randomCoord(rect.top, rect.bottom);
+  const clickDelay = delay || randomInt(80, 120);
+  console.log('debuggerClickMouse', x, y, delay, elem);
+  chrome.runtime.sendMessage({ cmd: 'debuggerClickMouse', x, y, delay: clickDelay });
+}
+
+export async function debuggerInsertText(elem, text, delay = null, delayBeforeBlur = 1000) {
+  const clickDelay = delay || randomInt(80, 120);
+  console.log('debuggerClickKey', text, delay);
+  elem.focus();
+  chrome.runtime.sendMessage({ cmd: 'debuggerInsertText', text, delay: clickDelay });
+  await sleep(delayBeforeBlur);
+  elem.blur();
+}
+
+function randomCoord(min, max) {
+  return addNoiseToCoord(randomInt(min, max), max);
+}
+
+function addNoiseToCoord(coord, max) {
+  const coordWithNoise = coord + randomInt(0, 100) / 100;
+  return coordWithNoise <= max ? coordWithNoise : max;
+}
+
+export async function clickTwitterElem(options, elem, delay = null) {
+  if (options.CLICK_TWITTER_ELEM_DEBUGGER) {
+    console.log('debuggerClickMouse');
+    return debuggerClickMouse(elem, delay);
+  }
+  if (options.CLICK_TWITTER_ELEM_SIMULATE) {
+    console.log('simulateClick');
+    return simulateClick(elem);
+  }
+  console.log('elem.click');
+  elem.click();
 }
