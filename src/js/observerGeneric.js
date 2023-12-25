@@ -665,24 +665,6 @@ function createPreviousWonMap(twitterHandle, showAll = false) {
 
 // HELPERS FUNCS ----------------------------------------------------------------------------------
 
-/*
-export function getPreviousWalletsWon(twitterHandle) {
-  console2.trace('getPreviousWalletsWon:', twitterHandle);
-  if (!twitterHandle || typeof twitterHandle !== 'string') {
-    console2.trace('return []');
-    return [];
-  }
-
-  const wallets = storage?.allProjectWins ? storage.allProjectWins[twitterHandle.toLowerCase()] || [] : [];
-
-  if (wallets.length) {
-    console2.info(`Previous won wallet for ${twitterHandle}:`, wallets);
-  }
-
-  return wallets;
-}
-*/
-
 export function getPreviousWalletsWon(twitterHandle) {
   console2.trace('getPreviousWalletsWon:', twitterHandle);
   if (!twitterHandle || typeof twitterHandle !== 'string') {

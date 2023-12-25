@@ -164,6 +164,8 @@ async function runUnlocked() {
 async function runRaidFromDiscord() {
   await waitForPageLoaded();
   await raidTweet(storage.options, 'discord', pageState.request.team);
+  await sleep(2000, 4000);
+  window.close();
 }
 
 async function runSwitchToUser() {

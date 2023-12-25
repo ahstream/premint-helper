@@ -136,6 +136,34 @@ async function messageHandler(request, sender, sendResponse) {
 
       break;
 
+    case 'debuggerSendPageDown':
+      await attachDebugger(sender.tab.id);
+
+      r1 = await chrome.debugger.sendCommand({ tabId: sender.tab.id }, 'Input.dispatchKeyEvent', {
+        type: 'rawKeyDown',
+        windowsVirtualKeyCode: 34,
+        modifiers: 8,
+      });
+      console.log('r1', r1, request);
+      await sleep(request.delay || 5);
+
+      r2 = await chrome.debugger.sendCommand({ tabId: sender.tab.id }, 'Input.dispatchKeyEvent', {
+        type: 'char',
+        windowsVirtualKeyCode: 34,
+        modifiers: 8,
+      });
+      console.log('r2', r2, request);
+      await sleep(request.delay || 5);
+
+      r3 = await chrome.debugger.sendCommand({ tabId: sender.tab.id }, 'Input.dispatchKeyEvent', {
+        type: 'keyUp',
+        windowsVirtualKeyCode: 34,
+        modifiers: 8,
+      });
+      console.log('r3', r3, request);
+
+      break;
+
     case 'debuggerClickKey':
       await attachDebugger(sender.tab.id);
       r1 = await chrome.debugger.sendCommand({ tabId: sender.tab.id }, 'Input.dispatchKeyEvent', {

@@ -35,6 +35,12 @@ export async function debuggerClickEnter(elem, delay = null, delayBeforeBlur = n
   }
 }
 
+export async function debuggerSendPageDown(delay = null) {
+  delay = delay || randomInt(80, 120);
+  console.log('debuggerSendPageDown', delay);
+  chrome.runtime.sendMessage({ cmd: 'debuggerSendPageDown', delay });
+}
+
 export async function debuggerInsertText(elem, text, delay = null, delayBeforeBlur = 1000) {
   const clickDelay = delay || randomInt(80, 120);
   console.log('debuggerClickKey', text, delay);

@@ -22,8 +22,10 @@ async function runNow() {
     // document.querySelector('#storage').style.display = 'none';
   }
 
-  storage = await loadStorage({ keys: ['options', 'stats'] });
+  // storage = await loadStorage({ keys: ['options', 'stats'] });
+  storage = await loadStorage();
   console.info('storage', storage);
+  window.premint = storage;
 
   createStatusbar(storage.options);
 
@@ -37,10 +39,15 @@ function addTwitterLockInfo() {
   const softLocks = storage.stats.twitterAccount?.softLocks || [];
   const hardLocks = storage.stats.twitterAccount?.hardLocks || [];
 
+  const getDateStr = (t) =>
+    storage.options.DEFAULT_LOCALE
+      ? new Date(t).toLocaleString(storage.options.DEFAULT_LOCALE)
+      : new Date(t).toLocaleString();
+
   document.getElementById('mount-twitter-locks').innerHTML = `
   <h4>Soft locks</h4>
-  ${!softLocks.length ? ' None' : softLocks.map((x) => new Date(x).toLocaleString()).join('<br>')}
+  ${!softLocks.length ? ' None' : softLocks.map((x) => getDateStr(x)).join('<br>')}
   <h4>Hard locks</h4>
-  ${!hardLocks.length ? ' None' : hardLocks.map((x) => new Date(x).toLocaleString()).join('<br>')}
+  ${!hardLocks.length ? ' None' : hardLocks.map((x) => getDateStr(x)).join('<br>')}
     `;
 }

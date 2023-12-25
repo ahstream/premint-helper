@@ -33,6 +33,7 @@ module.exports = {
     filename: '[name].js',
     path: path.resolve(__dirname, '../', 'dist'),
     clean: true,
+    publicPath: path.resolve(__dirname, '../', 'dist/'),
   },
   optimization: {
     minimizer: [new CssMinimizerPlugin()],
@@ -47,6 +48,10 @@ module.exports = {
       {
         test: /\.(scss|css)$/,
         use: [MiniCssExtractPlugin.loader, 'css-loader', 'sass-loader'],
+      },
+      {
+        test: /\.(png|svg|jpg|jpeg|gif|ogg|mp3|wav)$/i,
+        type: 'asset/resource',
       },
     ],
   },

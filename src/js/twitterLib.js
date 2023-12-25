@@ -324,7 +324,7 @@ export async function retweet(options, maxWait = 20000, interval = 250) {
     return false;
   }
   //clickTwitterElem(options, btn.retweetBtn);
-  await sleep(500);
+  await sleep(200);
 
   /*
   const confirmBtn = await getRetweetOrUnretweetConfirmButton(maxWait, interval);
@@ -378,7 +378,7 @@ export async function like(options, maxWait = 20000, interval = 250) {
     return false;
   }
   //clickTwitterElem(options, btn.likeBtn);
-  await sleep(500);
+  await sleep(200);
 
   const unlikeBtn = await getUnlikeButton(5000, 10);
   console.log('unlikeBtn:', unlikeBtn);
@@ -439,7 +439,7 @@ export async function comment(options, text, maxWait = 20000, interval = 250) {
   clickTwitterElem(options, elem);
   elem.dispatchEvent(new Event('input', { bubbles: true }));
   */
-  await sleep(1500, 3000);
+  await sleep(500, 1000);
 
   const btn = await getReplyButton(maxWait, interval);
   console.log('btn', btn);
@@ -452,7 +452,7 @@ export async function comment(options, text, maxWait = 20000, interval = 250) {
     return false;
   }
   //clickTwitterElem(options, replyBtn);
-  await sleep(1500, 3000);
+  await sleep(500, 1000);
 
   const textNoEmojis = stripEmojis(text, false).trim();
   console2.log('textNoEmojis:', textNoEmojis, textNoEmojis.length);
@@ -527,7 +527,7 @@ export async function raid(options, text, maxWait = 20000, interval = 250) {
     console.log('failed raid retweet');
     return false;
   }
-  await sleep(1500, 2000);
+  await sleep(1000, 1500);
 
   const url = await comment(options, text, maxWait, interval);
   if (!url) {
@@ -585,13 +585,13 @@ async function ensureButtonClicked(options, btn, buttonKey1, buttonKey2, getter,
   const stopTime = millisecondsAhead(maxWait);
   while (Date.now() <= stopTime) {
     await clickTwitterElem(options, btn[buttonKey1]);
-    await sleep(500);
+    await sleep(100);
     btn = await getter(100);
     if (!btn[buttonKey1] || btn[buttonKey2]) {
       return true;
     }
     await submitTwitterElem(options, btn[buttonKey1]);
-    await sleep(500);
+    await sleep(100);
     btn = await getter(100);
     if (!btn[buttonKey1] || btn[buttonKey2]) {
       return true;

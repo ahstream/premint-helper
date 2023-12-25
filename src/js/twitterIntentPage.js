@@ -213,7 +213,7 @@ async function finishIntentAction() {
   const shouldClose = pageState.parentTabId && storage.options.TWITTER_CLOSE_TASK_PAGE;
   if (shouldClose) {
     console2.info('Close Twitter page after action...');
-    await sleep(storage.options.TWITTER_CLOSE_TASK_PAGE_DELAY, null, 0.2);
+    await sleep(storage.options.TWITTER_CLOSE_TASK_PAGE_DELAY, null, 0.5);
     window.close();
   }
 }

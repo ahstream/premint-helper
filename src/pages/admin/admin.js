@@ -12,7 +12,12 @@ import {
   createStatusbar,
 } from '../../js/premintHelperLib.js';
 
-import { debuggerClickMouse, debuggerClickEnter, debuggerInsertText } from '../../js/chromeDebugger';
+import {
+  debuggerClickMouse,
+  debuggerClickEnter,
+  debuggerInsertText,
+  debuggerSendPageDown,
+} from '../../js/chromeDebugger';
 
 import { createHashArgs, getStorageData, setStorageData, sleep } from 'hx-lib';
 
@@ -61,6 +66,7 @@ async function runPage() {
   document.getElementById('text').addEventListener('click', (event) => {
     console.log('text click:', event);
   });
+
   document.getElementById('text').addEventListener('mouseDown', (event) => {
     console.log('text mouseDown:', event);
   });
@@ -95,6 +101,11 @@ async function runPage() {
 
   document.getElementById('hx-event-click1').addEventListener('click', (event) => {
     console.log('click1 event.isTrusted, event:', event.isTrusted, event);
+
+    debuggerSendPageDown();
+    if (event) {
+      return;
+    }
     /*
     const elem = document.getElementById('hx-event-click2');
     elem.click();

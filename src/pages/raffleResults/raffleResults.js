@@ -313,11 +313,11 @@ async function updateWins() {
     }
   }
 
-  const superful = await updateSuperfulWins(checkTime, cloudWins);
   const alphabot = await updateAlphabotWins(checkTime, cloudWins);
   const premint = await updatePremintWins(checkTime, cloudWins);
-  const atlas = await updateAtlasWins(checkTime, cloudWins);
   const luckygo = await updateLuckygoWins(checkTime, cloudWins);
+  const superful = await updateSuperfulWins(checkTime, cloudWins);
+  const atlas = await updateAtlasWins(checkTime, cloudWins);
 
   const mergedWins = mergeAllWins({ atlas, alphabot, premint, luckygo, superful });
   storage.wins = mergedWins;
@@ -606,7 +606,7 @@ async function updateAlphabotWins(checkTime, allCloudWins) {
 
   if (!storage.options.ALPHABOT_ENABLE_RESULTS) {
     statusLogger.sub(`Skip fetching new ${providerName} wins (disabled in Options)`);
-    return [];
+    return raffleStorage.wins;
   }
 
   updateMainStatus(`Getting ${providerName} account info...`);
@@ -614,7 +614,7 @@ async function updateAlphabotWins(checkTime, allCloudWins) {
   console2.log('account', account);
   if (!account?.id) {
     statusLogger.sub(`Failed getting ${providerName} account. Check if logged in to website.`);
-    return [];
+    return raffleStorage.wins;
   }
 
   const lastEndDate = raffleStorage.myWins?.length
@@ -768,7 +768,7 @@ async function updatePremintWins(checkTime, allCloudWins) {
 
   if (!storage.options.PREMINT_ENABLE_RESULTS) {
     statusLogger.sub(`Skip fetching new ${providerName} wins (disabled in Options)`);
-    return [];
+    return raffleStorage.wins;
   }
 
   updateMainStatus(`Getting ${providerName} account info...`);
@@ -776,7 +776,7 @@ async function updatePremintWins(checkTime, allCloudWins) {
   console2.log('account', account);
   if (!account?.id) {
     statusLogger.sub(`Failed getting ${providerName} account. Check if logged in to website.`);
-    return [];
+    return raffleStorage.wins;
   }
 
   const skip = [...raffleStorage.myWins.map((x) => x.id), ...raffleStorage.myLost.map((id) => id)];
@@ -840,7 +840,7 @@ async function updateAtlasWins(checkTime, allCloudWins) {
 
   if (!storage.options.ATLAS_ENABLE_RESULTS) {
     statusLogger.sub(`Skip fetching new ${providerName} wins (disabled in Options)`);
-    return [];
+    return raffleStorage.wins;
   }
 
   updateMainStatus(`Getting ${providerName} account info...`);
@@ -848,7 +848,7 @@ async function updateAtlasWins(checkTime, allCloudWins) {
   console2.log('account', account);
   if (!account?.id) {
     statusLogger.sub(`Failed getting ${providerName} account. Check if logged in to website.`);
-    return [];
+    return raffleStorage.wins;
   }
 
   const myWins = await getAtlasWins(account, {
@@ -906,7 +906,7 @@ async function updateLuckygoWins(checkTime, allCloudWins) {
 
   if (!storage.options.LUCKYGO_ENABLE_RESULTS) {
     statusLogger.sub(`Skip fetching new ${providerName} wins (disabled in Options)`);
-    return [];
+    return raffleStorage.wins;
   }
 
   updateMainStatus(`Getting ${providerName} account info...`);
@@ -914,13 +914,13 @@ async function updateLuckygoWins(checkTime, allCloudWins) {
   console2.log('account', account);
   if (!account?.id) {
     statusLogger.sub(`Failed getting ${providerName} account. Check if logged in to website.`);
-    return [];
+    return raffleStorage.wins;
   }
 
   const authKey = await getLuckygoAuth(pageState);
   if (!authKey) {
     statusLogger.sub(`Failed getting ${providerName} authentication key. Check if logged in to website.`);
-    return [];
+    return raffleStorage.wins;
   }
 
   const skip = [...raffleStorage.myWins.map((x) => x.id)];
@@ -982,14 +982,14 @@ async function updateSuperfulWins(checkTime, allCloudWins) {
 
   if (!storage.options.SUPERFUL_ENABLE_RESULTS) {
     statusLogger.sub(`Skip fetching new ${providerName} wins (disabled in Options)`);
-    return [];
+    return raffleStorage.wins;
   }
 
   updateMainStatus(`Getting ${providerName} authentication key...`);
   const authKey = await getSuperfulAuth(pageState);
   if (!authKey) {
     statusLogger.sub(`Failed getting ${providerName} authentication key. Check if logged in to website.`);
-    return [];
+    return raffleStorage.wins;
   }
   console2.log('authKey', authKey);
   console.log('authKey', authKey);
@@ -1000,7 +1000,7 @@ async function updateSuperfulWins(checkTime, allCloudWins) {
   console.log('account', account);
   if (!account?.id) {
     statusLogger.sub(`Failed getting ${providerName} account. Check if logged in to website.`);
-    return [];
+    return raffleStorage.wins;
   }
 
   const skip = [...raffleStorage.myWins.map((x) => x.id)];

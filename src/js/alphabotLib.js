@@ -320,7 +320,7 @@ export async function getAccount() {
   const result = await fetchHelper(ACCOUNT_URL, {});
   console2.log('getAccount:', result);
   const id = result?.data?._id;
-  const _id = id.toString ? id.toString().toLowerCase() : null;
+  const _id = id?.toString ? id.toString().toLowerCase() : null;
   return {
     id: _id,
     userName:

@@ -466,8 +466,15 @@ const options = [
     hiddenKey: '',
     options: [
       ['description', 'LOREM'],
+
+      ['property', 'DEFAULT_LOCALE', 'DEFAULT_LOCALE', '', 'DEFAULT_LOCALE'],
+
+      ['space', 10],
+
       ['property', 'STATUSBAR_HIDE_TIME_SHORT', 'STATUSBAR_HIDE_TIME_SHORT', '', 'STATUSBAR_HIDE_TIME_SHORT'],
       ['property', 'STATUSBAR_HIDE_TIME_LONG', 'STATUSBAR_HIDE_TIME_LONG', '', 'STATUSBAR_HIDE_TIME_LONG'],
+
+      ['space', 10],
       [
         'property',
         'CLICK_TWITTER_ELEM_DEBUGGER',

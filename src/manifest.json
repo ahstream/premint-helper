@@ -54,6 +54,7 @@
     {
       "matches": [
         "https://discord.gg/*",
+        "https://discord.com/login?*",
         "https://discord.com/invite/*",
         "https://discord.com/app/*",
         "https://discord.com/channels/*"
