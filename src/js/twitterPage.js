@@ -7,7 +7,7 @@ console.log(global);
 
 import { switchToUser, isEmptyPage, handleAccountAccess, waitForPageLoaded } from './twitterLib.js';
 
-import { raidTweet } from './raid.js';
+import { raidTweet } from './raidLib.js';
 
 import {
   getStorageData,
@@ -84,7 +84,7 @@ function initEventHandlers() {
     console2.info('Received message:', request, sender);
 
     if (request.cmd === 'raidFromTwitterDone') {
-      notifyRaidInTwitter(request);
+      await notifyRaidInTwitter(request);
     }
 
     sendResponse();
@@ -92,7 +92,7 @@ function initEventHandlers() {
   });
 }
 
-function notifyRaidInTwitter(request) {
+async function notifyRaidInTwitter(request) {
   if (!window.raidStarted) {
     console.log('Ignore raid result');
     return;
@@ -102,7 +102,9 @@ function notifyRaidInTwitter(request) {
   window.alert(
     `Done raiding ${request.fromUrl}.\n\nRetweeted post URL is copied to clipboard after closing this dialog.`
   );
-  copyToTheClipboard(request.replyUrl);
+  await copyToTheClipboard(request.replyUrl);
+  await sleep(300);
+  window.close();
 }
 
 // PAGE FUNCTIONS ----------------------------------------------------------------------------

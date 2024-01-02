@@ -17,12 +17,9 @@ import {
   // setStorageData,
 } from 'hx-lib';
 
-import { isDiscordPage } from './discordLib';
-import { isTwitterPage } from './twitterLib';
+import { runRaid, addRaidLink, showRaidPage } from './raidLib.js';
 
-import { raidFromDiscordPage, raidFromTwitterPage } from './raid';
-
-import { debuggerClickMouse, debuggerClickEnter } from './chromeDebugger';
+import { debuggerClickMouse, debuggerSendEnter } from './chromeDebugger';
 
 import { createStatusbar as createStatusbarMain } from 'hx-statusbar';
 
@@ -1058,7 +1055,9 @@ export function createStatusbarButtons({ options, results, raffles, reveal, raid
   }
 
   if (raid) {
-    add('Raid', 'Raid Twitter post', makeCallback(raid, raidButtonEventHandler));
+    add('Run Raid', 'Raid Twitter post', makeCallback(raid, runRaid));
+    add('R+', 'Add raid link', makeCallback(raid, addRaidLink));
+    add('R=', 'Show raid page', makeCallback(raid, showRaidPage));
   }
 
   if (reveal) {
@@ -1082,24 +1081,6 @@ export function createStatusbarButtons({ options, results, raffles, reveal, raid
   return buttons.reverse();
 }
 
-async function raidButtonEventHandler() {
-  window.raidStarted = true;
-
-  const storage = await getStorageItems(['options']);
-  console.log('storage', storage);
-
-  const href = window.location.href.toLowerCase();
-  console.log('isDiscordPage(href)', isDiscordPage(href));
-  console.log('isTwitterPage(href)', isTwitterPage(href));
-
-  if (isDiscordPage(href)) {
-    return raidFromDiscordPage();
-  }
-  if (isTwitterPage(href)) {
-    return raidFromTwitterPage(storage.options);
-  }
-}
-
 export function lookupTwitterFollowersClickEventHandler(event, scope = 0) {
   event.preventDefault();
   event.stopImmediatePropagation();
@@ -1109,11 +1090,11 @@ export function lookupTwitterFollowersClickEventHandler(event, scope = 0) {
 export async function clickTwitterElem(options, elem, delay = null) {
   if (options.CLICK_TWITTER_ELEM_DEBUGGER) {
     console.log('debuggerClickMouse');
-    return debuggerClickMouse(elem, delay);
+    return await debuggerClickMouse('left', { elem, delay });
   }
   if (options.CLICK_TWITTER_ELEM_SIMULATE) {
     console.log('simulateClick');
-    return simulateClick(elem);
+    return await simulateClick(elem);
   }
   console.log('elem.click');
   elem.click();
@@ -1121,7 +1102,7 @@ export async function clickTwitterElem(options, elem, delay = null) {
 
 export async function submitTwitterElem(options, elem, delay = null) {
   if (options.CLICK_TWITTER_ELEM_DEBUGGER) {
-    console.log('debuggerClickEnter');
-    return debuggerClickEnter(elem, delay);
+    console.log('debuggerSendEnter');
+    return debuggerSendEnter({ elem, delay });
   }
 }

@@ -313,7 +313,7 @@ async function updateMyWinners(accountName) {
   const updatedWinners = newMyWinners.filter((x) => x.hxUpdated >= now);
   console2.log('updatedWinners', updatedWinners);
 
-  updateStatus(`Fetched ${updatedWinners.length} new or updated winners from Alphabot`);
+  updateStatus(`Fetched ${updatedWinners.length} new or updated wins from Alphabot`);
 
   if (storage.options.CLOUD_MODE === 'save') {
     // If cloud has no winners DB has likely been cleared and we need to upload all winners!
@@ -368,7 +368,7 @@ async function updateCloudWinners() {
     numNewWinners
   );
 
-  updateStatus(`Fetched ${numNewWinners} new or updated winners from Cloud`);
+  updateStatus(`Fetched ${numNewWinners} new or updated wins from Cloud`);
 
   storage.alphabot.lastCloudFetchDate = now;
   storage.alphabot.cloudWinners = allWinners;

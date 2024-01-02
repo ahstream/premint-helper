@@ -243,8 +243,6 @@ export const defaultOptions = {
 
   RAID_FROM_TWITTER_PAGE_FULL: false,
   RAID_FROM_DISCORD_PAGE_FULL: false,
-
-  DEFAULT_LOCALE: 'sv-SE',
 };
 
 export const overrideOptions = {
@@ -339,4 +337,6 @@ export const overrideOptions = {
   TWITTER_DELAY_BEFORE_CLICK_INTENT_BTN: 1000,
 
   DISCORD_MAIN_LOOP_SLEEP: 1000,
+
+  DEFAULT_LOCALE: 'sv-SE',
 };

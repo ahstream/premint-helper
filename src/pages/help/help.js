@@ -8,6 +8,7 @@ console.log(global);
 import { initHelpPage, mountHelpPage } from 'hx-chrome-lib';
 
 import { createStatusbar, loadStorage } from '../../js/premintHelperLib.js';
+import { dynamicSortMultiple } from 'hx-lib';
 
 // DATA ----------------------------------------------------------------------------
 
@@ -44,10 +45,17 @@ function addTwitterLockInfo() {
       ? new Date(t).toLocaleString(storage.options.DEFAULT_LOCALE)
       : new Date(t).toLocaleString();
 
-  document.getElementById('mount-twitter-locks').innerHTML = `
-  <h4>Soft locks</h4>
-  ${!softLocks.length ? ' None' : softLocks.map((x) => getDateStr(x)).join('<br>')}
-  <h4>Hard locks</h4>
-  ${!hardLocks.length ? ' None' : hardLocks.map((x) => getDateStr(x)).join('<br>')}
+  const allLocks = [
+    ...softLocks.map((timestamp) => {
+      return { timestamp, type: 'Soft' };
+    }),
+    ...hardLocks.map((timestamp) => {
+      return { timestamp, type: 'Hard' };
+    }),
+  ];
+  allLocks.sort(dynamicSortMultiple('-timestamp', 'type'));
+
+  document.getElementById('mount-twitter-locks').innerHTML = `<br>
+  ${!allLocks.length ? ' None' : allLocks.map((x) => `${getDateStr(x.timestamp)} (${x.type})`).join('<br>')}
     `;
 }

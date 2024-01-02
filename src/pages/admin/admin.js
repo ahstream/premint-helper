@@ -1,3 +1,4 @@
+/* eslint-disable no-unused-vars */
 console.info('admin.js begin', window?.location?.href);
 
 import './admin.scss';
@@ -14,7 +15,7 @@ import {
 
 import {
   debuggerClickMouse,
-  debuggerClickEnter,
+  debuggerSendKeyEvent,
   debuggerInsertText,
   debuggerSendPageDown,
 } from '../../js/chromeDebugger';
@@ -23,6 +24,8 @@ import { createHashArgs, getStorageData, setStorageData, sleep } from 'hx-lib';
 
 import { getPermissions } from '../../js/permissions.js';
 import { getCalendar, getCalendars } from '../../js/alphabotLib.js';
+
+import { simulateKeyPress } from '../../js/domLib.js';
 
 // DATA ------------------------------
 
@@ -63,10 +66,52 @@ async function runPage() {
   document.getElementById('hx-reset-storage').addEventListener('click', () => resetStorageHandler());
   document.getElementById('hx-get-alphabot-calendar').addEventListener('click', () => getAlphabotCalendar());
 
+  // TEST 1
+
+  document.getElementById('hx-test1').addEventListener('click', async (event) => {
+    console.log('click1:', event.isTrusted, event);
+    await debuggerSendPageDown();
+    await sleep(3000);
+    await debuggerInsertText('xssdsd', { elem: document.getElementById('text') });
+  });
+
+  document.getElementById('hx-test1').addEventListener('mousedown', (event) => {
+    console.log('mousedown1:', event.isTrusted, event);
+  });
+
+  document.getElementById('hx-test1').addEventListener('mouseup', (event) => {
+    console.log('mouseup1:', event.isTrusted, event);
+  });
+
+  // TEST 2
+
+  document.getElementById('hx-test2').addEventListener('click', (event) => {
+    console.log('click2:', event.isTrusted, event);
+    window.alert('hx-test2 clicked');
+  });
+
+  document.getElementById('hx-test2').addEventListener('mousedown', (event) => {
+    console.log('mousedown2:', event.isTrusted, event);
+  });
+
+  document.getElementById('hx-test2').addEventListener('mouseup', (event) => {
+    console.log('mouseup2:', event.isTrusted, event);
+  });
+
+  // TEST 3
+
+  document.getElementById('hx-test3').addEventListener('click', async () => {
+    console.log('click3:', event.isTrusted, event);
+    await debuggerClickMouse('left', { elem: document.getElementById('hx-test2') });
+    // debuggerClickMouse(elem);
+    await debuggerInsertText('foobar 🔥 123', { elem: document.getElementById('text') });
+  });
+
+  // TEXT
+
   document.getElementById('text').addEventListener('click', (event) => {
     console.log('text click:', event);
   });
-
   document.getElementById('text').addEventListener('mouseDown', (event) => {
     console.log('text mouseDown:', event);
   });
@@ -82,58 +127,14 @@ async function runPage() {
   document.getElementById('text').addEventListener('blur', (event) => {
     console.log('text blur:', event);
   });
-
-  document.getElementById('hx-input-click').addEventListener('click', async () => {
-    const elem = document.getElementById('text');
-    // debuggerClickMouse(elem);
-    debuggerInsertText(elem, 'foobar 🔥 123');
-    await sleep(1000);
-    debuggerClickEnter(document.getElementById('hx-event-click2'), 13);
+  document.getElementById('text').addEventListener('keyDown', (event) => {
+    console.log('text keyDown:', event);
   });
-
-  document.getElementById('hx-event-click1').addEventListener('mousedown', (event) => {
-    console.log('mousedown1 event.isTrusted, event:', event.isTrusted, event);
+  document.getElementById('text').addEventListener('keyUp', (event) => {
+    console.log('text keyUp:', event);
   });
-
-  document.getElementById('hx-event-click1').addEventListener('mouseup', (event) => {
-    console.log('mouseup1 event.isTrusted, event:', event.isTrusted, event);
-  });
-
-  document.getElementById('hx-event-click1').addEventListener('click', (event) => {
-    console.log('click1 event.isTrusted, event:', event.isTrusted, event);
-
-    debuggerSendPageDown();
-    if (event) {
-      return;
-    }
-    /*
-    const elem = document.getElementById('hx-event-click2');
-    elem.click();
-    simulateClick(elem);
-
-    var changeEvent = new Event('click', { bubbles: true });
-    elem.dispatchEvent(changeEvent);
-    */
-    const elem2 = document.getElementById('hx-event-click2');
-    var rect = elem2.getBoundingClientRect();
-    console.log(rect);
-    console.log('elem2:', elem2);
-
-    // chrome.runtime.sendMessage({ cmd: 'debuggerClickMouse', x: rect.left + 5, y: rect.top + 5 });
-    debuggerClickMouse(elem2);
-  });
-
-  document.getElementById('hx-event-click2').addEventListener('click', (event) => {
-    console.log('click2 event.isTrusted, event:', event.isTrusted, event);
-    window.alert('hx-event-click2');
-  });
-
-  document.getElementById('hx-event-click2').addEventListener('mousedown', (event) => {
-    console.log('mousedown event.isTrusted, event:', event.isTrusted, event);
-  });
-
-  document.getElementById('hx-event-click2').addEventListener('mouseup', (event) => {
-    console.log('mouseup event.isTrusted, event:', event.isTrusted, event);
+  document.getElementById('text').addEventListener('input', (event) => {
+    console.log('text input:', event);
   });
 
   /*
@@ -144,6 +145,11 @@ async function runPage() {
     console.log('mousedown event.isTrusted, event:', event.isTrusted, event);
   });
   */
+
+  setTimeout(() => {
+    console.log('foo');
+    simulateKeyPress('a', {}, document.getElementById('text'));
+  }, 1000);
 }
 
 async function getAlphabotCalendar() {

@@ -19,6 +19,17 @@ mountPopupPage([
     },
   },
   {
+    id: 'hx-raid',
+    callback: () => {
+      console.log('callback');
+      chrome.runtime.sendMessage({
+        cmd: 'openTab',
+        url: chrome.runtime.getURL('/raid.html'),
+        active: true,
+      });
+    },
+  },
+  {
     id: 'hx-lookup-twitter-followers',
     callback: () => {
       console.log('callback');

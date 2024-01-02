@@ -11,6 +11,7 @@ import {
   createLogLevelArg,
   myConsole,
   stripEmojis,
+  waitForEitherSelector,
 } from 'hx-lib';
 
 import { clickTwitterElem, saveStorage, submitTwitterElem } from './premintHelperLib';
@@ -129,19 +130,6 @@ export async function waitForUser(handleIn, myTabId, context, maxWait = 20000, i
 export async function handleAccountAccess(storage) {
   console2.info('handleAccountAccess');
 
-  if (
-    storage.runtime.lastTwitterAccountAccess &&
-    storage.runtime.lastTwitterAccountAccess + ACCOUNT_ACCESS_PERIOD > Date.now()
-  ) {
-    console2.info('Skip duplicate Twitter account access page load');
-    return;
-  }
-
-  storage.runtime.lastTwitterAccountAccess = Date.now();
-  await saveStorage(storage);
-
-  await chrome.runtime.sendMessage({ cmd: 'broadcast', request: { cmd: 'lockedTwitterAccount' } });
-
   if (!storage.stats.twitterAccount) {
     storage.stats.twitterAccount = {
       softLocks: [],
@@ -149,21 +137,56 @@ export async function handleAccountAccess(storage) {
     };
   }
 
-  const btn = await waitForSelector('input[type="submit"]', ONE_SECOND * 10, 250);
-  if (btn) {
-    storage.stats.twitterAccount.softLocks.push(Date.now());
-    await saveStorage(storage);
+  const now = Date.now();
 
+  const softBtnSelector = 'input[type="submit"]';
+  const hardBtnSelector = 'iframe[id="arkose_iframe"]'; // 'button[data-theme="home.verifyButton"]';
+
+  const elem = await waitForEitherSelector([softBtnSelector, hardBtnSelector], 30 * ONE_SECOND, 500);
+  console.log('elem', elem);
+
+  const softBtn = await waitForSelector(softBtnSelector, 100, 100);
+  console.log('softBtn', softBtn);
+
+  const hardBtn = await waitForSelector(hardBtnSelector, 100, 100);
+  console.log('hardBtn', hardBtn);
+
+  if (
+    softBtn &&
+    storage.runtime.lastTwitterAccountAccessSoft &&
+    storage.runtime.lastTwitterAccountAccessSoft + ACCOUNT_ACCESS_PERIOD > now
+  ) {
+    return console2.info('Skip duplicate Twitter SOFT account access page load');
+  }
+  if (softBtn) {
+    storage.runtime.lastTwitterAccountAccessSoft = now;
+    storage.stats.twitterAccount.softLocks.push(now);
+  }
+
+  if (
+    hardBtn &&
+    storage.runtime.lastTwitterAccountAccessHard &&
+    storage.runtime.lastTwitterAccountAccessHard + ACCOUNT_ACCESS_PERIOD > now
+  ) {
+    return console2.info('Skip duplicate Twitter HARD account access page load');
+  }
+  if (hardBtn) {
+    storage.runtime.lastTwitterAccountAccessHard = now;
+    storage.stats.twitterAccount.hardLocks.push(now);
+  }
+
+  await saveStorage(storage);
+
+  if (softBtn) {
     await sleep(2000);
     await addPendingRequest('https://twitter.com/', { action: 'unlocked' });
     await sleep(200);
-    clickTwitterElem(storage.options, btn);
+    clickTwitterElem(storage.options, softBtn);
     await sleep(200);
     return;
   }
 
-  storage.stats.twitterAccount.hardLocks.push(Date.now());
-  await saveStorage(storage);
+  await chrome.runtime.sendMessage({ cmd: 'broadcast', request: { cmd: 'lockedTwitterAccount' } });
 }
 
 async function getBaseForStatusPage(maxWait, interval) {
@@ -310,6 +333,7 @@ export async function retweet(options, maxWait = 20000, interval = 250) {
     return false;
   }
 
+  /*
   if (
     !(await ensureButtonClicked(
       options,
@@ -323,10 +347,10 @@ export async function retweet(options, maxWait = 20000, interval = 250) {
     console.log('failed retweetBtn');
     return false;
   }
-  //clickTwitterElem(options, btn.retweetBtn);
+  */
+  clickTwitterElem(options, btn.retweetBtn);
   await sleep(200);
 
-  /*
   const confirmBtn = await getRetweetOrUnretweetConfirmButton(maxWait, interval);
   console.log('confirmBtn:', confirmBtn);
   if (confirmBtn.unretweetConfirmBtn) {
@@ -336,6 +360,7 @@ export async function retweet(options, maxWait = 20000, interval = 250) {
     return false;
   }
 
+  /*
   if (
     !(await ensureButtonClicked(
       options,
@@ -349,9 +374,9 @@ export async function retweet(options, maxWait = 20000, interval = 250) {
     console.log('failed confirmBtn');
     return false;
   }
-  // clickTwitterElem(options, confirmBtn.retweetConfirmBtn);
-  await sleep(500);
   */
+  clickTwitterElem(options, confirmBtn.retweetConfirmBtn);
+  await sleep(500);
 
   const unretweetBtn = await getUnretweetButton(5000, 10);
   console.log('unretweetBtn:', unretweetBtn);
@@ -433,7 +458,7 @@ export async function comment(options, text, maxWait = 20000, interval = 250) {
   const elemWithValueSetter = elem.parentNode.parentNode.parentNode.parentNode;
   console.log('elemWithValueSetter', elemWithValueSetter);
 
-  debuggerInsertText(elemWithValueSetter, text);
+  debuggerInsertText(text, { elem: elemWithValueSetter });
   /*
   elem.textContent = text;
   clickTwitterElem(options, elem);
@@ -578,6 +603,8 @@ async function ensureLikeButtonClicked(options, btn, maxWait) {
 */
 
 async function ensureButtonClicked(options, btn, buttonKey1, buttonKey2, getter, maxWait) {
+  console2.log('ensureButtonClicked:', btn, buttonKey1, buttonKey2);
+
   if (btn[buttonKey2]) {
     return true;
   }
@@ -587,6 +614,7 @@ async function ensureButtonClicked(options, btn, buttonKey1, buttonKey2, getter,
     await clickTwitterElem(options, btn[buttonKey1]);
     await sleep(100);
     btn = await getter(100);
+    console2.log('btn after click:', btn);
     if (!btn[buttonKey1] || btn[buttonKey2]) {
       return true;
     }

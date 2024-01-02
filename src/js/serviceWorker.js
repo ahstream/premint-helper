@@ -58,15 +58,18 @@ async function attachDebugger(tabId) {
     console.log('debugger already attached');
   } else {
     pageState.attached = pageState.attached || {};
-    await chrome.debugger.attach({ tabId: tabId }, '1.2');
+    await chrome.debugger.attach({ tabId }, '1.2');
     pageState.attached[tabId] = true;
   }
 }
+async function detachDebugger(tabId) {
+  console.log('detachDebugger', tabId);
+  await chrome.debugger.detach({ tabId });
+  pageState.attached = pageState.attached || {};
+  pageState.attached[tabId] = false;
+}
 
 async function messageHandler(request, sender, sendResponse) {
-  let r1 = null;
-  let r2 = null;
-  let r3 = null;
   switch (request.cmd) {
     /*
   await chrome.runtime.sendMessage({
@@ -76,35 +79,18 @@ async function messageHandler(request, sender, sendResponse) {
   */
 
     case 'debuggerClickMouse':
-      await attachDebugger(sender.tab.id);
-      r1 = await chrome.debugger.sendCommand({ tabId: sender.tab.id }, 'Input.dispatchMouseEvent', {
-        type: 'mousePressed',
-        button: 'left',
-        clickCount: 1,
-        x: parseFloat(request.x),
-        y: parseFloat(request.y),
-      });
-      console.log('r1', r1, request);
-      await sleep(request.delay || 5);
-      r2 = await chrome.debugger.sendCommand({ tabId: sender.tab.id }, 'Input.dispatchMouseEvent', {
-        type: 'mouseReleased',
-        button: 'left',
-        clickCount: 1,
-        x: parseFloat(request.x),
-        y: parseFloat(request.y),
-      });
-      console.log('r2', r2, request);
+      await debuggerClickMouse(request, sender.tab.id);
       break;
 
     case 'debuggerInsertText':
-      await attachDebugger(sender.tab.id);
-      r1 = await chrome.debugger.sendCommand({ tabId: sender.tab.id }, 'Input.insertText', {
-        text: request.text,
-      });
-      console.log('r1', r1, request);
-      await sleep(request.delay || 5);
+      await debuggerInsertText(request, sender.tab.id);
       break;
 
+    case 'debuggerSendKeyEvent':
+      await debuggerSendKeyEvent(request, sender.tab.id);
+      break;
+
+    /*
     case 'debuggerClickEnter':
       await attachDebugger(sender.tab.id);
 
@@ -136,34 +122,6 @@ async function messageHandler(request, sender, sendResponse) {
 
       break;
 
-    case 'debuggerSendPageDown':
-      await attachDebugger(sender.tab.id);
-
-      r1 = await chrome.debugger.sendCommand({ tabId: sender.tab.id }, 'Input.dispatchKeyEvent', {
-        type: 'rawKeyDown',
-        windowsVirtualKeyCode: 34,
-        modifiers: 8,
-      });
-      console.log('r1', r1, request);
-      await sleep(request.delay || 5);
-
-      r2 = await chrome.debugger.sendCommand({ tabId: sender.tab.id }, 'Input.dispatchKeyEvent', {
-        type: 'char',
-        windowsVirtualKeyCode: 34,
-        modifiers: 8,
-      });
-      console.log('r2', r2, request);
-      await sleep(request.delay || 5);
-
-      r3 = await chrome.debugger.sendCommand({ tabId: sender.tab.id }, 'Input.dispatchKeyEvent', {
-        type: 'keyUp',
-        windowsVirtualKeyCode: 34,
-        modifiers: 8,
-      });
-      console.log('r3', r3, request);
-
-      break;
-
     case 'debuggerClickKey':
       await attachDebugger(sender.tab.id);
       r1 = await chrome.debugger.sendCommand({ tabId: sender.tab.id }, 'Input.dispatchKeyEvent', {
@@ -178,6 +136,7 @@ async function messageHandler(request, sender, sendResponse) {
       });
       console.log('r2', r2, request);
       break;
+*/
 
     case 'ping':
       console.log('sender.tab:', sender.tab);
@@ -319,4 +278,66 @@ async function revealAlphabotRaffles() {
       }
     }
   });
+}
+
+// DEBUGGER SEND HELPERS
+
+async function debuggerClickMouse(request, tabId) {
+  await attachDebugger(tabId);
+
+  const eventName = 'Input.dispatchMouseEvent';
+  const params = {
+    /*
+    button: request.button || 'left',
+    clickCount: request.clickCount || 1,
+    x: parseFloat(request.x),
+    y: parseFloat(request.y),
+    */
+    ...request.params,
+  };
+
+  const r1 = await chrome.debugger.sendCommand({ tabId }, eventName, { type: 'mousePressed', ...params });
+  console.log('r1', r1, request);
+  await sleep(request.delay || 80);
+
+  const r2 = await chrome.debugger.sendCommand({ tabId }, eventName, { type: 'mouseReleased', ...params });
+  console.log('r2', r2, request);
+  await detachDebugger(tabId);
+  await sleep(request.delay || 80);
+}
+
+async function debuggerInsertText(request, tabId) {
+  await attachDebugger(tabId);
+
+  const eventName = 'Input.insertText';
+  const params = {
+    ...request.params,
+  };
+
+  const r1 = await chrome.debugger.sendCommand({ tabId }, eventName, { ...params });
+  console.log('r1', r1, request);
+  await detachDebugger(tabId);
+  await sleep(request.delay || 80);
+}
+
+async function debuggerSendKeyEvent(request, tabId) {
+  await attachDebugger(tabId);
+
+  const eventName = 'Input.dispatchKeyEvent';
+  const params = {
+    ...request.params,
+  };
+
+  const r1 = await chrome.debugger.sendCommand({ tabId }, eventName, { type: 'rawKeyDown', ...params });
+  console.log('r1', r1, request);
+  await sleep(request.delay || 5);
+
+  const r2 = await chrome.debugger.sendCommand({ tabId }, eventName, { type: 'char', ...params });
+  console.log('r2', r2, request);
+  await sleep(request.delay || 5);
+
+  const r3 = await chrome.debugger.sendCommand({ tabId }, eventName, { type: 'keyUp', ...params });
+  console.log('r3', r3, request);
+  await detachDebugger(tabId);
+  await sleep(request.delay || 5);
 }

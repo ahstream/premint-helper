@@ -22,7 +22,7 @@ import {
 
 import { createStatusbar, focusMyTab, copyToTheClipboard } from './premintHelperLib';
 
-import { debuggerInsertText, debuggerClickEnter } from './chromeDebugger';
+import { debuggerInsertText, debuggerSendEnter } from './chromeDebugger';
 
 const console2 = myConsole(global.LOGLEVEL);
 
@@ -67,7 +67,7 @@ function onLoad() {
   pageState = {
     hashArgs,
     parentTabId: hashArgs.getOne('id'),
-    statusbar: createStatusbar(storage.options, { buttons: { raid: true } }),
+    statusbar: createStatusbar(storage.options, { buttons: { raid: true, twitter: false } }),
   };
   console2.info('PageState:', pageState);
   runPage();
@@ -114,9 +114,9 @@ async function postMessageByInputField(msg) {
   console.log(msg);
   const textbox = document.querySelector('main').querySelector('div[role="textbox"]');
 
-  debuggerInsertText(textbox, msg + '\r');
-  await sleep(50);
-  debuggerClickEnter(textbox);
+  debuggerInsertText(msg + '\r', { elem: textbox });
+  await sleep(200);
+  debuggerSendEnter({ elem: textbox });
 }
 
 // PAGE FUNCS ----------------------------------------------------------------------------------

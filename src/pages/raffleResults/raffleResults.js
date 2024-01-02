@@ -645,7 +645,7 @@ async function updateAlphabotWins(checkTime, allCloudWins) {
   const myWins = mergeWins(myWinsByMinting, myWinsByNewest, 'id', null);
 
   const myWinsNew = filterNewWins(myWins, raffleStorage.myWins, checkTime);
-  statusLogger.sub(`Fetched <b>${myWinsNew.length}</b> new or updated winners from ${providerName}`);
+  statusLogger.sub(`Fetched <b>${myWinsNew.length}</b> new or updated wins from ${providerName}`);
 
   let cloudWins = [];
   if (storage.options.ALPHABOT_ENABLE_CLOUD && storage.options.CLOUD_MODE === 'load') {
@@ -792,7 +792,7 @@ async function updatePremintWins(checkTime, allCloudWins) {
   console2.log('myLost', myLost);
 
   const myWinsNew = filterNewWins(myWins, raffleStorage.myWins, checkTime);
-  statusLogger.sub(`Fetched <b>${myWinsNew.length}</b> new or updated winners from ${providerName}`);
+  statusLogger.sub(`Fetched <b>${myWinsNew.length}</b> new or updated wins from ${providerName}`);
 
   let cloudWins = [];
   if (storage.options.PREMINT_ENABLE_CLOUD && storage.options.CLOUD_MODE === 'load') {
@@ -859,7 +859,7 @@ async function updateAtlasWins(checkTime, allCloudWins) {
   console2.log('myWins', myWins);
 
   const myWinsNew = filterNewWins(myWins, raffleStorage.myWins, checkTime);
-  statusLogger.sub(`Fetched <b>${myWinsNew.length}</b> new or updated winners from ${providerName}`);
+  statusLogger.sub(`Fetched <b>${myWinsNew.length}</b> new or updated wins from ${providerName}`);
 
   let cloudWins = [];
   if (storage.options.ATLAS_ENABLE_CLOUD && storage.options.CLOUD_MODE === 'load') {
@@ -934,7 +934,7 @@ async function updateLuckygoWins(checkTime, allCloudWins) {
   console2.log('myWins', myWins);
 
   const myWinsNew = filterNewWins(myWins, raffleStorage.myWins, checkTime);
-  statusLogger.sub(`Fetched <b>${myWinsNew.length}</b> new or updated winners from ${providerName}`);
+  statusLogger.sub(`Fetched <b>${myWinsNew.length}</b> new or updated wins from ${providerName}`);
 
   let cloudWins = [];
   if (storage.options.LUCKYGO_ENABLE_CLOUD && storage.options.CLOUD_MODE === 'load') {
@@ -1016,7 +1016,7 @@ async function updateSuperfulWins(checkTime, allCloudWins) {
   console.log('myWins', myWins);
 
   const myWinsNew = filterNewWins(myWins, raffleStorage.myWins, checkTime);
-  statusLogger.sub(`Fetched <b>${myWinsNew.length}</b> new or updated winners from ${providerName}`);
+  statusLogger.sub(`Fetched <b>${myWinsNew.length}</b> new or updated wins from ${providerName}`);
 
   let cloudWins = [];
   if (storage.options.SUPERFUL_ENABLE_CLOUD && storage.options.CLOUD_MODE === 'load') {

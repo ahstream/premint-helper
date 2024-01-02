@@ -13,6 +13,7 @@ module.exports = {
     options: './src/pages/options/options.js',
     help: './src/pages/help/help.js',
     admin: './src/pages/admin/admin.js',
+    raid: './src/pages/raid/raid.js',
     shortcuts: './src/pages/shortcuts/shortcuts.js',
     raffleResults: './src/pages/raffleResults/raffleResults.js',
     raffles: './src/pages/raffles/raffles.js',
