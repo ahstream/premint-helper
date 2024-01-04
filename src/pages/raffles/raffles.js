@@ -208,12 +208,25 @@ async function showPage() {
   statusLogger.main('');
 }
 
+function preProcessRaffles(rs) {
+  rs.forEach((r) => preProcessRaffle(r));
+  return rs;
+}
+
+function preProcessRaffle(r) {
+  const name = r.name.toLowerCase();
+  const isGuaranteed = name.includes('guaranteed') || name.includes('gtd');
+  const isFCFS = name.includes('fcfs');
+  const type = isGuaranteed ? 'GTD' : isFCFS ? 'fcfs' : '';
+  r.allocationType = type;
+}
+
 function showRafflesTableForOne(key, header, subHeader, skipDups = false, useIgnored = true) {
   console2.log('showRafflesTableForOne', key, header, subHeader);
 
   const now = Date.now();
 
-  const baseRaffles = (storage.raffles[key] ? storage.raffles[key] : [])
+  const baseRaffles = preProcessRaffles(storage.raffles[key] ? storage.raffles[key] : [])
     .filter((x) => x.endDate > now && !isRaffleToLongToShow(x))
     .filter((x) => (skipDups ? !pageState.shownRaffles[x.id] : true));
 
@@ -659,6 +672,7 @@ function createTableHeadRow() {
   row.appendChild(createCell('', 'Is raffle considered easy to fulfill?'));
   row.appendChild(createCell('', 'Num wallets already won for this project'));
   row.appendChild(createCell('', 'Have I entered this raffle?'));
+  row.appendChild(createCell('G', 'Guaranteed allocation?'));
   row.appendChild(createCell('W', 'Num winners'));
   row.appendChild(createCell('%', 'Win odds'));
   row.appendChild(createCell('E', 'Remaining time'));
@@ -775,6 +789,16 @@ function createRafflesTable(packedRafflesIn, header, subHeader, sectionId, { all
       )
     );
     */
+
+    // CELL: allocationType
+    row.appendChild(
+      createCell(
+        createMultiTexts(
+          parent.raffles.map((x) => (x.allocationType === 'GTD' ? 'G' : '')),
+          { className: 'allocation-type', hideDups: false }
+        )
+      )
+    );
 
     // CELL: entry-info
     const entryInfos = parent.raffles.map((x) => `${x.winnerCount}`);
@@ -1210,6 +1234,7 @@ function getFiltersFromInput() {
     minutes: Number(document.getElementById('time-left').value) || null,
     winPct: Number(document.getElementById('win-pct').value) || null,
     easy: document.getElementById('easy').checked,
+    gtd: document.getElementById('gtd').checked,
     reqDiscord: document.getElementById('d').checked,
     reqFollow: document.getElementById('f').checked,
     reqLike: document.getElementById('l').checked,
@@ -1223,6 +1248,11 @@ function isFiltered(raffle, filters) {
 
   if (filters.easy && !isRaffleEasy(raffle)) {
     console2.trace('false: easy');
+    return false;
+  }
+
+  if (filters.gtd && !isRaffleGtd(raffle)) {
+    console2.trace('false: gtd');
     return false;
   }
 
@@ -1278,6 +1308,10 @@ function isRaffleEasy(r) {
   return isFiltered(r, f);
 }
 
+function isRaffleGtd(r) {
+  return r.allocationType === 'GTD';
+}
+
 function isRaffleToLongToShow(r) {
   return r.endDate + storage.options.RAFFLE_LIST_MAX_DAYS_OLD * ONE_DAY <= Date.now();
 }
@@ -1301,6 +1335,7 @@ function creteFiltersHTML() {
   const div = document.createElement('div');
   div.appendChild(createLabel('FILTERS:', 'filter-header'));
   div.appendChild(makeCheckbox('easy', 'Easy', 'lorem', f.easy));
+  div.appendChild(makeCheckbox('gtd', 'Guaranteed', 'lorem', f.gtd));
   div.appendChild(makeCheckbox('d', '-D', 'lorem', f.reqDiscord));
   div.appendChild(makeCheckbox('f', '-F', 'lorem', f.reqFollow));
   div.appendChild(makeCheckbox('l', '-L', 'lorem', f.reqLike));

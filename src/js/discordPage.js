@@ -20,7 +20,7 @@ import {
   myConsole,
 } from 'hx-lib';
 
-import { createStatusbar, focusMyTab, copyToTheClipboard } from './premintHelperLib';
+import { createStatusbar, focusMyTab, copyToTheClipboard, debuggerDetach } from './premintHelperLib';
 
 import { debuggerInsertText, debuggerSendEnter } from './chromeDebugger';
 
@@ -102,7 +102,10 @@ async function notifyRaidInDiscord(request) {
   focusMyTab();
   if (storage.options.RAID_FROM_DISCORD_PAGE_FULL) {
     await postMessageByInputField(request.replyUrl);
+    await sleep(1500);
+    await debuggerDetach(storage.options);
   } else {
+    await debuggerDetach(storage.options);
     window.alert(
       `Done raiding ${request.fromUrl}.\n\nRetweeted post URL is copied to clipboard after closing this dialog.`
     );

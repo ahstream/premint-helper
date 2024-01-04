@@ -6,6 +6,7 @@ import global from './global.js';
 console.log(global);
 
 import { switchToUser, isEmptyPage, handleAccountAccess, waitForPageLoaded } from './twitterLib.js';
+import { debuggerDetach } from './premintHelperLib.js';
 
 import { raidTweet } from './raidLib.js';
 
@@ -93,18 +94,29 @@ function initEventHandlers() {
 }
 
 async function notifyRaidInTwitter(request) {
+  console.log('notifyRaidInTwitter start');
+
   if (!window.raidStarted) {
     console.log('Ignore raid result');
     return;
   }
+  await debuggerDetach(storage.options);
   window.raidStarted = false;
   focusMyTab();
-  window.alert(
-    `Done raiding ${request.fromUrl}.\n\nRetweeted post URL is copied to clipboard after closing this dialog.`
-  );
-  await copyToTheClipboard(request.replyUrl);
-  await sleep(300);
-  window.close();
+  let r = false;
+  while (!r) {
+    r = window.confirm(
+      `Done raiding ${request.fromUrl}.\n\nRetweeted post URL is copied to clipboard after closing this dialog.`
+    );
+    console.log('r', r);
+    if (r) {
+      await copyToTheClipboard(request.replyUrl);
+      break;
+    }
+    await sleep(1000);
+  }
+  console.log('notifyRaidInTwitter done');
+  // window.close();
 }
 
 // PAGE FUNCTIONS ----------------------------------------------------------------------------
@@ -167,7 +179,7 @@ async function runRaidFromDiscord() {
   await waitForPageLoaded();
   await raidTweet(storage.options, 'discord', pageState.request.team);
   await sleep(2000, 4000);
-  window.close();
+  //window.close();
 }
 
 async function runSwitchToUser() {

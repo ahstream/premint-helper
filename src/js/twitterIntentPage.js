@@ -15,7 +15,7 @@ import {
   ONE_MINUTE,
 } from 'hx-lib';
 
-import { clickTwitterElem, submitTwitterElem } from './premintHelperLib.js';
+import { clickTwitterElem, submitTwitterElem, focusMyTab, focusMyTabOnce } from './premintHelperLib.js';
 
 const console2 = myConsole(global.LOGLEVEL);
 
@@ -130,7 +130,9 @@ async function runIntentAction() {
 
   console2.trace('click intentBtn:', intentBtn);
   // clickTwitterElem(storage.options, intentBtn);
-  await ensureIntentButtonClicked(intentBtn);
+  if (!(await ensureIntentButtonClicked(intentBtn, storage.options.TWITTER_INTENT_PAGE_TIME_BEFORE_RETRY))) {
+    await retryIntentPage();
+  }
   // intentBtn.click();
 
   await waitForNoIntentBtn();
@@ -147,27 +149,65 @@ async function runIntentAction() {
   }
 }
 
-async function ensureIntentButtonClicked(btn, maxWait = ONE_MINUTE, interval = 250) {
+async function focusMyTabBeforeAction() {
+  if (storage.options.TWITTER_INTENT_PAGE_FOCUS_TAB_TIMES > 1) {
+    focusMyTab();
+  } else if (storage.options.TWITTER_INTENT_PAGE_FOCUS_TAB_TIMES === 1) {
+    focusMyTabOnce(pageState);
+  } else {
+    return;
+  }
+  await sleep(50);
+}
+
+async function ensureIntentButtonClicked(btn, maxWait = 10000, interval = 250) {
   console2.info('ensureIntentBtnClicked', btn);
 
   const stopTime = millisecondsAhead(maxWait);
   while (Date.now() <= stopTime) {
-    await clickTwitterElem(storage.options, btn);
+    await focusMyTabBeforeAction();
+
+    await clickTwitterElem(storage.options, btn, 1);
     await sleep(interval);
     btn = getIntentButton();
     if (!btn) {
-      return;
+      return true;
     }
+    console2.log('New btn 1:', btn);
     await submitTwitterElem(storage.options, btn);
 
     await sleep(interval);
     btn = getIntentButton();
     if (!btn) {
-      return;
+      return true;
     }
-    console2.log('New btn:', btn);
+    console2.log('New btn 2:', btn);
   }
   console2.info('Failed ensureIntentBtnClicked', btn);
+  return false;
+}
+
+async function retryIntentPage() {
+  console.log('retryIntentPage');
+  if (!storage.options.TWITTER_INTENT_PAGE_NUM_RETRIES) {
+    console.log('Intent page retries disabled');
+    return;
+  }
+
+  const retryText = pageState.hashArgs.getOne('retry');
+  const retry = retryText ? Number(retryText) : 0;
+  console.log('retryIntentPage', retryText, retry);
+  if (retry >= storage.options.TWITTER_INTENT_PAGE_NUM_RETRIES) {
+    console.log('max retries');
+    return;
+  }
+  const url =
+    retry === 0
+      ? window.location.href + '&retry=1'
+      : window.location.href.replace(`retry=${retry}`, `retry=${retry + 1}`);
+  console.log('retryIntentPage', url);
+  window.location.href = url;
+  await sleep(10000);
 }
 
 async function waitForNoIntentBtn(maxWait = 10 * ONE_MINUTE, interval = 250) {

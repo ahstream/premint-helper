@@ -822,15 +822,37 @@ export function getRegisterButtonSync(options, mustHaveAllBtns = false) {
 }
 
 export function getErrors() {
-  const elems = [...document.querySelectorAll('.MuiAlert-standardError')].map((x) =>
+  const stdTexts = [...document.querySelectorAll('.MuiAlert-standardError')].map((x) =>
     x.innerText.toLowerCase()
   );
-  return {
-    texts: elems,
-    twitter: elems.some((x) => x.includes('follow') || x.includes('like') || x.includes('retweet')),
-    discord: elems.some((x) => x.includes('join')),
-    discordRoled: elems.some((x) => x.includes('join') && x.includes('have role')),
+
+  const noticeTexts = [...document.querySelectorAll('div[id="notistack-snackbar"]')].map((x) =>
+    x.innerText.toLowerCase()
+  );
+
+  const alreadyEntered = noticeTexts.some((x) => x.includes('already entered'));
+  const doingItTooOften = noticeTexts.some((x) => x.includes('are doing that too often'));
+  const twitter = stdTexts.some((x) => x.includes('follow') || x.includes('like') || x.includes('retweet'));
+  const discord = stdTexts.some((x) => x.includes('join'));
+  const discordRoled = stdTexts.some((x) => x.includes('join') && x.includes('have role'));
+
+  const anyError = alreadyEntered || doingItTooOften || twitter || discord || discordRoled;
+  const noticeError = alreadyEntered || doingItTooOften;
+
+  const errors = {
+    anyError,
+    noticeError,
+    texts: stdTexts,
+    noticeTexts: noticeTexts,
+    alreadyEntered,
+    doingItTooOften,
+    twitter,
+    discord,
+    discordRoled,
   };
+  console.log('errors', errors);
+
+  return errors;
 }
 
 export function getTeamName() {

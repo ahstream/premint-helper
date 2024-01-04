@@ -12,6 +12,7 @@ import {
   myConsole,
   stripEmojis,
   waitForEitherSelector,
+  ONE_MINUTE,
 } from 'hx-lib';
 
 import { clickTwitterElem, saveStorage, submitTwitterElem } from './premintHelperLib';
@@ -23,6 +24,15 @@ const console2 = myConsole(global.LOGLEVEL);
 // DATA ----------------------------------------------------------------------------------
 
 const ACCOUNT_ACCESS_PERIOD = 60000;
+
+const LIKE_BTN_SEL = 'div[data-testid="like"]';
+const UNLIKE_BTN_SEL = 'div[data-testid="unlike"]';
+
+const RETWEET_BTN_SEL = 'div[data-testid="retweet"]';
+const UNRETWEET_BTN_SEL = 'div[data-testid="unretweet"]';
+
+const RETWEET_CONFIRM_BTN_SEL = 'div[data-testid="retweetConfirm"]';
+const UNRETWEET_CONFIRM_BTN_SEL = 'div[data-testid="unretweetConfirm"]';
 
 // IS ----------------------------------------------------------------------------------
 
@@ -194,6 +204,20 @@ async function getBaseForStatusPage(maxWait, interval) {
   const r = document.querySelector('div[role="progressbar"][aria-valuemax="100"]');
   console.log('getBaseForStatusPage', r);
   return r;
+}
+
+async function getBaseForStatusPost(maxWait, interval) {
+  try {
+    await waitForPageLoaded(maxWait, interval);
+    const r = document.querySelector('div[role="progressbar"][aria-valuemax="100"]');
+    console.log('getBaseForStatusPage r', r);
+    const b = r.parentNode.parentNode.parentNode;
+    console.log('getBaseForStatusPage b', b);
+    return b;
+  } catch (e) {
+    console.error(e);
+    return null;
+  }
 }
 
 export async function getLikeOrUnlikeButton(maxWait = 20000, interval = 250) {
@@ -542,7 +566,28 @@ async function getReplyButton(maxWait, interval) {
 }
 
 export async function raid(options, text, maxWait = 20000, interval = 250) {
-  if (!(await like(options, maxWait, clearInterval))) {
+  if (!(await like2(options))) {
+    console.log('failed raid like');
+    return '';
+  }
+
+  if (!(await retweet2(options))) {
+    console.log('failed raid retweet');
+    return '';
+  }
+  await sleep(1000, 1500);
+
+  const url = await comment2(options, text, maxWait, interval);
+  if (!url) {
+    console.log('failed raid comment');
+    return '';
+  }
+
+  return url;
+}
+
+export async function raidOrg(options, text, maxWait = 20000, interval = 250) {
+  if (!(await like(options, maxWait, interval))) {
     console.log('failed raid like');
     return false;
   }
@@ -628,4 +673,308 @@ async function ensureButtonClicked(options, btn, buttonKey1, buttonKey2, getter,
   }
   console2.info('Failed ensureButtonClicked', btn);
   return false;
+}
+
+// NEW ---------------------------------------------------
+
+async function like2(options) {
+  let likeBtns = await getLikeButtons();
+  console.log('likeBtns:', likeBtns);
+  if (likeBtns.unlikeBtn) {
+    return true; // already liked!
+  }
+  if (!likeBtns.likeBtn) {
+    return false; // missing like btn!
+  }
+  await clickTwitterElem(options, likeBtns.likeBtn);
+  await sleep(500);
+
+  likeBtns = await getLikeButtons();
+  console.log('likeBtns:', likeBtns);
+  if (likeBtns.unlikeBtn) {
+    return true;
+  }
+
+  return false;
+}
+
+export async function getLikeButtons(maxWait = 1000, interval = 100) {
+  console2.log('getLikeButtons:', maxWait, interval);
+  const base = await getBaseForStatusPost(maxWait, interval);
+  if (!base) {
+    return { ok: false };
+  }
+  const eitherBtn = await waitForEitherSelector([LIKE_BTN_SEL, UNLIKE_BTN_SEL], ONE_SECOND, 100, base);
+  const likeBtn = await waitForSelector(LIKE_BTN_SEL, 1, 1, base);
+  const unlikeBtn = await waitForSelector(UNLIKE_BTN_SEL, 1, 1, base);
+  return {
+    ok: !!eitherBtn,
+    likeBtn,
+    unlikeBtn,
+  };
+}
+
+export async function retweet2(options) {
+  let repostBtns = await getRepostButtons();
+  console.log('repostBtns:', repostBtns);
+  if (repostBtns.unretweetBtn) {
+    return true; // already retweeted!
+  }
+  if (!repostBtns.retweetBtn) {
+    return false; // missing retweet btn!
+  }
+
+  const r1 = await clickRepostButton(options);
+  if (!r1.ok) {
+    return false;
+  }
+  const r2 = await clickRepostConfirmButton(options, 5000, 100);
+  if (!r2.ok) {
+    return false;
+  }
+
+  await waitForSelector(UNRETWEET_BTN_SEL, 5 * ONE_SECOND, 100);
+
+  repostBtns = await getRepostButtons();
+  console.log('repostBtns:', repostBtns);
+  if (repostBtns.unretweetBtn) {
+    return true;
+  }
+
+  return false;
+}
+
+export async function getRepostButtons(maxWait = 1000, interval = 100) {
+  console2.log('getRepostButtons:', maxWait, interval);
+  const base = await getBaseForStatusPost(maxWait, interval);
+  if (!base) {
+    return { ok: false };
+  }
+  const eitherBtn = await waitForEitherSelector([RETWEET_BTN_SEL, UNRETWEET_BTN_SEL], ONE_SECOND, 100, base);
+  const retweetBtn = await waitForSelector(RETWEET_BTN_SEL, 1, 1, base);
+  const unretweetBtn = await waitForSelector(UNRETWEET_BTN_SEL, 1, 1, base);
+  return {
+    ok: !!eitherBtn,
+    retweetBtn,
+    unretweetBtn,
+  };
+}
+
+export async function getRepostConfirmButtons(maxWait = 1000, interval = 100) {
+  console2.log('getRepostConfirmButtons:', maxWait, interval);
+  const eitherBtn = await waitForEitherSelector(
+    [RETWEET_CONFIRM_BTN_SEL, UNRETWEET_CONFIRM_BTN_SEL],
+    maxWait,
+    interval
+  );
+  const retweetConfirmBtn = await waitForSelector(RETWEET_CONFIRM_BTN_SEL, 1, 1);
+  const unretweetConfirmBtn = await waitForSelector(UNRETWEET_CONFIRM_BTN_SEL, 1, 1);
+
+  return {
+    ok: !!eitherBtn,
+    retweetConfirmBtn,
+    unretweetConfirmBtn,
+  };
+}
+
+async function clickRepostButton(options, maxWait = 2500, interval = 250) {
+  const repostBtns = await getRepostButtons();
+  console.log('repostBtns:', repostBtns);
+  const btn = repostBtns.retweetBtn || repostBtns.unretweetBtn;
+  if (!btn) {
+    return { ok: false };
+  }
+  console.log('btn:', btn);
+  console.log('ariaExpanded:', btn.ariaExpanded);
+  await clickTwitterElem(options, btn);
+
+  const stopTime = millisecondsAhead(maxWait);
+  while (Date.now() <= stopTime) {
+    if (btn.ariaExpanded === 'true') {
+      console.log('ariaExpanded:', btn.ariaExpanded);
+      return { ok: true };
+    }
+    await sleep(interval);
+  }
+  if (btn.ariaExpanded === 'true') {
+    console.log('ariaExpanded final:', btn.ariaExpanded);
+    return { ok: true };
+  }
+  console.log('ariaExpanded final:', btn.ariaExpanded);
+  return { ok: false };
+}
+
+async function clickRepostConfirmButton(options, maxWait = 2500, interval = 250) {
+  let repostConfirmBtns = await getRepostConfirmButtons(maxWait, interval);
+  console.log('repostConfirmBtns:', repostConfirmBtns);
+  const btn = repostConfirmBtns.retweetConfirmBtn || repostConfirmBtns.unretweetConfirmBtn;
+  if (!btn) {
+    return { ok: false };
+  }
+  console.log('btn:', btn);
+  console.log('ariaExpanded:', btn.ariaExpanded);
+  await sleep(30, 50);
+  await clickTwitterElem(options, btn);
+  await sleep(100, 150);
+
+  const stopTime = millisecondsAhead(maxWait);
+  while (Date.now() <= stopTime) {
+    repostConfirmBtns = await getRepostConfirmButtons(1, 1);
+    console.log('repostConfirmBtns:', repostConfirmBtns);
+    if (repostConfirmBtns.retweetConfirmBtn || repostConfirmBtns.unretweetConfirmBtn) {
+      await sleep(interval);
+      continue;
+    }
+    return { ok: true };
+    /*
+    if (btn.ariaExpanded === 'true') {
+      console.log('ariaExpanded:', btn.ariaExpanded);
+      await sleep(interval);
+      continue;
+    }
+    break;
+    */
+  }
+  repostConfirmBtns = await getRepostConfirmButtons(1, 1);
+  console.log('repostConfirmBtns:', repostConfirmBtns);
+  if (repostConfirmBtns.retweetConfirmBtn || repostConfirmBtns.unretweetConfirmBtn) {
+    return { ok: false };
+  }
+  return { ok: true };
+  /*
+  if (btn.ariaExpanded === 'true') {
+    console.log('ariaExpanded final:', btn.ariaExpanded);
+    return { ok: false };
+  }
+  console.log('ariaExpanded final:', btn.ariaExpanded);
+  return { ok: true };
+  */
+}
+
+export async function comment2(options, text, maxWait = 20000, interval = 250) {
+  const base = await waitForSelector(
+    '.public-DraftStyleDefault-block.public-DraftStyleDefault-ltr',
+    maxWait,
+    interval
+  );
+  console.log('base', base);
+  if (!base) {
+    return '';
+  }
+
+  const elems = base.getElementsByTagName('span');
+  console.log('elems', elems);
+  if (!elems || !elems.length) {
+    return '';
+  }
+
+  const elem = elems[0];
+  console.log('elem', elem);
+
+  base.focus();
+  const elemWithValueSetter = elem.parentNode.parentNode.parentNode.parentNode;
+  console.log('elemWithValueSetter', elemWithValueSetter);
+
+  debuggerInsertText(text, { elem: elemWithValueSetter });
+  /*
+  elem.textContent = text;
+  clickTwitterElem(options, elem);
+  elem.dispatchEvent(new Event('input', { bubbles: true }));
+  */
+  await sleep(500, 1000);
+
+  /*
+  const btn = await getReplyButton(maxWait, interval);
+  console.log('btn', btn);
+  if (!btn.replyBtn) {
+    return '';
+  }
+  */
+
+  const r3 = await clickReplyButton(options, ONE_MINUTE, 250);
+  if (!r3.ok) {
+    console.log('failed clickReplyButton');
+    return '';
+  }
+  await sleep(500, 1000);
+
+  const textNoEmojis = stripEmojis(text, false).trim();
+  console2.log('textNoEmojis:', textNoEmojis, textNoEmojis.length);
+
+  const post = await waitForPost(textNoEmojis, maxWait, interval);
+  console.log('post', post);
+  if (!post) {
+    return '';
+  }
+
+  try {
+    console2.log('textNoEmojis:', textNoEmojis);
+
+    const e1 = [...document.querySelectorAll('div[data-testid="tweetText"]')];
+    console.log('e1', e1);
+    console.log(
+      'e1.textContent',
+      e1.map((x) => x.textContent)
+    );
+    const e2 = e1.filter((x) => x.textContent.trim() === textNoEmojis);
+    console.log('e2', e2);
+    const e3 = e2[0];
+    console.log('e3', e3);
+    const e4 = e3.parentNode.parentNode;
+    console.log('e4', e4);
+    const e5 = [...e4.querySelectorAll('a')];
+    console.log('e5', e5);
+    const e6 = e5.filter((x) => x.getElementsByTagName('time').length);
+    console.log('e6', e6);
+    const e7 = e6[0];
+    console.log('e7', e7);
+    const e8 = e7.href;
+    console.log('e8', e8);
+
+    const url = e8;
+    console.log('url', url);
+
+    /*
+    const url = [
+      ...[...document.querySelectorAll('div[data-testid="tweetText"]')]
+        .filter((x) => x.textContent.trim() === textNoEmojis)[0]
+        .parentNode.parentNode.querySelectorAll('a'),
+    ].filter((x) => x.getElementsByTagName('time').length)[0].href;
+*/
+    return url;
+  } catch (e) {
+    console.log('error:', e);
+    return '';
+  }
+}
+
+async function clickReplyButton(options, maxWait = 2500, interval = 250) {
+  let replyBtn = await getReplyButton(maxWait, interval);
+  console.log('replyBtn:', replyBtn);
+  let btn = replyBtn?.replyBtn;
+  if (!btn) {
+    return { ok: false };
+  }
+  await clickTwitterElem(options, btn);
+  await sleep(500);
+
+  const stopTime = millisecondsAhead(maxWait);
+  while (Date.now() <= stopTime) {
+    replyBtn = await getReplyButton(10, 10);
+    console.log('replyBtn 2:', replyBtn);
+    btn = replyBtn?.replyBtn;
+    if (!btn || btn?.ariaDisabled === 'true') {
+      return { ok: true };
+    }
+    await sleep(interval);
+  }
+
+  replyBtn = await getReplyButton(10, 10);
+  console.log('replyBtn 3:', replyBtn);
+  btn = replyBtn?.replyBtn;
+  if (!btn || btn?.ariaDisabled === 'true') {
+    return { ok: true };
+  }
+
+  return { ok: false };
 }

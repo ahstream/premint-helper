@@ -8,6 +8,7 @@ import {
   addPendingRequest,
   getStorageItems,
   setStorageData,
+  sleep,
 } from 'hx-lib';
 
 import { raid, isTwitterPage, isTwitterStatusPage } from './twitterLib.js';
@@ -21,6 +22,9 @@ console2.log();
 // DATA ----------------------------------------------------------------------------------
 
 const DEFAULT_RAID_TEXT = 'gm';
+
+// const KEY_CODE_HOME = 36;
+//const KEY_CODE_END = 35;
 
 // FUNCTIONS ----------------------------------------------------------------------------------
 
@@ -90,14 +94,19 @@ export async function showRaidPage() {
 
 export async function raidFromDiscordPage() {
   console.log('raidFromDiscordPage');
+  //await debuggerSendKeyEvent(KEY_CODE_HOME);
+  document.querySelector('ol[class^="scrollerInner"]').scrollIntoView();
+  await sleep(500);
   const url = getFirstTwitterStatusLink();
   console.log('url', url);
   if (!url) {
     return false;
   }
+
   const team = getActiveServerName();
   console.log('team', team);
   await debuggerSendPageDownDiscord();
+  //await debuggerSendKeyEvent(KEY_CODE_END);
   await addPendingRequest(url, { action: 'raidFromDiscordPage', team });
   window.open(url, '_blank');
   return true;

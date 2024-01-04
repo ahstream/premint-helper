@@ -19,7 +19,11 @@ import {
 
 import { runRaid, addRaidLink, showRaidPage } from './raidLib.js';
 
-import { debuggerClickMouse, debuggerSendEnter } from './chromeDebugger';
+import {
+  debuggerClickMouse,
+  debuggerSendEnter,
+  debuggerDetach as debuggerDetachReal,
+} from './chromeDebugger';
 
 import { createStatusbar as createStatusbarMain } from 'hx-statusbar';
 
@@ -293,7 +297,7 @@ export function exitActionMain(result, context, options) {
   }
 }
 
-function focusMyTabOnce(pageState) {
+export async function focusMyTabOnce(pageState) {
   if (pageState?.tabFocused) {
     return;
   }
@@ -1104,5 +1108,11 @@ export async function submitTwitterElem(options, elem, delay = null) {
   if (options.CLICK_TWITTER_ELEM_DEBUGGER) {
     console.log('debuggerSendEnter');
     return debuggerSendEnter({ elem, delay });
+  }
+}
+
+export async function debuggerDetach(options) {
+  if (options.CLICK_TWITTER_ELEM_DEBUGGER) {
+    return debuggerDetachReal();
   }
 }

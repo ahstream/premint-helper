@@ -130,7 +130,9 @@ async function register(regBtn) {
   clickElement(regBtn, { real: true, simulate: true });
 }
 
-async function forceRegister(options) {
+async function forceRegister(options, pageState = null, context = {}) {
+  console2.log('forceRegister', pageState);
+
   const regBtn = getRegisterButtonSync(options, true);
   console2.log('forceRegister; regBtn:', regBtn);
   if (!regBtn) {
@@ -144,8 +146,15 @@ async function forceRegister(options) {
 
   const errors = getErrors();
   console2.log('errors:', errors);
+
   if (errors.discord) {
     console2.log('Do not force register when discord errors!');
+    return null;
+  }
+
+  if (errors.noticeError && context?.retryJoin) {
+    console2.log('Retry join when notice errors!');
+    await context.retryJoin();
     return null;
   }
 

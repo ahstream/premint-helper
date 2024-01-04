@@ -675,7 +675,7 @@ async function waitAndTryRegisterBeforeRetry(retries) {
   while (Date.now() <= stopTime) {
     if (storage.options.RAFFLE_FORCE_REGISTER) {
       console2.log('try to forceRegister');
-      const regBtn = await provider.forceRegister(storage.options, pageState);
+      const regBtn = await provider.forceRegister(storage.options, pageState, { retryJoin });
       if (regBtn) {
         console2.log('forceRegister ok!');
         return waitForRegisteredMainLoop(regBtn);
@@ -696,6 +696,15 @@ async function waitAndTryRegisterBeforeRetry(retries) {
     return exitAction('registered');
   }
 
+  await retryJoin(retries);
+}
+
+async function retryJoin(retries = null) {
+  if (!retries) {
+    retries = pageState.request?.retries
+      ? pageState.request?.retries - 1
+      : storage.options.RAFFLE_RETRY_TIMES;
+  }
   await addPendingRequest(window.location.href, { action: 'retryJoin', retries });
   window.location.reload();
 }

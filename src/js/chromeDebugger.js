@@ -12,11 +12,18 @@ export const MODIFIERS = {
   shift: 8,
 };
 
+export async function debuggerDetach() {
+  console.log('debuggerDetach');
+  await chrome.runtime.sendMessage({ cmd: 'debuggerDetach' });
+}
+
 export async function debuggerClickMouse(
   button,
   { x, y, elem = null, modifiers = 0, clickCount = 1, delay = null } = {}
 ) {
+  console.log('debuggerClickMouse 1:', button, x, y, elem, modifiers, clickCount, delay);
   var rect = elem ? elem.getBoundingClientRect() : null;
+  console.log('debuggerClickMouse 2:', rect);
   const realX = rect ? randomCoord(rect.left, rect.right) : x;
   const realY = rect ? randomCoord(rect.top, rect.bottom) : y;
   const params = {
@@ -26,6 +33,7 @@ export async function debuggerClickMouse(
     y: parseFloat(realY),
     modifiers,
   };
+  console.log('debuggerClickMouse 3:', realX, realY, params);
   delay = delay || randomInt(80, 120);
   console.log('debuggerClickMouse', params, delay);
   chrome.runtime.sendMessage({ cmd: 'debuggerClickMouse', delay, params });
