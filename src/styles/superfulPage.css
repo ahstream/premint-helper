@@ -43,3 +43,7 @@ body.registered .text-sm.font-normal {
 body.exitAction {
   opacity: 0.5 !important;
 }
+
+.hx-already-won {
+  margin-bottom: 15px;
+}

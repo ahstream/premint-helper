@@ -54,7 +54,7 @@ import { getRaffles as getAlphabotRaffles } from '../../js/alphabotLib.js';
 import { getRaffles as getSuperfulRaffles, getAuth as getSuperfulAuth } from '../../js/superfulLib.js';
 
 import { createObserver as createTwitterObserver } from '../../js/twitterObserver.js';
-import { createObserver } from '../../js/observerGeneric.js';
+import { createObserver } from '../../js/raffleObserver.js';
 
 const console2 = myConsole(global.LOGLEVEL);
 
@@ -697,9 +697,9 @@ function createTableHeadRow() {
   row.appendChild(createCell('', 'Num wallets already won for this project'));
   row.appendChild(createCell('', 'Have I entered this raffle?'));
   row.appendChild(createCell('G', 'Guaranteed allocation?'));
+  row.appendChild(createCell('E', 'Remaining time'));
   row.appendChild(createCell('W', 'Num winners'));
   row.appendChild(createCell('%', 'Win odds'));
-  row.appendChild(createCell('E', 'Remaining time'));
   row.appendChild(createCell('Team', ''));
   row.appendChild(createCell('Name', ''));
   row.appendChild(createCell('Provider', ''));
@@ -824,20 +824,6 @@ function createRafflesTable(packedRafflesIn, header, subHeader, sectionId, { all
       )
     );
 
-    // CELL: entry-info
-    const entryInfos = parent.raffles.map((x) => `${x.winnerCount}`);
-    row.appendChild(createCell(createMultiTexts(entryInfos, { className: 'entry-infos', hideDups: false })));
-
-    // CELL: odds
-    const winnerOdds = parent.raffles.map((x) => {
-      const odds = makeRaffleOdds(x.entryCount, x.winnerCount);
-      console2.trace('odds', odds);
-      return odds.toString();
-    });
-    row.appendChild(
-      createCell(createMultiTexts(winnerOdds, { className: 'odds', useTextAsDataset: true, hideDups: false }))
-    );
-
     // CELL: timeLeft
     const now = Date.now();
     const timeLeft = parent.raffles.map((x) => {
@@ -853,6 +839,20 @@ function createRafflesTable(packedRafflesIn, header, subHeader, sectionId, { all
       }
     });
     row.appendChild(createCell(createMultiTexts(timeLeft, { className: 'time-left', hideDups: false })));
+
+    // CELL: entry-info
+    const entryInfos = parent.raffles.map((x) => `${x.winnerCount}`);
+    row.appendChild(createCell(createMultiTexts(entryInfos, { className: 'entry-infos', hideDups: false })));
+
+    // CELL: odds
+    const winnerOdds = parent.raffles.map((x) => {
+      const odds = makeRaffleOdds(x.entryCount, x.winnerCount);
+      console2.trace('odds', odds);
+      return odds.toString();
+    });
+    row.appendChild(
+      createCell(createMultiTexts(winnerOdds, { className: 'odds', useTextAsDataset: true, hideDups: false }))
+    );
 
     // CELL: teamName
     /*
@@ -1398,7 +1398,7 @@ function creteFiltersHTML() {
 }
 
 function getTimeLeftOptionsArr() {
-  const arr = [15, 60, 240, 480, 720, 960, 1440, 2880, 4320, MINUTES_FOR_ALL_OPTION];
+  const arr = [15, 60, 120, 180, 240, 300, 360, 420, 480, 720, 960, 1440, 2880, 4320, MINUTES_FOR_ALL_OPTION];
   let selectedVal = null;
   if (storage.options.RAFFLE_LIST_FILTER_MINUTES) {
     selectedVal = Number(storage.options.RAFFLE_LIST_FILTER_MINUTES);

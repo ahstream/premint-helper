@@ -5,7 +5,7 @@ import '../styles/alphabotPage.css';
 import global from './global.js';
 console.log('global:', global);
 
-import { createObserver } from './observerGeneric.js';
+import { createObserver } from './raffleObserver.js';
 import { createObserver as createTwitterObserver } from './twitterObserver.js';
 import { fetchProjects } from './alphabotLib.js';
 import {

@@ -38,12 +38,14 @@ import {
 
 import { initRafflePage } from './rafflePage.js';
 
-import { createObserver as createRaffleObserver, getPreviousWalletsWon } from './observerGeneric.js';
+import { createObserver as createRaffleObserver, getPreviousWalletsWon } from './raffleObserver.js';
 import { createObserver as createTwitterObserver } from './twitterObserver.js';
 
 import {
   sleep,
   myConsole,
+  //extractTwitterHandle,
+  //waitForTextContains,
   //normalizePendingLink,
   //millisecondsAhead,
 } from 'hx-lib';
@@ -181,14 +183,14 @@ async function addQuickRegButton(options, clickHandler) {
   regBtnContainer.before(btn);
 }
 
-function addPreviouslyWonWallets(_options, pageState) {
+async function addPreviouslyWonWallets(options, pageState) {
   console2.log('addPreviouslyWonWallets', pageState);
 
-  const twitterHandle = getTwitterHandle();
+  const twitterHandle = getRaffleTwitterHandle(options);
+  console2.log('twitterHandle', twitterHandle);
   if (!twitterHandle) {
     return;
   }
-  console2.log('twitterHandle', twitterHandle);
 
   const section = pageState.observer.createPreviousWonSection(twitterHandle, true);
   console2.log('section', section);
@@ -202,7 +204,7 @@ function addPreviouslyWonWallets(_options, pageState) {
     return console2.error('Missing  container:', container);
   }
   console2.log('container', container);
-  container.before(section);
+  container.parentNode?.before(section);
 }
 
 async function handleSimpleErrors() {

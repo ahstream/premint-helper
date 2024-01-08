@@ -286,7 +286,7 @@ async function showRafflePage(runPage) {
 
   await provider.waitForRafflePageLoaded(storage.options);
 
-  provider.addPreviouslyWonWallets(storage.options, pageState);
+  await provider.addPreviouslyWonWallets(storage.options, pageState);
 
   provider.loadRafflePageWithCustomContent();
 

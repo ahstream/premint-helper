@@ -1,7 +1,7 @@
 import global from './global.js';
 console.log('global:', global);
 
-import { trimWallet, walletToAlias, sortWallets, loadStorage } from './premintHelperLib';
+import { trimWallet, walletToAlias, sortWallets, loadStorage } from './premintHelperLib.js';
 import {
   sleep,
   millisecondsAhead,
@@ -10,7 +10,6 @@ import {
   extractTwitterHandle,
   setStorageData,
   createLogLevelArg,
-  isTwitterURL,
   myConsole,
   noDuplicates,
 } from 'hx-lib';
@@ -86,6 +85,7 @@ export async function createObserver({
         }
       }
 
+      /*
       if (pageState.autoFollowers) {
         if (mutation.target.nodeName === 'A' && isTwitterURL(mutation.target.href)) {
           console2.trace('handle mutation:', mutation);
@@ -101,6 +101,7 @@ export async function createObserver({
           handleTwitterLink(link);
         }
       }
+      */
 
       if (pageState.autoOdds || pageState.autoWins) {
         console2.trace('getAlphabotProjectLinkElems 1...');
@@ -139,24 +140,6 @@ export async function createObserver({
   });
 
   // TWITTER -------------------------------------------------------------
-
-  function handleTwitterLink(link) {
-    if (link.classList.contains('twitter-link')) {
-      console2.trace('twitter link already processed');
-      return;
-    }
-
-    if (link.dataset && link.dataset.hxDisabled) {
-      console2.trace('Target mutation observer disabled, skip!');
-      return;
-    }
-
-    const user = getCachedUserByURL(link.href, pageState.cacheTwitterHours);
-    console2.trace('user', user);
-    if (user) {
-      updateTwitterFollowers(user, link.href);
-    }
-  }
 
   function getCachedUserByURL(url, cacheHours) {
     return getCachedUser(extractTwitterHandle(url), cacheHours);
@@ -298,26 +281,6 @@ export async function createObserver({
       setStorageData({ twitterObserver: storage.twitterObserver });
       pageState.twitterModified = false;
     }, 2000);
-  }
-
-  function getTwitterLinkElems(nodes) {
-    const elems = [];
-    for (const node of nodes) {
-      if (node.nodeName !== 'DIV') {
-        continue;
-      }
-      if (!node.querySelectorAll) {
-        continue;
-      }
-      console2.trace('node:', node);
-      const links = node.querySelectorAll('A[data-action="option-twitter"]');
-      const link = links.length ? links[links.length - 1] : null;
-      if (link) {
-        console2.trace('nodename:', node.nodeName);
-        elems.push(link);
-      }
-    }
-    return elems;
   }
 
   // PROJECT -------------------------------------------------------------
@@ -552,7 +515,7 @@ export async function createObserver({
         return `${trimWallet(x)}${walletAliasText}`;
       })
       .join('\n');
-    div.title = `Wallets with previous wins:\n\n` + (hidden || text);
+    div.title = `Previous wins:\n\n` + (hidden || text);
 
     return div;
   }
@@ -658,7 +621,7 @@ function createPreviousWonMap(twitterHandle, showAll = false) {
       return `${trimWallet(x)}${walletAliasText}`;
     })
     .join('\n');
-  const title = `Wallets with previous wins:\n\n` + (hidden || text);
+  const title = `Previous wins:\n\n` + (hidden || text);
 
   return { ok: true, htmltext, title, wins: walletsWon.length };
 }

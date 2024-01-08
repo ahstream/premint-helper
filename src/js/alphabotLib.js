@@ -661,6 +661,7 @@ export function getTwitterHandle({ normalize = true } = {}) {
     const h = elems?.length === 1 ? elems[0].innerText : '';
     return !normalize ? h : normalizeTwitterHandle(h.replace('@', ''));
   } catch (e) {
+    console.error('Premint Helper exception caught:', e);
     return '';
   }
 }
@@ -676,6 +677,7 @@ export function getDiscordHandle({ normalize = true } = {}) {
     const h = elems[0].querySelector('div[role="button"]')?.innerText || '';
     return !normalize ? h : normalizeDiscordHandle(h);
   } catch (e) {
+    console.error('Premint Helper exception caught:', e);
     return '';
   }
 }

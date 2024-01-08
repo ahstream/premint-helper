@@ -40,7 +40,7 @@ import {
 
 import { initRafflePage } from './rafflePage';
 
-import { createObserver as createRaffleObserver, getPreviousWalletsWon } from './observerGeneric';
+import { createObserver as createRaffleObserver, getPreviousWalletsWon } from './raffleObserver.js';
 import { createObserver as createTwitterObserver } from './twitterObserver.js';
 
 import { sleep, myConsole } from 'hx-lib';
@@ -149,7 +149,7 @@ async function addQuickRegButton(options, clickHandler) {
   container.after(btn);
 }
 
-function addPreviouslyWonWallets(options, pageState) {
+async function addPreviouslyWonWallets(options, pageState) {
   const twitterHandle = getRaffleTwitterHandle(options);
   if (!twitterHandle) {
     return;

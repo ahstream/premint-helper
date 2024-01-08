@@ -38,7 +38,7 @@ import {
 
 import { initRafflePage } from './rafflePage';
 
-import { createObserver as createRaffleObserver, getPreviousWalletsWon } from './observerGeneric';
+import { createObserver as createRaffleObserver, getPreviousWalletsWon } from './raffleObserver.js';
 import { createObserver as createTwitterObserver } from './twitterObserver.js';
 
 import {
@@ -201,7 +201,7 @@ async function addQuickRegButton(options, clickHandler) {
   }
 }
 
-function addPreviouslyWonWallets(_options, pageState) {
+async function addPreviouslyWonWallets(_options, pageState) {
   const twitterLink = document.querySelector('a[data-action="option-twitter"]');
   if (!twitterLink) {
     return;

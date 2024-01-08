@@ -403,8 +403,8 @@ export async function waitForRafflePageLoaded(options, maxWait = null) {
     if (hasRegistered()) {
       return true;
     }
-    const du = getDiscordHandle();
-    const tu = getTwitterHandle();
+    const du = getDiscordHandle({ logErrors: false });
+    const tu = getTwitterHandle({ logErrors: false });
     console2.log('du, tu:', du, tu);
     if (du || tu) {
       console2.info('Raffle page has loaded!');
@@ -421,25 +421,33 @@ export async function waitForRafflePageLoaded(options, maxWait = null) {
 // RAFFLE API: RAFFLE GETTERS ---------------------------------------------
 
 export function getRaffleTwitterHandle() {
-  return '';
+  const m = document.body.innerHTML.match(/"twitter_handler":"([^"]+)"/i);
+  console.log('m', m);
+  return m?.length > 1 ? m[1] : '';
 }
 
-export function getTwitterHandle({ normalize = true } = {}) {
+export function getTwitterHandle({ normalize = true, logErrors = true } = {}) {
   try {
     const h = [...[...document.querySelectorAll('div')].filter((x) => x.innerText === 'Twitter')][0]
       .nextSibling?.innerText;
     return !normalize ? h : normalizeTwitterHandle(h.replace('@', ''));
   } catch (e) {
+    if (logErrors) {
+      console.error('Premint Helper exception caught:', e);
+    }
     return '';
   }
 }
 
-export function getDiscordHandle({ normalize = true } = {}) {
+export function getDiscordHandle({ normalize = true, logErrors = true } = {}) {
   try {
     const h = [...[...document.querySelectorAll('div')].filter((x) => x.innerText === 'Discord')][0]
       .nextSibling?.innerText;
     return !normalize ? h : normalizeDiscordHandle(h);
   } catch (e) {
+    if (logErrors) {
+      console.error('Premint Helper exception caught:', e);
+    }
     return '';
   }
 }
@@ -457,23 +465,28 @@ export function getMustJoinLinks() {
     console.log('getMustJoinLinks', elems, links);
     return { elems, links };
   } catch (e) {
+    console.error('Premint Helper exception caught:', e);
     return { elems: [], links: [] };
   }
 }
 
 export function getMustFollowLinks() {
   try {
-    const elems = [
-      ...[...document.querySelectorAll('div')]
-        .filter((x) => x.innerText.startsWith('Follow') && x.innerText.endsWith('On Twitter'))[1]
-        .querySelectorAll('a'),
-    ]
+    const baseElems = [...document.querySelectorAll('div')].filter(
+      (x) => x.innerText.startsWith('Follow') && x.innerText.endsWith('On Twitter')
+    );
+    console.log('baseElems', baseElems);
+    if (baseElems?.length < 2) {
+      return { elems: [], links: [] };
+    }
+    const elems = [...baseElems[1].querySelectorAll('a')]
       .filter((x) => x.href.includes('twitter.com'))
       .flat();
     const links = noDuplicates(elems.map((x) => x.href));
     console.log('getMustFollowLinks', elems, links);
     return { elems, links };
   } catch (e) {
+    console.error('Premint Helper exception caught:', e);
     return { elems: [], links: [] };
   }
 }
@@ -496,6 +509,7 @@ export function getMustLikeLinks() {
     console.log('getMustLikeLinks', elems, links);
     return { elems, links };
   } catch (e) {
+    console.error('Premint Helper exception caught:', e);
     return { elems: [], links: [] };
   }
 }
@@ -518,6 +532,7 @@ export function getMustRetweetLinks() {
     console.log('getMustRetweetLinks', elems, links);
     return { elems, links };
   } catch (e) {
+    console.error('Premint Helper exception caught:', e);
     return { elems: [], links: [] };
   }
 }
@@ -535,6 +550,7 @@ export function getMustLikeAndRetweetLinks() {
     console.log('getMustLikeAndRetweetLinks', elems, links);
     return { elems, links };
   } catch (e) {
+    console.error('Premint Helper exception caught:', e);
     return { elems: [], links: [] };
   }
 }
@@ -591,6 +607,7 @@ export function hasRegistered() {
 
     // return !!(document.body.innerText.match(/*You have joined the raffle*/));
   } catch (e) {
+    console.error('Premint Helper exception caught:', e);
     return false;
   }
 }
@@ -622,6 +639,7 @@ export function getJoinButton() {
       (x) => x.nextSibling?.innerText === 'Join'
     )[0];
   } catch (e) {
+    console.error('Premint Helper exception caught:', e);
     return null;
   }
 }
@@ -632,6 +650,7 @@ export function getJoiningButton() {
       ...[...document.querySelectorAll('button.px-8')].filter((x) => (x.innerText = 'Joining...')),
     ].filter((x) => x.nextSibling?.innerText === 'Join')[0];
   } catch (e) {
+    console.error('Premint Helper exception caught:', e);
     return null;
   }
 }

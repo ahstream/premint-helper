@@ -94,8 +94,6 @@ import {
 
 import { getPermissions } from '../../js/permissions';
 
-// import { createObserver } from '../../js/observerGeneric';
-
 import { createObserver as createTwitterObserver } from '../../js/twitterObserver.js';
 
 const jht = require('json-html-table');
