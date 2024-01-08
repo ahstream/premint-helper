@@ -1,5 +1,5 @@
 import global from './global.js';
-console.log(global);
+console.log('global:', global);
 
 import { getSearchParam, myConsole } from 'hx-lib';
 import { normalizeDiscordHandle, normalizeTwitterHandle } from './premintHelperLib';

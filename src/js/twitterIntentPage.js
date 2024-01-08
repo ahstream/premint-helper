@@ -1,7 +1,7 @@
 console.info('twitterIntentPage.js begin', window?.location?.href);
 
 import global from './global.js';
-console.log(global);
+console.log('global:', global);
 
 import { switchToUser } from './twitterLib.js';
 import {
@@ -207,6 +207,7 @@ async function retryIntentPage() {
       : window.location.href.replace(`retry=${retry}`, `retry=${retry + 1}`);
   console.log('retryIntentPage', url);
   window.location.href = url;
+  window.location.reload();
   await sleep(10000);
 }
 

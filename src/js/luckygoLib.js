@@ -1,5 +1,5 @@
 import global from './global.js';
-console.log(global);
+console.log('global:', global);
 
 import {
   sleep,
@@ -819,8 +819,8 @@ export async function hasRaffleTrigger(options) {
   return !!getRegisterButtonSync(options);
 }
 
-export async function hasRaffleTrigger2() {
-  return hasRaffleTrigger();
+export async function hasRaffleTrigger2(options) {
+  return hasRaffleTrigger(options);
 }
 
 // RAFFLE API: IS CHECKERS ---------------------------------------------

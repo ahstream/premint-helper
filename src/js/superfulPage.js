@@ -1,5 +1,5 @@
 import global from './global.js';
-console.log(global);
+console.log('global:', global);
 
 console.info('superfulPage.js begin', window?.location?.href);
 

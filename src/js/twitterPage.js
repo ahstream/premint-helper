@@ -3,7 +3,7 @@ console.info('twitterPage.js begin', window?.location?.href);
 import '../styles/twitterPage.css';
 
 import global from './global.js';
-console.log(global);
+console.log('global:', global);
 
 import { switchToUser, isEmptyPage, handleAccountAccess, waitForPageLoaded } from './twitterLib.js';
 import { debuggerDetach } from './premintHelperLib.js';

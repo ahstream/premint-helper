@@ -1,5 +1,5 @@
 import global from './global.js';
-console.log(global);
+console.log('global:', global);
 
 import {
   ONE_DAY,
@@ -560,10 +560,30 @@ async function getReplyButton(maxWait, interval) {
     maxWait,
     interval
   );
-  return {
-    replyBtn,
-  };
+  return { replyBtn };
 }
+
+async function getPostButton(maxWait, interval) {
+  console.log('getPostButton:', maxWait, interval);
+  const btn = await waitForSelector(
+    'div[data-testid="tweetButton"]:not([aria-disabled="true"])',
+    maxWait,
+    interval
+  );
+  return { btn };
+}
+
+/*
+async function getNewTweetButton(maxWait, interval) {
+  console.log('getNewTweetButton:', maxWait, interval);
+  const btn = await waitForSelector(
+    'div[data-testid="SideNav_NewTweet_Button"]:not([aria-disabled="true"])',
+    maxWait,
+    interval
+  );
+  return btn;
+}
+*/
 
 export async function raid(options, text, maxWait = 20000, interval = 250) {
   if (!(await like2(options))) {
@@ -613,8 +633,13 @@ export async function waitForPageLoaded(maxWait = 20000, interval = 200) {
   const stopTime = millisecondsAhead(maxWait);
   while (Date.now() <= stopTime) {
     const elem = document.querySelector('div[role="progressbar"][aria-valuemax="100"]');
-    console.log('elem:', elem);
+    console.log('waitForPageLoaded elem 1:', elem);
     if (elem && !elem.ariaLabel) {
+      return true;
+    }
+    const elem2 = document.querySelector('div[data-testid="emptyState"]');
+    console.log('waitForPageLoaded elem 2:', elem2);
+    if (elem2) {
       return true;
     }
     console.log('waitForPageLoaded');
@@ -977,4 +1002,119 @@ async function clickReplyButton(options, maxWait = 2500, interval = 250) {
   }
 
   return { ok: false };
+}
+
+async function clickPostButton(options, maxWait = 2500, interval = 250) {
+  let submitBtn = await getPostButton(maxWait, interval);
+  console.log('submitBtn:', submitBtn);
+  let btn = submitBtn?.btn;
+  if (!btn) {
+    return { ok: false };
+  }
+  await clickTwitterElem(options, btn);
+  await sleep(500);
+
+  const stopTime = millisecondsAhead(maxWait);
+  while (Date.now() <= stopTime) {
+    submitBtn = await getPostButton(10, 10);
+    console.log('replyBtn 2:', submitBtn);
+    btn = submitBtn?.btn;
+    if (!btn || btn?.ariaDisabled === 'true') {
+      return { ok: true };
+    }
+    await sleep(interval);
+  }
+
+  submitBtn = await getPostButton(10, 10);
+  console.log('replyBtn 3:', submitBtn);
+  btn = submitBtn?.btn;
+  if (!btn || btn?.ariaDisabled === 'true') {
+    return { ok: true };
+  }
+
+  return { ok: false };
+}
+
+/*
+async function clickNewTweetButton(options, maxWait = 2500, interval = 250) {
+  let btn = await getNewTweetButton(maxWait, interval);
+  console.log('btn:', btn);
+  if (!btn) {
+    return { ok: false };
+  }
+  await clickTwitterElem(options, btn);
+  await sleep(500);
+
+  const stopTime = millisecondsAhead(maxWait);
+  while (Date.now() <= stopTime) {
+    submitBtn = await getPostButton(10, 10);
+    console.log('replyBtn 2:', submitBtn);
+    btn = submitBtn?.btn;
+    if (!btn || btn?.ariaDisabled === 'true') {
+      return { ok: true };
+    }
+    await sleep(interval);
+  }
+
+  submitBtn = await getPostButton(10, 10);
+  console.log('replyBtn 3:', submitBtn);
+  btn = submitBtn?.btn;
+  if (!btn || btn?.ariaDisabled === 'true') {
+    return { ok: true };
+  }
+
+  return { ok: false };
+}
+
+async function getMessageField(maxWait = 20000, interval = 250) {
+  const base = await waitForSelector(
+    '.public-DraftStyleDefault-block.public-DraftStyleDefault-ltr',
+    maxWait,
+    interval
+  );
+  console.log('base', base);
+  if (!base) {
+    return '';
+  }
+}
+*/
+
+// https://twitter.com/compose/tweet
+export async function post(options, text, maxWait = 20000, interval = 250) {
+  const base = await waitForSelector(
+    '.public-DraftStyleDefault-block.public-DraftStyleDefault-ltr',
+    maxWait,
+    interval
+  );
+  console.log('base', base);
+  if (!base) {
+    return '';
+  }
+
+  const elems = base.getElementsByTagName('span');
+  console.log('elems', elems);
+  if (!elems || !elems.length) {
+    return '';
+  }
+
+  const elem = elems[0];
+  console.log('elem', elem);
+
+  base.focus();
+  const elemWithValueSetter = elem.parentNode.parentNode.parentNode.parentNode;
+  console.log('elemWithValueSetter', elemWithValueSetter);
+
+  debuggerInsertText(text, { elem: elemWithValueSetter });
+  await sleep(1000, 3000);
+
+  const r3 = await clickPostButton(options, ONE_MINUTE, 250);
+  if (!r3.ok) {
+    console.log('failed clickPostButton');
+    return '';
+  }
+}
+
+// https://twitter.com/compose/tweet
+export async function postWithDebugger(text, maxWait = 20000, interval = 250) {
+  return await post(null, text, maxWait, interval);
 }

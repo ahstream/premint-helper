@@ -1,5 +1,5 @@
 import global from './global.js';
-console.log(global);
+console.log('global:', global);
 
 import {
   sleep,
@@ -18,6 +18,7 @@ import {
 } from 'hx-lib';
 
 import { runRaid, addRaidLink, showRaidPage } from './raidLib.js';
+import { postWithDebugger } from './twitterLib.js';
 
 import {
   debuggerClickMouse,
@@ -225,7 +226,10 @@ export function exitActionMain(result, context, options) {
     focusMyTabOnce(context.pageState);
   }
   if (result === 'registered') {
-    focusMyTabOnce(context.pageState);
+    if (!context.pageState.focusedOnRegistered) {
+      focusMyTab();
+      context.pageState.focusedOnRegistered = true;
+    }
     context.pageState.done = true;
     context.updateStatusbarOk('You are registered');
     context.removeQuickRegBtn();
@@ -322,7 +326,7 @@ function minimizeVerifiedRaffle(context) {
 
 function closeTasksWhenFinished(context) {
   if (context.options.RAFFLE_CLOSE_TASKS_WHEN_FINISHED && context.pageState.finishedTabsIds?.length) {
-    console2.log('do closeTasksWhenFinished');
+    console2.log('do closeTasksWhenFinished', context.pageState);
     chrome.runtime.sendMessage({ cmd: 'closeTabs', tabIds: context.pageState.finishedTabsIds });
   } else {
     console2.log('do NOT closeTasksWhenFinished', context);
@@ -498,8 +502,8 @@ export async function finishTask(request, sender, context) {
     }
 
     console.log('context');
-    if (context.visitTwitterLinks) {
-      context.visitTwitterLinks();
+    if (context.visitTwitterTasks) {
+      context.visitTwitterTasks();
     }
 
     const focusTabWhenRegister = context.pageState.haveRoleDiscordLink ? false : true;
@@ -994,6 +998,7 @@ export function createStatusbar(options, { text = STATUSBAR_DEFAULT_TEXT, button
       results: true,
       raffles: true,
       twitter: true,
+      twitter2: true,
       raid: false,
       reveal: false,
       ...buttons,
@@ -1001,7 +1006,16 @@ export function createStatusbar(options, { text = STATUSBAR_DEFAULT_TEXT, button
   });
 }
 
-export function createStatusbarButtons({ options, results, raffles, reveal, raid, twitter, help } = options) {
+export function createStatusbarButtons({
+  options,
+  results,
+  raffles,
+  reveal,
+  raid,
+  twitter,
+  twitter2,
+  help,
+} = options) {
   console.log('createStatusbarButtons', options);
 
   const buttons = [];
@@ -1080,6 +1094,14 @@ export function createStatusbarButtons({ options, results, raffles, reveal, raid
     );
   }
 
+  if (twitter2) {
+    add(
+      'Tweet',
+      'Tweet',
+      makeCallback(twitter2, () => postWithDebugger('gm'))
+    );
+  }
+
   console.trace('createStatusbarButtons:', buttons);
 
   return buttons.reverse();
@@ -1092,7 +1114,7 @@ export function lookupTwitterFollowersClickEventHandler(event, scope = 0) {
 }
 
 export async function clickTwitterElem(options, elem, delay = null) {
-  if (options.CLICK_TWITTER_ELEM_DEBUGGER) {
+  if (options === null || options.CLICK_TWITTER_ELEM_DEBUGGER) {
     console.log('debuggerClickMouse');
     return await debuggerClickMouse('left', { elem, delay });
   }
@@ -1102,6 +1124,12 @@ export async function clickTwitterElem(options, elem, delay = null) {
   }
   console.log('elem.click');
   elem.click();
+}
+
+export async function clickTwitterElemWithDebugger(elem, delay = null) {
+  console.log('clickTwitterElemWithDebugger');
+  console.log('debuggerClickMouse');
+  return await debuggerClickMouse('left', { elem, delay });
 }
 
 export async function submitTwitterElem(options, elem, delay = null) {
@@ -1115,4 +1143,30 @@ export async function debuggerDetach(options) {
   if (options.CLICK_TWITTER_ELEM_DEBUGGER) {
     return debuggerDetachReal();
   }
+}
+
+export function hasRaffleCaptcha(providerName) {
+  if (providerName === 'ALPHABOT') {
+    return hasALphabotRaffleCaptcha();
+  }
+  const elem = document.querySelector('iframe[src*="hcaptcha.com"]');
+  return elem && typeof elem?.disabled === 'boolean' && elem.disabled === false;
+}
+
+function hasALphabotRaffleCaptcha() {
+  const elem = document.querySelector('iframe[src*="hcaptcha.com"]');
+  if (!elem) {
+    return false;
+  }
+  if (typeof elem?.disabled === 'boolean' && elem.disabled === false) {
+    return true;
+  }
+  const parent = elem.parentElement?.parentElement;
+  if (!parent) {
+    return false;
+  }
+  if (parent.ariaHidden === 'true') {
+    return false;
+  }
+  return true;
 }

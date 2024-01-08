@@ -1,5 +1,5 @@
 import global from './global.js';
-console.log(global);
+console.log('global:', global);
 
 import { trimWallet, walletToAlias, sortWallets, loadStorage } from './premintHelperLib';
 import {

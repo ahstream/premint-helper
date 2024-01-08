@@ -3,7 +3,7 @@ console.info('superfulPage.js begin', window?.location?.href);
 import '../styles/superfulPage.css';
 
 import global from './global.js';
-console.log(global);
+console.log('global:', global);
 
 import {
   // RAFFLE API
@@ -65,13 +65,15 @@ const config = {
 
   // ENABLERS
   enableForceRegister: true,
-  visitTwitterLinks: true,
+  visitTwitterTasks: true,
 
   // STATIC COMMON API
   createObserver: async (config) => createRaffleObserver(config),
   createObserver2: async (config) => createTwitterObserver(config),
   setStorage: (newStorage) => (storage = newStorage),
-  getWonWalletsByAllAccounts: () => getPreviousWalletsWon(getRaffleTwitterHandle()),
+  //getWonWalletsByAllAccounts: () => getPreviousWalletsWon(getRaffleTwitterHandle()),
+  getRaffleTwitterHandle,
+  getPreviousWalletsWon,
 
   // STATIC PROVIDER API
   waitForRafflePageLoaded,
@@ -96,7 +98,6 @@ const config = {
   JOIN_BUTTON_IN_PROGRESS_TEXT,
 
   // SEMI CUSTOM API
-  shouldOpenTwitterTasks: () => true,
   hasCaptcha: () => false,
   hasWalletConnectDialog: () => false,
   hasAlreadyWon: () => false,
@@ -180,7 +181,7 @@ async function addQuickRegButton(options, clickHandler) {
   regBtnContainer.before(btn);
 }
 
-function addPreviouslyWonWallets(pageState) {
+function addPreviouslyWonWallets(_options, pageState) {
   console2.log('addPreviouslyWonWallets', pageState);
 
   const twitterHandle = getTwitterHandle();

@@ -1,7 +1,7 @@
 console.info('luckygoPage.js begin', window?.location?.href);
 
 import global from './global.js';
-console.log(global);
+console.log('global:', global);
 
 import { getStorageItems, myConsole, sleep, createHashArgs, dispatch } from 'hx-lib';
 import { getCookie } from './premintHelperLib';

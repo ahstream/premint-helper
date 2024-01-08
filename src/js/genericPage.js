@@ -3,7 +3,7 @@ console.info('genericPage.js begin', window?.location?.href);
 import '../styles/genericPage.css';
 
 import global from './global.js';
-console.log(global);
+console.log('global:', global);
 
 import { createObserver as createTwitterObserver } from './twitterObserver.js';
 

@@ -4,7 +4,7 @@ console.info('raid.js begin', window?.location?.href);
 import './raid.scss';
 
 import global from '../../js/global.js';
-console.log(global);
+console.log('global:', global);
 
 import { createStatusbar } from '../../js/premintHelperLib.js';
 

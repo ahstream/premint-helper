@@ -1,5 +1,5 @@
 import global from './global.js';
-console.log(global);
+console.log('global:', global);
 
 import {
   sleep,
@@ -850,7 +850,6 @@ export function getErrors() {
     discord,
     discordRoled,
   };
-  console.log('errors', errors);
 
   return errors;
 }

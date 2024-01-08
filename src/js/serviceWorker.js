@@ -1,7 +1,7 @@
 console.info('serviceWorker.js begin');
 
 import global from './global.js';
-console.log(global);
+console.log('global:', global);
 
 import { defaultOptions, overrideOptions } from '../config/config';
 import { initStorageWithOptions, fetchHelper, sleep } from 'hx-lib';

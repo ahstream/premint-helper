@@ -3,7 +3,7 @@ console.info('raffleResults.js begin', window?.location?.href);
 import './raffleResults.scss';
 
 import global from '../../js/global.js';
-console.log(global);
+console.log('global:', global);
 
 import {
   getAccount as getAlphabotAccount,
@@ -449,6 +449,38 @@ function hasProjectWinsChanged(oldWins, newWins) {
     oldWins
   );
 
+  // if all new wins is in old wins -> not changed!
+
+  for (const [key] of Object.entries(newWins)) {
+    console2.log(key, oldWins[key], newWins[key]);
+    if (JSON.stringify(oldWins[key]) !== JSON.stringify(newWins[key])) {
+      console.log('oldWins <> newWins', key);
+      console.log('oldWins[key]', oldWins[key]);
+      console.log('newWins[key]', newWins[key]);
+      return true;
+    }
+  }
+
+  return false;
+}
+
+/*
+function hasProjectWinsChangedOrg(oldWins, newWins) {
+  console.log(
+    'Object.entries(projectWins1).length',
+    Object.getOwnPropertyNames(oldWins).length,
+    Object.entries(oldWins).length,
+    Object.entries(oldWins),
+    oldWins
+  );
+  console.log(
+    'Object.entries(projectWins2).length',
+    Object.getOwnPropertyNames(newWins).length,
+    Object.entries(newWins).length,
+    Object.entries(newWins),
+    oldWins
+  );
+
   // todo if diff length, check if all new wins is in old wins -> not changed!
 
   if (Object.getOwnPropertyNames(oldWins).length !== Object.getOwnPropertyNames(newWins).length) {
@@ -467,6 +499,7 @@ function hasProjectWinsChanged(oldWins, newWins) {
   }
   return false;
 }
+*/
 
 async function resetWins() {
   if (!window.confirm('Do you want to reset all raffle wins?')) {

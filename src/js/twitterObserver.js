@@ -1,5 +1,5 @@
 import global from './global.js';
-console.log(global);
+console.log('global:', global);
 
 import {
   //trimWallet,
@@ -25,6 +25,7 @@ import {
   daysBetween,
   //isTwitterURL,
   myConsole,
+  pluralize,
 } from 'hx-lib';
 
 import { waitForUser } from './twitterLib.js';
@@ -87,7 +88,7 @@ export async function createObserver({ permissions, cacheTwitterHours = 72, logg
   const mutationObserver = new MutationObserver(mutationHandler);
   mutationObserver.observe(document, { attributes: true, childList: true, subtree: true });
 
-  return {};
+  return { getTwitterFollowers };
 }
 
 async function mutationHandler(mutationList) {
@@ -413,9 +414,11 @@ function updateTwitterUserLinksOnPage(user, href) {
 
     const followers = user.followers || 0;
     elem.dataset.hxFollowersNum = followers;
-    elem.dataset.hxFollowers = kFormatter(followers);
+    elem.dataset.hxFollowers = kFormatter(followers, '');
     const daysAgo = daysBetween(Date.now(), user.fetchedAt);
-    const title = `@${user.handle}\n${followers} followers ${daysAgo < 1 ? 'today' : daysAgo + ' days ago'}`;
+    const title = `@${user.handle}\n${followers} followers ${
+      daysAgo < 1 ? 'today' : daysAgo + ' ' + pluralize(daysAgo, 'day', 'days') + ' ago'
+    }`;
 
     elem.title = title;
   }
@@ -515,6 +518,11 @@ function getTwitterUserByUrl(url, cacheHours) {
   return getTwitterUser(twitterUrlToHandle(url), cacheHours);
 }
 
+function getTwitterFollowers(handle) {
+  const u = getTwitterUser(handle);
+  return u?.followers || -1;
+}
+
 function getTwitterUser(handle, cacheHours) {
   console2.trace('getTwitterUser, handle:', handle);
   if (!handle) {
@@ -552,6 +560,7 @@ function createTwitterUser(handle, followers) {
   pageState.twitterModified = true;
   return storage.twitterObserver[handle];
 }
+
 // HELPERS ----------------------------------------------------------------------------------
 
 function saveTwitter() {

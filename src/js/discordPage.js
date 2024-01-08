@@ -3,7 +3,7 @@ console.info('discordPage.js begin', window?.location?.href);
 import '../styles/discordPage.css';
 
 import global from './global.js';
-console.log(global);
+console.log('global:', global);
 
 import {
   sleep,

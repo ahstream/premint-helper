@@ -3,11 +3,10 @@ console.info('premintRafflePage.js begin', window?.location?.href);
 import '../styles/premintPage.css';
 
 import global from './global.js';
-console.log(global);
+console.log('global:', global);
 
 import {
   // RAFFLE API
-  getRaffleTwitterHandle,
   getTwitterHandle,
   getDiscordHandle,
   getSelectedWallet,
@@ -25,6 +24,7 @@ import {
   hasRaffleTrigger,
   hasRaffleTrigger2,
   waitForRafflePageLoaded,
+  getRaffleTwitterHandle,
 } from './premintLib.js';
 
 import {
@@ -32,6 +32,7 @@ import {
   JOIN_BUTTON_IN_PROGRESS_TEXT,
   JOIN_BUTTON_TITLE,
   clickElement,
+  hasRaffleCaptcha,
 } from './premintHelperLib';
 
 import { initRafflePage } from './rafflePage';
@@ -64,13 +65,15 @@ const config = {
 
   // ENABLERS
   enableForceRegister: false,
-  visitTwitterLinks: false,
+  visitTwitterTasks: false,
 
   // STATIC COMMON API
   createObserver: async (config) => createRaffleObserver(config),
   createObserver2: async (config) => createTwitterObserver(config),
   setStorage: (newStorage) => (storage = newStorage),
-  getWonWalletsByAllAccounts: () => getPreviousWalletsWon(getRaffleTwitterHandle()),
+  //getWonWalletsByAllAccounts: () => getPreviousWalletsWon(getRaffleTwitterHandle()),
+  getRaffleTwitterHandle,
+  getPreviousWalletsWon,
 
   // STATIC PROVIDER API
   waitForRafflePageLoaded,
@@ -95,8 +98,6 @@ const config = {
   JOIN_BUTTON_IN_PROGRESS_TEXT,
 
   // SEMI CUSTOM API
-  shouldOpenTwitterTasks: () => true,
-  hasCaptcha, // : () => false,
   hasWalletConnectDialog: () => false,
   hasAlreadyWon: () => false,
   hasDoingItTooOften: () => false,
@@ -158,7 +159,7 @@ async function handleSimpleErrors(exitFn) {
   if (errors?.length) {
     await sleep(1000);
     console2.log('Has errors:', errors);
-    if (hasCaptcha()) {
+    if (hasRaffleCaptcha(config.name)) {
       exitFn('raffleCaptcha');
       return true;
     }
@@ -173,14 +174,6 @@ async function handleComplexErrors() {
 }
 
 // SEMI CUSTOM API
-
-function hasCaptcha() {
-  // document.querySelector('.recaptcha-checkbox-checked')
-  // document.querySelector('.recaptcha-checkbox-borderAnimation')
-  // const elem = document.querySelector('iframe[title="reCAPTCHA"]');
-  const elem = document.querySelector('iframe[src*="hcaptcha.com"]');
-  return elem && typeof elem?.disabled === 'boolean' && elem.disabled === false;
-}
 
 function isPendingReg() {
   console2.log('isPendingReg');

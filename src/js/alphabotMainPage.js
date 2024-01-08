@@ -3,7 +3,7 @@ console.info('alphabotMainPage.js begin', window?.location?.href);
 import '../styles/alphabotPage.css';
 
 import global from './global.js';
-console.log(global);
+console.log('global:', global);
 
 import { createObserver } from './observerGeneric.js';
 import { createObserver as createTwitterObserver } from './twitterObserver.js';

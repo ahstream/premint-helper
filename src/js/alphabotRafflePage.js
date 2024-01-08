@@ -3,10 +3,9 @@ console.info('alphabotRafflePage.js begin', window?.location?.href);
 import '../styles/alphabotPage.css';
 
 import global from './global.js';
-console.log(global);
+console.log('global:', global);
 
 import {
-  getRaffleTwitterHandle,
   getTwitterHandle,
   getDiscordHandle,
   getSelectedWallet,
@@ -25,6 +24,7 @@ import {
   hasRaffleTrigger,
   hasRaffleTrigger2,
   waitForRafflePageLoaded,
+  getRaffleTwitterHandle,
   // CUSTOM
 } from './alphabotLib.js';
 
@@ -33,6 +33,7 @@ import {
   JOIN_BUTTON_IN_PROGRESS_TEXT,
   JOIN_BUTTON_TITLE,
   clickElement,
+  hasRaffleCaptcha,
 } from './premintHelperLib';
 
 import { initRafflePage } from './rafflePage';
@@ -65,13 +66,15 @@ const config = {
 
   // ENABLERS
   enableForceRegister: true,
-  visitTwitterLinks: false,
+  visitTwitterTasks: false,
 
   // STATIC COMMON API
   createObserver: async (config) => createRaffleObserver(config),
   createObserver2: async (config) => createTwitterObserver(config),
   setStorage: (newStorage) => (storage = newStorage),
-  getWonWalletsByAllAccounts: () => getPreviousWalletsWon(getRaffleTwitterHandle()),
+  //getWonWalletsByAllAccounts: () => getPreviousWalletsWon(getRaffleTwitterHandle()),
+  getRaffleTwitterHandle,
+  getPreviousWalletsWon,
 
   // STATIC PROVIDER API
   waitForRafflePageLoaded,
@@ -97,8 +100,6 @@ const config = {
 
   // SEMI CUSTOM API
 
-  shouldOpenTwitterTasks: () => true,
-  hasCaptcha, // : () => false,
   hasWalletConnectDialog, // : () => false,
   hasAlreadyWon, // : () => false,
   hasDoingItTooOften, // : () => false,
@@ -200,7 +201,7 @@ async function addQuickRegButton(options, clickHandler) {
   }
 }
 
-function addPreviouslyWonWallets(pageState) {
+function addPreviouslyWonWallets(_options, pageState) {
   const twitterLink = document.querySelector('a[data-action="option-twitter"]');
   if (!twitterLink) {
     return;
@@ -239,7 +240,7 @@ async function handleComplexErrors(pageState, context) {
     await sleep(1000);
     console2.log('Has errors:', errors);
 
-    if (hasCaptcha()) {
+    if (hasRaffleCaptcha(config.name)) {
       //return exitAction('raffleCaptcha');
       context.handleRaffleCaptcha();
       return true;
@@ -293,32 +294,6 @@ async function handleComplexErrors(pageState, context) {
 }
 
 // SEMI CUSTOM API
-
-function hasCaptcha() {
-  // document.querySelector('.recaptcha-checkbox-checked')
-  // document.querySelector('.recaptcha-checkbox-borderAnimation')
-  // const elem = document.querySelector('iframe[title="reCAPTCHA"]');
-  const elem = document.querySelector('iframe[src*="hcaptcha.com"]');
-
-  if (!elem) {
-    return false;
-  }
-
-  if (typeof elem?.disabled === 'boolean' && elem.disabled === false) {
-    return true;
-  }
-
-  const parent = elem.parentElement?.parentElement;
-  if (!parent) {
-    return false;
-  }
-
-  if (parent.ariaHidden === 'true') {
-    return false;
-  }
-
-  return true;
-}
 
 function hasWalletConnectDialog() {
   const elem = document.querySelector('#WEB3_CONNECT_MODAL_ID');

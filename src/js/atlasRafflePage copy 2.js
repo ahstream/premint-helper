@@ -1,13 +1,12 @@
-console.info('luckygoPage.js begin', window?.location?.href);
+console.info('atlasPage.js begin', window?.location?.href);
 
-import '../styles/luckygoPage.css';
+import '../styles/atlasPage.css';
 
 import global from './global.js';
 console.log('global:', global);
 
 import {
   // OTHER API
-  isAutomateTwitterTasksSelected,
   // RAFFLE API
   getRaffleTwitterHandle,
   getTwitterHandle,
@@ -28,16 +27,14 @@ import {
   hasRaffleTrigger2,
   waitForRafflePageLoaded,
   // HELPER API
-  getRegisteringButton,
   hasErrors,
-} from './luckygoLib.js';
+} from './atlasLib.js';
 
 import {
   JOIN_BUTTON_TEXT,
   JOIN_BUTTON_IN_PROGRESS_TEXT,
   JOIN_BUTTON_TITLE,
   clickElement,
-  hasRaffleCaptcha,
 } from './premintHelperLib';
 
 import { initRafflePage } from './rafflePage';
@@ -51,11 +48,10 @@ const console2 = myConsole(global.LOGLEVEL);
 
 // DATA ----------------------------------------------------------------------------
 
-// eslint-disable-next-line no-unused-vars
 let storage = null;
 
 const config = {
-  name: 'LUCKYGO',
+  name: 'ATLAS',
 
   // SETTINGS
   storageKeys: ['runtime', 'options'],
@@ -70,9 +66,7 @@ const config = {
   createObserver: async (config) => createRaffleObserver(config),
   createObserver2: async (config) => createTwitterObserver(config),
   setStorage: (newStorage) => (storage = newStorage),
-  //getWonWalletsByAllAccounts: () => getPreviousWalletsWon(getRaffleTwitterHandle()),
-  getRaffleTwitterHandle,
-  getPreviousWalletsWon,
+  getWonWalletsByAllAccounts: (options) => getPreviousWalletsWon(getRaffleTwitterHandle(options)),
 
   // STATIC PROVIDER API
   waitForRafflePageLoaded,
@@ -91,12 +85,15 @@ const config = {
   hasRegistered,
   hasRaffleTrigger,
   hasRaffleTrigger2,
+  hasErrors,
   isAllRegBtnsEnabled,
   JOIN_BUTTON_TEXT,
   JOIN_BUTTON_TITLE,
   JOIN_BUTTON_IN_PROGRESS_TEXT,
 
   // SEMI CUSTOM API
+  shouldOpenTwitterTasks: () => true,
+  hasCaptcha,
   hasWalletConnectDialog: () => false,
   hasAlreadyWon: () => false,
   hasDoingItTooOften: () => false,
@@ -113,9 +110,8 @@ const config = {
   handleSimpleErrors,
   handleComplexErrors,
 
-  // PROVIDER SPECIFICS
-
-  isTwitterTasksAutomated: () => isAutomateTwitterTasksSelected(),
+  readyToRegister,
+  skipReqsIfReady,
 };
 
 // STARTUP ----------------------------------------------------------------------------
@@ -132,39 +128,13 @@ async function register(regBtn) {
   clickElement(regBtn, { real: false, simulate: true });
 }
 
-async function forceRegister(options, pageState) {
-  const regBtn = getRegisterButtonSync(options);
-  console2.log('forceRegister; regBtn:', regBtn);
-
-  if (!regBtn) {
-    console2.log('!regBtn');
-    return null;
-  }
-
-  const errors = getErrors();
-  console2.log('errors:', errors);
-  if (errors.discord) {
-    console2.log('Do not force register when discord errors!');
-    return null;
-  }
-
-  if (!isAllRegBtnsEnabled(options)) {
-    console2.log('!isAllRegBtnsEnabled');
-    return null;
-  }
-
-  clickElement(regBtn);
-  console2.log('pageState', pageState);
-  if (pageState.isRegistering) {
-    await sleep(config.SLEEP_BEFORE_NEXT_FORCE_REGISTER);
-  }
-  // pageState.isRegistering = true;
-  return regBtn;
+async function forceRegister() {
+  return null;
 }
 
 async function addQuickRegButton(options, clickHandler) {
   const regBtnContainer = await getRegisterButton(options);
-  console2.log('regBtnContainer', regBtnContainer);
+  console2.log('regBtn', regBtnContainer);
   if (!regBtnContainer) {
     return;
   }
@@ -174,42 +144,27 @@ async function addQuickRegButton(options, clickHandler) {
   btn.innerHTML = JOIN_BUTTON_TEXT;
   btn.title = JOIN_BUTTON_TITLE;
   btn.className =
-    'ph-button active:buttonShadow mt-6 flex h-12 cursor-pointer items-center justify-center rounded-full bg-primary-500 text-base font-medium text-neutral-100 hover:bg-primary-600 bg-primary-500 text-neutral-100';
+    'ph-button flex justify-center items-center gap-2 py-2 px-4 bg-primary-500 rounded-lg text-white w-full transition hover:cursor-pointer';
   btn.addEventListener('click', clickHandler);
 
-  regBtnContainer.before(btn);
+  const container = getEntryContainer();
+  console2.log('container', container);
+  container.after(btn);
 }
 
-function addPreviouslyWonWallets(_options, pageState) {
-  console2.log('addPreviouslyWonWallets', pageState);
-
-  const twitterHandle = getRaffleTwitterHandle();
+function addPreviouslyWonWallets(options, pageState) {
+  const twitterHandle = getRaffleTwitterHandle(options);
   if (!twitterHandle) {
     return;
   }
   console2.log('twitterHandle', twitterHandle);
 
   const section = pageState.observer.createPreviousWonSection(twitterHandle, true);
-  console2.log('section', section);
   if (!section) {
     return;
   }
   console2.log('section', section);
-
-  const containers1 = [...document.querySelectorAll('div')].filter((x) =>
-    x.innerText.startsWith('Mint wallet')
-  );
-  const containers2 = [...document.querySelectorAll('div')].filter((x) =>
-    x.innerText.startsWith('You submitted:')
-  );
-  const containers = [...containers1, ...containers2];
-
-  if (!containers?.length) {
-    console2.error('Missing mint wallet container:', containers);
-    return;
-  }
-  console2.log('section', section);
-  containers[0].before(section);
+  document.body.appendChild(section);
 }
 
 async function handleSimpleErrors(exitFn) {
@@ -217,7 +172,7 @@ async function handleSimpleErrors(exitFn) {
   if (errors?.length) {
     await sleep(1000);
     console2.log('Has errors:', errors);
-    if (hasRaffleCaptcha(config.name)) {
+    if (hasCaptcha()) {
       exitFn('raffleCaptcha');
       return true;
     }
@@ -231,21 +186,10 @@ async function handleComplexErrors(pageState, context) {
   if (!pageState.isRegistering) {
     return false;
   }
-  if (hasErrors()) {
-    context.exitAction('raffleUnknownError');
-    return true;
-  }
   await sleep(500);
-  if (hasErrors()) {
-    context.exitAction('raffleUnknownError');
-    return true;
-  }
-  console2.log('Wait for regbtn not registering');
-  while (getRegisteringButton()) {
-    if (hasErrors()) {
-      context.exitAction('raffleUnknownError');
-      return true;
-    }
+  const regBtn = getRegisterButtonSync();
+  console2.log('Wait for regbtn not disabled');
+  while (regBtn && regBtn.disabled) {
     await sleep(10);
   }
   if (hasErrors()) {
@@ -258,4 +202,49 @@ async function handleComplexErrors(pageState, context) {
 
 // SEMI CUSTOM API
 
-// MISC
+function hasCaptcha() {
+  // document.querySelector('.recaptcha-checkbox-checked')
+  // document.querySelector('.recaptcha-checkbox-borderAnimation')
+  // const elem = document.querySelector('iframe[title="reCAPTCHA"]');
+  const elem = document.querySelector('iframe[src*="hcaptcha.com"]');
+  return elem && typeof elem?.disabled === 'boolean' && elem.disabled === false;
+}
+
+function readyToRegister() {
+  return isAllTasksCompleted();
+}
+
+function skipReqsIfReady() {
+  return storage.options.ATLAS_SKIP_REQS_IF_READY && isAllTasksCompleted();
+}
+
+// REGISTER
+
+// REGISTER BTN FUNCS ----------------------------------------------
+
+function getEntryContainer() {
+  return (
+    [...document.querySelectorAll('div.pb-2')].filter((x) =>
+      x.innerText.startsWith('Entry Requirements')
+    )[0] || null
+  );
+}
+
+// RAFFLE STATE CHECKERS -------------------------------------------------------------------
+
+// HELPERS
+
+function isAllTasksCompleted() {
+  const s = getEntryContainer()?.innerText;
+  if (!s) {
+    return false;
+  }
+  const matches = s.matchAll(/([0-9]+) of ([0-9]+) TASKS COMPLETED/gi);
+  const matchesArr = [...matches].flat();
+  console2.log('matches', matches, matchesArr);
+
+  const r = (matchesArr.length === 3) & (matchesArr[1] === matchesArr[2]);
+  console2.log('r', r);
+
+  return r;
+}

@@ -4,7 +4,7 @@ console.info('admin.js begin', window?.location?.href);
 import './admin.scss';
 
 import global from '../../js/global.js';
-console.log(global);
+console.log('global:', global);
 
 import {
   optimizeStorage,

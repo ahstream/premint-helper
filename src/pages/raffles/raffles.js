@@ -3,7 +3,7 @@ console.info('raffles.js begin', window?.location?.href);
 import './raffles.scss';
 
 import global from '../../js/global.js';
-console.log(global);
+console.log('global:', global);
 
 import {
   createStatusbar,
@@ -195,13 +195,15 @@ async function showPage() {
     skipSearchDups
   );
 
-  updateAlphabotSelectedRaffles();
-  showRafflesTableForOne('alphabotSelected', 'Selected Alphabot Raffles', '', skipDups);
+  updateMyTeamsRaffles();
+  showRafflesTableForOne('myTeams', 'Favorite Raffles', '', false);
+
   showRafflesTableForOne('alphabotMine', 'My Alphabot Raffles', '', skipDups);
   showRafflesTableForOne('alphabotAll', 'All Alphabot Raffles', '', skipDups);
   showRafflesTableForOne('luckygoMine', 'My LuckyGo Raffles', '', skipDups);
   showRafflesTableForOne('luckygoAll', 'All LuckyGo Raffles', '', skipDups);
   showRafflesTableForOne('superfulAll', 'All Superful Raffles', '', skipDups);
+
   showRafflesTableForOne('ignored', 'Ignored Raffles', '', skipDups, false);
 
   console2.log('Done showing raffles page!');
@@ -224,11 +226,15 @@ function preProcessRaffle(r) {
 function showRafflesTableForOne(key, header, subHeader, skipDups = false, useIgnored = true) {
   console2.log('showRafflesTableForOne', key, header, subHeader);
 
+  console2.log('storage.raffles[key]', key, storage.raffles[key]);
+
   const now = Date.now();
 
   const baseRaffles = preProcessRaffles(storage.raffles[key] ? storage.raffles[key] : [])
     .filter((x) => x.endDate > now && !isRaffleToLongToShow(x))
     .filter((x) => (skipDups ? !pageState.shownRaffles[x.id] : true));
+
+  console2.log('baseRaffles', baseRaffles);
 
   if (!storage.raffles.ignored) {
     storage.raffles.ignored = [];
@@ -246,16 +252,19 @@ function showRafflesTableForOne(key, header, subHeader, skipDups = false, useIgn
   const raffles = baseRaffles.filter(
     (x) => !useIgnored || !storage.raffles.ignoredMap || !storage.raffles.ignoredMap[x.id]
   );
+  console2.log('raffles', raffles);
 
   if (skipDups) {
     raffles.forEach((x) => (pageState.shownRaffles[x.id] = true));
   }
+  console2.log('raffles2', raffles);
 
   const filters = getFilters();
   console2.log('filters', filters);
 
   const filteredRaffles = filterRaffles(raffles, filters);
   console2.log('filteredRaffles', filteredRaffles);
+
   if (filters.text) {
     subHeader = subHeader + (subHeader ? '<br><br>' : '') + '<b>Filters:</b> ' + filters.text;
   }
@@ -320,9 +329,6 @@ async function updateRaffles() {
   await updateMyAlphabotRaffles();
   statusLogger.sub(`Fetched ${storage.raffles.alphabotMine?.length || 0} Alphabot projects (My communities)`);
   statusLogger.mid(``);
-
-  updateAlphabotSelectedRaffles();
-  showRafflesTableForOne('alphabotSelected', 'Selected Alphabot Raffles', '', skipDups);
   showRafflesTableForOne('alphabotMine', 'My Alphabot Raffles', '', skipDups);
 
   statusLogger.main(`Updating All Alphabot raffles...`);
@@ -348,6 +354,9 @@ async function updateRaffles() {
   statusLogger.sub(`Fetched ${storage.raffles.superfulAll?.length || 0} Superful projects`);
   statusLogger.mid(``);
   showRafflesTableForOne('superfulAll', 'All Superful Raffles', '', skipDups);
+
+  updateMyTeamsRaffles();
+  showRafflesTableForOne('myTeams', 'Favorite Raffles', '', false);
 
   showRafflesTableForOne('ignored', 'Ignored Raffles', '', skipDups);
 
@@ -501,8 +510,8 @@ async function updateAlphabotRaffles(key, authKey, options = {}) {
   storage.raffles[key] = r1;
 }
 
-async function updateAlphabotSelectedRaffles() {
-  console2.log('updateAlphabotSelectedRaffles');
+async function updateMyTeamsRaffles() {
+  console2.log('updateMyTeamsRaffles');
 
   const myTeams = noDuplicates(
     storage.options.RAFFLE_LIST_MY_TEAMS.map((x) => x.split(','))
@@ -510,15 +519,30 @@ async function updateAlphabotSelectedRaffles() {
       .map((x) => x.trim())
       .map((x) => x.toLowerCase())
   );
+  console2.log('myTeams', myTeams);
 
-  const raffles = [];
-  storage.raffles?.alphabotMine?.forEach((raffle) => {
+  const trimRaffles = (r) => (r?.length ? r : []);
+
+  const myRaffles = [];
+  const allRaffles = noDuplicates([
+    ...trimRaffles(storage.raffles?.searchTop),
+    ...trimRaffles(storage.raffles?.searchGreat),
+    ...trimRaffles(storage.raffles?.searchGood),
+    ...trimRaffles(storage.raffles?.searchEarly),
+    ...trimRaffles(storage.raffles?.alphabotAll),
+    ...trimRaffles(storage.raffles?.luckygoAll),
+    ...trimRaffles(storage.raffles?.superfulAll),
+  ]);
+  console2.log('allRaffles', allRaffles);
+
+  allRaffles.forEach((raffle) => {
     const teamName = raffle.teamName?.toLowerCase ? raffle.teamName.toLowerCase() : '';
     if (myTeams.includes(teamName)) {
-      raffles.push({ ...raffle });
+      myRaffles.push({ ...raffle });
     }
   });
-  storage.raffles.alphabotSelected = raffles;
+  console2.log('myRaffles', myRaffles);
+  storage.raffles.myTeams = myRaffles;
 }
 
 // LUCKYGO ------------------------------
@@ -1206,7 +1230,9 @@ function getFilters(fromInput = true) {
   const filters = [];
   filters.push(f.minutes !== null ? `Ends in ${timeLeftToText(f.minutes)}` : '');
   filters.push(f.winPct !== null ? `Win >= ${f.winPct}%` : '');
+  filters.push(f.twitterFollowers !== null ? `Twitter followers >= ${f.twitterFollowers}` : '');
   filters.push(f.easy ? `Easy` : '');
+  filters.push(f.gtd ? `Guaranteed` : '');
   filters.push(f.reqDiscord ? `No Discord req` : '');
   filters.push(f.reqFollow ? `Follow` : '');
   filters.push(f.reqLike ? `Like` : '');
@@ -1222,10 +1248,12 @@ function getFiltersFromOptions() {
       : null,
     winPct: storage.options.RAFFLE_LIST_FILTER_PCT ? Number(storage.options.RAFFLE_LIST_FILTER_PCT) : null,
     easy: storage.options.RAFFLE_LIST_FILTER_EASY,
+    gtd: storage.options.RAFFLE_LIST_FILTER_GTD,
     reqDiscord: storage.options.RAFFLE_LIST_FILTER_REQ_DISCORD,
     reqFollow: storage.options.RAFFLE_LIST_FILTER_REQ_FOLLOW,
     reqLike: storage.options.RAFFLE_LIST_FILTER_REQ_LIKE,
     reqRetweet: storage.options.RAFFLE_LIST_FILTER_REQ_RETWEET,
+    twitterFollowers: 0,
   };
 }
 
@@ -1233,6 +1261,7 @@ function getFiltersFromInput() {
   return {
     minutes: Number(document.getElementById('time-left').value) || null,
     winPct: Number(document.getElementById('win-pct').value) || null,
+    twitterFollowers: Number(document.getElementById('twitter-followers').value) || null,
     easy: document.getElementById('easy').checked,
     gtd: document.getElementById('gtd').checked,
     reqDiscord: document.getElementById('d').checked,
@@ -1263,6 +1292,12 @@ function isFiltered(raffle, filters) {
 
   if (filters.winPct !== null && getWinPct(raffle) * 100 < filters.winPct) {
     console2.trace('false: winPct');
+    return false;
+  }
+
+  console.log('filters.twitterFollowers', filters.twitterFollowers);
+  if (filters.twitterFollowers !== null && getTwitterFollowers(raffle) < filters.twitterFollowers) {
+    console2.trace('false: twitterFollowers');
     return false;
   }
 
@@ -1329,6 +1364,18 @@ function getWinPct(r) {
   return r.winnerCount / r.entryCount;
 }
 
+function getTwitterFollowers(r) {
+  if (typeof r.twitterFollowers === 'undefined') {
+    r.twitterFollowers = pageState.twitterObserver.getTwitterFollowers(r.collabTwitterHandle);
+    //console.log('r.twitterFollowers', r.twitterFollwers);
+  }
+  console.log('getTwitterFollowers', r.twitterFollowers, r);
+  if (typeof r.twitterFollowers !== 'number') {
+    return 0;
+  }
+  return r.twitterFollowers;
+}
+
 function creteFiltersHTML() {
   const f = getFilters(false);
 
@@ -1344,6 +1391,8 @@ function creteFiltersHTML() {
   div.appendChild(makeSelect(getTimeLeftOptionsArr(), 'time-left', 'time-left'));
   div.appendChild(createLabel('Min Win %:', 'filter-label'));
   div.appendChild(makeSelect(getWinPctOptionsArr(), 'win-pct', 'win-pct'));
+  div.appendChild(createLabel('Min Followers:', 'filter-label'));
+  div.appendChild(makeSelect(getTwitterFollowersOptionsArr(), 'twitter-followers', 'twitter-followers'));
 
   document.getElementById('filters').replaceChildren(div);
 }
@@ -1391,6 +1440,17 @@ function getWinPctOptionsArr() {
     .map((x) => {
       return { value: x, text: toText(x), selected: x === selectedVal };
     });
+}
+
+function getTwitterFollowersOptionsArr() {
+  const arr = [0, 5000, 10000, 15000, 20000, 25000, 30000, 40000, 50000, 75000, 100000];
+  let selectedVal = 0;
+  const toText = (val) => {
+    return `${val}`;
+  };
+  return noDuplicates(arr).map((x) => {
+    return { value: x, text: toText(x), selected: x === selectedVal };
+  });
 }
 
 function makeSelect(options, id, className) {

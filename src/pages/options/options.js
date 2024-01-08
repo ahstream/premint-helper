@@ -3,7 +3,7 @@ console.info('options.js begin', window?.location?.href);
 import './options.css';
 
 import global from '../../js/global.js';
-console.log(global);
+console.log('global:', global);
 
 import { initOptionsPage, mountOptionsPage } from 'hx-chrome-lib';
 
